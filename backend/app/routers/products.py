@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from ..auth import require_admin
 from ..database import get_db
 from ..models import Category, Product, User
-from ..schemas import ProductCreate, ProductResponse
+from ..schemas import ProductCreate, ProductResponse, ProductUpdate
 
 
 router = APIRouter(
@@ -77,7 +77,7 @@ def create_product(
 @router.patch("/{product_id}", response_model=ProductResponse)
 def update_product(
     product_id: int,
-    product_data: ProductCreate,
+    product_data: ProductUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin)
 ):
@@ -93,24 +93,36 @@ def update_product(
             detail="Product not found"
         )
 
-    category = (
-        db.query(Category)
-        .filter(Category.id == product_data.category_id)
-        .first()
-    )
-
-    if category is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Category not found"
+    if product_data.category_id is not None:
+        category = (
+            db.query(Category)
+            .filter(Category.id == product_data.category_id)
+            .first()
         )
 
-    product.name = product_data.name
-    product.description = product_data.description
-    product.price = product_data.price
-    product.stock_quantity = product_data.stock_quantity
-    product.unit = product_data.unit
-    product.category_id = product_data.category_id
+        if category is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Category not found"
+            )
+
+    if product_data.name is not None:
+        product.name = product_data.name
+
+    if product_data.description is not None:
+        product.description = product_data.description
+
+    if product_data.price is not None:
+        product.price = product_data.price
+
+    if product_data.stock_quantity is not None:
+        product.stock_quantity = product_data.stock_quantity
+
+    if product_data.unit is not None:
+        product.unit = product_data.unit
+
+    if product_data.category_id is not None:
+        product.category_id = product_data.category_id
 
     db.commit()
     db.refresh(product)

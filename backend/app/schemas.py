@@ -25,6 +25,15 @@ class ProductCreate(ProductBase):
     pass
 
 
+class ProductUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    description: str | None = Field(default=None, max_length=1000)
+    price: float | None = Field(default=None, gt=0)
+    stock_quantity: float | None = Field(default=None, ge=0)
+    unit: str | None = Field(default=None, min_length=1, max_length=20)
+    category_id: int | None = Field(default=None, gt=0)
+
+
 class ProductResponse(ProductBase):
     id: int
 

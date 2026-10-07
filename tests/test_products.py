@@ -242,3 +242,53 @@ def test_admin_can_delete_product(client, reset_database):
     assert response.status_code == 200
 
     db.close()
+
+
+def test_admin_can_partially_update_product(client, reset_database):
+    from app.database import SessionLocal
+
+    db = SessionLocal()
+
+    create_admin(db)
+    category = create_category(db)
+
+    product = Product(
+        name="Доска",
+        description="Обычная доска",
+        price=1000,
+        stock_quantity=20,
+        unit="шт",
+        category_id=category.id
+    )
+
+    db.add(product)
+    db.commit()
+    db.refresh(product)
+
+    token = login(
+        client,
+        "admin@woodcommerce.local",
+        "123456"
+    )
+
+    response = client.patch(
+        f"/api/v1/products/{product.id}",
+        headers={
+            "Authorization": f"Bearer {token}"
+        },
+        json={
+            "price": 1500
+        }
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["name"] == "Доска"
+    assert data["description"] == "Обычная доска"
+    assert data["price"] == 1500
+    assert data["stock_quantity"] == 20
+    assert data["unit"] == "шт"
+
+    db.close()
