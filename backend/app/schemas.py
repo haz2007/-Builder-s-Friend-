@@ -1,7 +1,6 @@
 from enum import Enum
 
-from pydantic import BaseModel
-
+from pydantic import BaseModel, ConfigDict
 
 class CategoryBase(BaseModel):
     name: str
@@ -10,8 +9,7 @@ class CategoryBase(BaseModel):
 class CategoryResponse(CategoryBase):
     id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ProductBase(BaseModel):
@@ -30,8 +28,7 @@ class ProductCreate(ProductBase):
 class ProductResponse(ProductBase):
     id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class OrderItemCreate(BaseModel):
@@ -49,8 +46,7 @@ class OrderItemResponse(BaseModel):
     quantity: float
     price: float
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class OrderStatus(str, Enum):
@@ -90,8 +86,7 @@ class DeliveryResponse(BaseModel):
     order_id: int
     driver_id: int | None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class OrderResponse(BaseModel):
@@ -100,8 +95,7 @@ class OrderResponse(BaseModel):
     total_price: float
     items: list[OrderItemResponse]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserCreate(BaseModel):
@@ -119,8 +113,7 @@ class UserResponse(BaseModel):
     email: str
     role: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class LoginRequest(BaseModel):

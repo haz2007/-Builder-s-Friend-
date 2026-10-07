@@ -1,16 +1,11 @@
 from fastapi import FastAPI
 
-from .database import Base, engine
-from .models import Category, Product, Delivery
 from .routers.products import router as products_router
 from .routers.categories import router as categories_router
 from .routers.orders import router as orders_router
 from .routers.auth import router as auth_router
 from .routers.deliveries import router as deliveries_router
 from .routers.users import router as users_router
-
-
-Base.metadata.create_all(bind=engine)
 
 
 app = FastAPI(
