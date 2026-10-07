@@ -21,13 +21,13 @@ def get_products(
 
 
 @router.get("/{product_id}", response_model=ProductResponse)
-def get_product(
-    product_id: int,
-    db: Session = Depends(get_db)
-):
+def get_product(product_id: int, db: Session = Depends(get_db)):
     product = (
         db.query(Product)
-        .filter(Product.id == product_id)
+        .filter(
+            Product.id == product_id,
+            Product.is_active == 1
+        )
         .first()
     )
 
@@ -138,6 +138,35 @@ def delete_product(
 ):
     product = (
         db.query(Product)
+        .filter(
+            Product.id == product_id,
+            Product.is_active == 1
+        )
+        .first()
+    )
+
+    if product is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Product not found"
+        )
+
+    product.is_active = 0
+    db.commit()
+
+    return {
+        "message": "Product deleted successfully"
+    }
+
+
+@router.post("/{product_id}/restore", response_model=ProductResponse)
+def restore_product(
+    product_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    product = (
+        db.query(Product)
         .filter(Product.id == product_id)
         .first()
     )
@@ -148,9 +177,14 @@ def delete_product(
             detail="Product not found"
         )
 
-    db.delete(product)
-    db.commit()
+    if product.is_active == 1:
+        raise HTTPException(
+            status_code=400,
+            detail="Product is already active"
+        )
 
-    return {
-        "message": "Product deleted successfully"
-    }
+    product.is_active = 1
+    db.commit()
+    db.refresh(product)
+
+    return product

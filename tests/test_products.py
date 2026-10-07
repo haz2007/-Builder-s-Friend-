@@ -292,3 +292,103 @@ def test_admin_can_partially_update_product(client, reset_database):
     assert data["unit"] == "шт"
 
     db.close()
+
+
+    def test_admin_soft_deletes_product(client, reset_database):
+        from app.database import SessionLocal
+
+        db = SessionLocal()
+
+        create_admin(db)
+        category = create_category(db)
+
+        product = Product(
+            name="Доска",
+            description="Обычная доска",
+            price=1000,
+            stock_quantity=20,
+            unit="шт",
+            category_id=category.id
+        )
+
+        db.add(product)
+        db.commit()
+        db.refresh(product)
+
+        token = login(
+            client,
+            "admin@woodcommerce.local",
+            "123456"
+        )
+
+        response = client.delete(
+            f"/api/v1/products/{product.id}",
+            headers={
+                "Authorization": f"Bearer {token}"
+            }
+        )
+
+        assert response.status_code == 200
+
+        db.refresh(product)
+
+        assert product.is_active == 0
+
+        response = client.get(
+            f"/api/v1/products/{product.id}"
+        )
+
+        assert response.status_code == 404
+
+        db.close()
+
+
+def test_admin_can_restore_product(client, reset_database):
+    from app.database import SessionLocal
+
+    db = SessionLocal()
+
+    create_admin(db)
+    category = create_category(db)
+
+    product = Product(
+        name="Доска",
+        description="Обычная доска",
+        price=1000,
+        stock_quantity=20,
+        unit="шт",
+        category_id=category.id,
+        is_active=0
+    )
+
+    db.add(product)
+    db.commit()
+    db.refresh(product)
+
+    token = login(
+        client,
+        "admin@woodcommerce.local",
+        "123456"
+    )
+
+    response = client.post(
+        f"/api/v1/products/{product.id}/restore",
+        headers={
+            "Authorization": f"Bearer {token}"
+        }
+    )
+
+    assert response.status_code == 200
+
+    db.refresh(product)
+
+    assert product.is_active == 1
+
+    response = client.get(
+        f"/api/v1/products/{product.id}"
+    )
+
+    assert response.status_code == 200
+    assert response.json()["name"] == "Доска"
+
+    db.close()

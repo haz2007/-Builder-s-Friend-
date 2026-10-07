@@ -38,13 +38,15 @@ class Product(Base):
     price = Column(Float, nullable=False)
     stock_quantity = Column(Float, nullable=False, default=0)
     unit = Column(String(20), nullable=False)
-
+    
     category_id = Column(
         Integer,
         ForeignKey("categories.id"),
         nullable=False
     )
 
+    is_active = Column(Integer, nullable=False, default=1)
+    
     category = relationship(
         "Category",
         back_populates="products"
