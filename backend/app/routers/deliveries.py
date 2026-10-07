@@ -9,6 +9,7 @@ from ..schemas import (
     DeliveryResponse,
     DeliveryStatusUpdate
 )
+from ..services.order_service import change_order_status
 
 
 router = APIRouter(
@@ -37,6 +38,15 @@ def create_delivery(
         raise HTTPException(
             status_code=404,
             detail="Order not found"
+        )
+
+    if order.status != "READY_FOR_DELIVERY":
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Delivery can only be created "
+                "for orders ready for delivery"
+            )
         )
 
     existing_delivery = (
@@ -143,8 +153,8 @@ def update_delivery_status(
 
     if delivery is None:
         raise HTTPException(
-        status_code=404,
-        detail="Delivery not found"
+            status_code=404,
+            detail="Delivery not found"
         )
 
     if delivery.driver_id != current_user.id:
@@ -153,13 +163,42 @@ def update_delivery_status(
             detail="This delivery is not assigned to you"
         )
 
-    delivery.status = status_data.status.value
+    new_status = status_data.status.value
 
-    if status_data.status.value == "ON_THE_WAY":
-        delivery.order.status = "ON_THE_WAY"
+    allowed_delivery_transitions = {
+        "WAITING": {"LOADED"},
+        "LOADED": {"ON_THE_WAY"},
+        "ON_THE_WAY": {"DELIVERED"},
+        "DELIVERED": set()
+    }
 
-    if status_data.status.value == "DELIVERED":
-        delivery.order.status = "DELIVERED"
+    allowed_statuses = allowed_delivery_transitions.get(
+        delivery.status,
+        set()
+    )
+
+    if new_status not in allowed_statuses:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Invalid delivery status transition: "
+                f"{delivery.status} -> {new_status}"
+            )
+        )
+
+    if new_status == "ON_THE_WAY":
+        change_order_status(
+            delivery.order,
+            "ON_THE_WAY"
+        )
+
+    if new_status == "DELIVERED":
+        change_order_status(
+            delivery.order,
+            "DELIVERED"
+        )
+
+    delivery.status = new_status
 
     db.commit()
     db.refresh(delivery)
@@ -207,8 +246,18 @@ def assign_driver(
             detail="Selected user is not a driver"
         )
 
+    if delivery.driver_id is not None:
+        raise HTTPException(
+            status_code=400,
+            detail="Delivery already has a driver"
+        )
+
+    change_order_status(
+        delivery.order,
+        "ASSIGNED_TO_DRIVER"
+    )
+
     delivery.driver_id = driver.id
-    delivery.order.status = "ASSIGNED_TO_DRIVER"
 
     db.commit()
     db.refresh(delivery)

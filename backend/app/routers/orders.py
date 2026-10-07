@@ -9,6 +9,7 @@ from ..schemas import (
     OrderResponse,
     OrderStatusUpdate
 )
+from ..services.order_service import change_order_status
 
 
 router = APIRouter(
@@ -17,7 +18,10 @@ router = APIRouter(
 )
 
 
-@router.post("/", response_model=OrderResponse)
+@router.post(
+    "/",
+    response_model=OrderResponse
+)
 def create_order(
     order_data: OrderCreate,
     db: Session = Depends(get_db),
@@ -86,7 +90,10 @@ def create_order(
     return order
 
 
-@router.get("/", response_model=list[OrderResponse])
+@router.get(
+    "/",
+    response_model=list[OrderResponse]
+)
 def get_orders(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -101,7 +108,10 @@ def get_orders(
     )
 
 
-@router.get("/{order_id}", response_model=OrderResponse)
+@router.get(
+    "/{order_id}",
+    response_model=OrderResponse
+)
 def get_order(
     order_id: int,
     db: Session = Depends(get_db),
@@ -153,7 +163,10 @@ def update_order_status(
             detail="Order not found"
         )
 
-    order.status = status_data.status.value
+    change_order_status(
+        order,
+        status_data.status.value
+    )
 
     db.commit()
     db.refresh(order)
