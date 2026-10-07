@@ -1,3 +1,5 @@
+from enum import Enum
+
 from pydantic import BaseModel
 
 
@@ -51,6 +53,47 @@ class OrderItemResponse(BaseModel):
         from_attributes = True
 
 
+class OrderStatus(str, Enum):
+    NEW = "NEW"
+    CONFIRMED = "CONFIRMED"
+    PREPARING = "PREPARING"
+    READY_FOR_DELIVERY = "READY_FOR_DELIVERY"
+    ASSIGNED_TO_DRIVER = "ASSIGNED_TO_DRIVER"
+    ON_THE_WAY = "ON_THE_WAY"
+    DELIVERED = "DELIVERED"
+    CANCELLED = "CANCELLED"
+
+
+class OrderStatusUpdate(BaseModel):
+    status: OrderStatus
+
+
+class DeliveryStatus(str, Enum):
+    WAITING = "WAITING"
+    LOADED = "LOADED"
+    ON_THE_WAY = "ON_THE_WAY"
+    DELIVERED = "DELIVERED"
+
+
+class DeliveryCreate(BaseModel):
+    address: str
+
+
+class DeliveryStatusUpdate(BaseModel):
+    status: DeliveryStatus
+
+
+class DeliveryResponse(BaseModel):
+    id: int
+    status: str
+    address: str
+    order_id: int
+    driver_id: int | None
+
+    class Config:
+        from_attributes = True
+
+
 class OrderResponse(BaseModel):
     id: int
     status: str
@@ -60,7 +103,12 @@ class OrderResponse(BaseModel):
     class Config:
         from_attributes = True
 
-        
+
+class UserCreate(BaseModel):
+    email: str
+    password: str
+
+
 class UserRegister(BaseModel):
     email: str
     password: str

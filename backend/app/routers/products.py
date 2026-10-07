@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from ..auth import require_admin
 from ..database import get_db
-from ..models import Product
+from ..models import Product, User
 from ..schemas import ProductCreate, ProductResponse
 
 
@@ -13,13 +14,22 @@ router = APIRouter(
 
 
 @router.get("/", response_model=list[ProductResponse])
-def get_products(db: Session = Depends(get_db)):
+def get_products(
+    db: Session = Depends(get_db)
+):
     return db.query(Product).all()
 
 
 @router.get("/{product_id}", response_model=ProductResponse)
-def get_product(product_id: int, db: Session = Depends(get_db)):
-    product = db.query(Product).filter(Product.id == product_id).first()
+def get_product(
+    product_id: int,
+    db: Session = Depends(get_db)
+):
+    product = (
+        db.query(Product)
+        .filter(Product.id == product_id)
+        .first()
+    )
 
     if product is None:
         raise HTTPException(
@@ -33,7 +43,8 @@ def get_product(product_id: int, db: Session = Depends(get_db)):
 @router.post("/", response_model=ProductResponse)
 def create_product(
     product: ProductCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
 ):
     new_product = Product(
         name=product.name,
@@ -54,9 +65,14 @@ def create_product(
 @router.delete("/{product_id}")
 def delete_product(
     product_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
 ):
-    product = db.query(Product).filter(Product.id == product_id).first()
+    product = (
+        db.query(Product)
+        .filter(Product.id == product_id)
+        .first()
+    )
 
     if product is None:
         raise HTTPException(
