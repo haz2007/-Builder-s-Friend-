@@ -1,6 +1,6 @@
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 class CategoryBase(BaseModel):
     name: str
@@ -13,12 +13,12 @@ class CategoryResponse(CategoryBase):
 
 
 class ProductBase(BaseModel):
-    name: str
-    description: str | None = None
-    price: float
-    stock_quantity: float
-    unit: str
-    category_id: int
+    name: str = Field(min_length=1, max_length=200)
+    description: str | None = Field(default=None, max_length=1000)
+    price: float = Field(gt=0)
+    stock_quantity: float = Field(ge=0)
+    unit: str = Field(min_length=1, max_length=20)
+    category_id: int = Field(gt=0)
 
 
 class ProductCreate(ProductBase):

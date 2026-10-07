@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from ..auth import require_admin
 from ..database import get_db
-from ..models import Product, User
+from ..models import Category, Product, User
 from ..schemas import ProductCreate, ProductResponse
 
 
@@ -46,6 +46,18 @@ def create_product(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin)
 ):
+    category = (
+        db.query(Category)
+        .filter(Category.id == product.category_id)
+        .first()
+    )
+
+    if category is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Category not found"
+        )
+
     new_product = Product(
         name=product.name,
         description=product.description,
@@ -60,6 +72,50 @@ def create_product(
     db.refresh(new_product)
 
     return new_product
+
+
+@router.patch("/{product_id}", response_model=ProductResponse)
+def update_product(
+    product_id: int,
+    product_data: ProductCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    product = (
+        db.query(Product)
+        .filter(Product.id == product_id)
+        .first()
+    )
+
+    if product is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Product not found"
+        )
+
+    category = (
+        db.query(Category)
+        .filter(Category.id == product_data.category_id)
+        .first()
+    )
+
+    if category is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Category not found"
+        )
+
+    product.name = product_data.name
+    product.description = product_data.description
+    product.price = product_data.price
+    product.stock_quantity = product_data.stock_quantity
+    product.unit = product_data.unit
+    product.category_id = product_data.category_id
+
+    db.commit()
+    db.refresh(product)
+
+    return product
 
 
 @router.delete("/{product_id}")
