@@ -228,6 +228,18 @@ def assign_driver(
             detail="Delivery not found"
         )
 
+    if delivery.status != "WAITING":
+        raise HTTPException(
+            status_code=400,
+            detail="Driver can only be assigned to a waiting delivery"
+        )
+
+    if delivery.driver_id is not None:
+        raise HTTPException(
+            status_code=400,
+            detail="Delivery already has a driver"
+        )
+
     driver = (
         db.query(User)
         .filter(User.id == driver_id)
@@ -244,12 +256,6 @@ def assign_driver(
         raise HTTPException(
             status_code=400,
             detail="Selected user is not a driver"
-        )
-
-    if delivery.driver_id is not None:
-        raise HTTPException(
-            status_code=400,
-            detail="Delivery already has a driver"
         )
 
     change_order_status(

@@ -47,6 +47,7 @@ class OrderItemCreate(BaseModel):
 
 class OrderCreate(BaseModel):
     items: list[OrderItemCreate]
+    delivery_address: str = Field(min_length=5, max_length=500)
 
 
 class OrderItemResponse(BaseModel):
@@ -102,6 +103,7 @@ class OrderResponse(BaseModel):
     id: int
     status: str
     total_price: float
+    delivery_address: str
     items: list[OrderItemResponse]
 
     model_config = ConfigDict(from_attributes=True)
