@@ -402,12 +402,12 @@ def test_driver_can_update_delivery_status(client):
 
 def test_customer_cannot_manage_delivery(client):
     admin = create_user(
-        "admin@woodcommerce.local",
+        "admin_customer_manage@woodcommerce.local",
         "ADMIN"
     )
 
     customer = create_user(
-        "customer@woodcommerce.local",
+        "customer_manage_delivery@woodcommerce.local",
         "CUSTOMER"
     )
 
@@ -433,6 +433,8 @@ def test_customer_cannot_manage_delivery(client):
             "Authorization": f"Bearer {customer_token}"
         }
     )
+
+    assert order_response.status_code == 200
 
     order_id = order_response.json()["id"]
 
@@ -480,3 +482,213 @@ def test_customer_cannot_manage_delivery(client):
     )
 
     assert response.status_code == 403
+
+
+def test_driver_cannot_update_another_driver_delivery(client):
+    admin = create_user(
+        "admin@woodcommerce.local",
+        "ADMIN"
+    )
+
+    driver_1 = create_user(
+        "driver1@woodcommerce.local",
+        "DRIVER"
+    )
+
+    driver_2 = create_user(
+        "driver2@woodcommerce.local",
+        "DRIVER"
+    )
+
+    customer = create_user(
+        "customer@woodcommerce.local",
+        "CUSTOMER"
+    )
+
+    product = create_product()
+
+    customer_token = get_token(
+        client,
+        customer.email
+    )
+
+    order_response = client.post(
+        "/api/v1/orders/",
+        json={
+            "items": [
+                {
+                    "product_id": product.id,
+                    "quantity": 1
+                }
+            ],
+            "delivery_address": "Москва, ул. Садовая, 25"
+        },
+        headers={
+            "Authorization": f"Bearer {customer_token}"
+        }
+    )
+
+    order_id = order_response.json()["id"]
+
+    admin_token = get_token(
+        client,
+        admin.email
+    )
+
+    for status in [
+        "CONFIRMED",
+        "PREPARING",
+        "READY_FOR_DELIVERY"
+    ]:
+        response = client.patch(
+            f"/api/v1/orders/{order_id}/status",
+            json={
+                "status": status
+            },
+            headers={
+                "Authorization": f"Bearer {admin_token}"
+            }
+        )
+
+        assert response.status_code == 200
+
+    delivery_response = client.post(
+        f"/api/v1/deliveries/{order_id}",
+        json={
+            "address": "Москва, ул. Садовая, 25"
+        },
+        headers={
+            "Authorization": f"Bearer {admin_token}"
+        }
+    )
+
+    delivery_id = delivery_response.json()["id"]
+
+    assign_response = client.patch(
+        f"/api/v1/deliveries/{delivery_id}/assign/{driver_1.id}",
+        headers={
+            "Authorization": f"Bearer {admin_token}"
+        }
+    )
+
+    assert assign_response.status_code == 200
+
+    driver_2_token = get_token(
+        client,
+        driver_2.email
+    )
+
+    response = client.patch(
+        f"/api/v1/deliveries/{delivery_id}/status",
+        json={
+            "status": "LOADED"
+        },
+        headers={
+            "Authorization": f"Bearer {driver_2_token}"
+        }
+    )
+
+    assert response.status_code == 403
+
+
+def test_driver_cannot_skip_delivery_status(client):
+    admin = create_user(
+        "admin@woodcommerce.local",
+        "ADMIN"
+    )
+
+    driver = create_user(
+        "driver@woodcommerce.local",
+        "DRIVER"
+    )
+
+    customer = create_user(
+        "customer@woodcommerce.local",
+        "CUSTOMER"
+    )
+
+    product = create_product()
+
+    customer_token = get_token(
+        client,
+        customer.email
+    )
+
+    order_response = client.post(
+        "/api/v1/orders/",
+        json={
+            "items": [
+                {
+                    "product_id": product.id,
+                    "quantity": 1
+                }
+            ],
+            "delivery_address": "Москва, ул. Тверская, 30"
+        },
+        headers={
+            "Authorization": f"Bearer {customer_token}"
+        }
+    )
+
+    order_id = order_response.json()["id"]
+
+    admin_token = get_token(
+        client,
+        admin.email
+    )
+
+    for status in [
+        "CONFIRMED",
+        "PREPARING",
+        "READY_FOR_DELIVERY"
+    ]:
+        response = client.patch(
+            f"/api/v1/orders/{order_id}/status",
+            json={
+                "status": status
+            },
+            headers={
+                "Authorization": f"Bearer {admin_token}"
+            }
+        )
+
+        assert response.status_code == 200
+
+    delivery_response = client.post(
+        f"/api/v1/deliveries/{order_id}",
+        json={
+            "address": "Москва, ул. Тверская, 30"
+        },
+        headers={
+            "Authorization": f"Bearer {admin_token}"
+        }
+    )
+
+    delivery_id = delivery_response.json()["id"]
+
+    assign_response = client.patch(
+        f"/api/v1/deliveries/{delivery_id}/assign/{driver.id}",
+        headers={
+            "Authorization": f"Bearer {admin_token}"
+        }
+    )
+
+    assert assign_response.status_code == 200
+
+    driver_token = get_token(
+        client,
+        driver.email
+    )
+
+    response = client.patch(
+        f"/api/v1/deliveries/{delivery_id}/status",
+        json={
+            "status": "ON_THE_WAY"
+        },
+        headers={
+            "Authorization": f"Bearer {driver_token}"
+        }
+    )
+
+    assert response.status_code == 400
+    assert "Invalid delivery status transition" in response.json()["detail"]
