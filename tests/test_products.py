@@ -1,3 +1,5 @@
+import hashlib
+
 from app.models import Category, Product, User
 from app.auth import hash_password
 
@@ -5,6 +7,7 @@ from app.auth import hash_password
 def create_admin(db):
     admin = User(
         email="admin@woodcommerce.local",
+        phone="+7999" + str(int(hashlib.sha256("admin@woodcommerce.local".encode("utf-8")).hexdigest(), 16) % 10_000_000).zfill(7),
         password_hash=hash_password("123456"),
         role="ADMIN"
     )
@@ -17,6 +20,7 @@ def create_admin(db):
 def create_customer(db):
     customer = User(
         email="customer@woodcommerce.local",
+        phone="+7999" + str(int(hashlib.sha256("customer@woodcommerce.local".encode("utf-8")).hexdigest(), 16) % 10_000_000).zfill(7),
         password_hash=hash_password("123456"),
         role="CUSTOMER"
     )
@@ -35,13 +39,16 @@ def create_category(db):
 
 
 def login(client, email, password):
-    response = client.post(
-        "/api/v1/auth/login",
-        json={
-            "email": email,
-            "password": password
-        }
-    )
+    if email.startswith("admin"):
+        credentials = {"email": email, "password": password}
+    else:
+        phone = "+7999" + str(
+            int(hashlib.sha256(email.encode("utf-8")).hexdigest(), 16) % 10_000_000
+        ).zfill(7)
+        credentials = {"phone": phone, "password": password}
+
+    response = client.post("/api/v1/auth/login", json=credentials)
+    assert response.status_code == 200, response.text
     return response.json()["access_token"]
 
 

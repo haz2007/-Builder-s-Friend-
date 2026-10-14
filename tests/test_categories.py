@@ -16,7 +16,7 @@ def create_admin(db):
 
 def create_customer(db):
     customer = User(
-        email="customer@woodcommerce.local",
+        phone="+79991112001",
         password_hash=hash_password("123456"),
         role="CUSTOMER"
     )
@@ -26,14 +26,16 @@ def create_customer(db):
     return customer
 
 
-def login(client, email, password):
-    response = client.post(
-        "/api/v1/auth/login",
-        json={
-            "email": email,
-            "password": password
-        }
-    )
+def login(client, identifier, password):
+    # Email login is reserved for administrators; customers use phone numbers.
+    login_data = {"password": password}
+    if identifier.startswith("+"):
+        login_data["phone"] = identifier
+    else:
+        login_data["email"] = identifier
+
+    response = client.post("/api/v1/auth/login", json=login_data)
+    assert response.status_code == 200, response.text
     return response.json()["access_token"]
 
 
@@ -77,7 +79,7 @@ def test_customer_cannot_create_category(client, reset_database):
 
     token = login(
         client,
-        "customer@woodcommerce.local",
+        "+79991112001",
         "123456"
     )
 

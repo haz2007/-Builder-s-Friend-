@@ -7,6 +7,7 @@ from app.services.order_service import change_order_status
 
 def create_order(status: str) -> Order:
     return Order(
+        customer_name="Тестовый покупатель",
         status=status,
         total_price=0,
         user_id=1

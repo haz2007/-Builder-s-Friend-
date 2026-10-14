@@ -1,4 +1,6 @@
 
+import hashlib
+
 from app.models import Category, Product, User
 from app.auth import hash_password
 from app.database import SessionLocal
@@ -10,6 +12,7 @@ def create_customer(
 ):
     customer = User(
         email=email,
+        phone="+7999" + str(int(hashlib.sha256(email.encode("utf-8")).hexdigest(), 16) % 10_000_000).zfill(7),
         password_hash=hash_password("123456"),
         role="CUSTOMER"
     )
@@ -31,10 +34,11 @@ def login(client, email, password):
     response = client.post(
         "/api/v1/auth/login",
         json={
-            "email": email,
+            "phone": "+7999" + str(int(hashlib.sha256(email.encode("utf-8")).hexdigest(), 16) % 10_000_000).zfill(7),
             "password": password
         }
     )
+    assert response.status_code == 200, response.text
     return response.json()["access_token"]
 
 
@@ -70,6 +74,7 @@ def test_customer_cannot_order_inactive_product(client, reset_database):
             "Authorization": f"Bearer {token}"
         },
         json={
+            "customer_name": "Тестовый покупатель",
             "delivery_address": "Москва, ул. Ленина, 10",
             "items": [
                 {
@@ -125,6 +130,7 @@ def test_customer_can_order_product_and_stock_decreases(
             "Authorization": f"Bearer {token}"
         },
         json={
+            "customer_name": "Тестовый покупатель",
             "delivery_address": "Москва, ул. Ленина, 10",
             "items": [
                 {
@@ -179,6 +185,7 @@ def test_customer_cannot_order_more_than_stock(
             "Authorization": f"Bearer {token}"
         },
         json={
+            "customer_name": "Тестовый покупатель",
             "delivery_address": "Москва, ул. Ленина, 10",
             "items": [
                 {
@@ -249,6 +256,7 @@ def test_order_does_not_partially_change_stock(
             "Authorization": f"Bearer {token}"
         },
         json={
+            "customer_name": "Тестовый покупатель",
             "delivery_address": "Москва, ул. Ленина, 10",
             "items": [
                 {
@@ -306,6 +314,7 @@ def test_customer_can_get_own_order(client, reset_database):
             "Authorization": f"Bearer {token}"
         },
         json={
+            "customer_name": "Тестовый покупатель",
             "delivery_address": "Москва, ул. Ленина, 10",
             "items": [
                 {
@@ -379,6 +388,7 @@ def test_customer_cannot_get_another_customer_order(
             "Authorization": f"Bearer {first_token}"
         },
         json={
+            "customer_name": "Тестовый покупатель",
             "delivery_address": "Москва, ул. Ленина, 10",
             "items": [
                 {

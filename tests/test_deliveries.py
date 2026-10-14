@@ -1,3 +1,5 @@
+import hashlib
+
 from app.auth import hash_password
 from app.models import User, Product, Category
 from app.database import SessionLocal
@@ -8,6 +10,7 @@ def create_user(email, role):
 
     user = User(
         email=email,
+        phone="+7999" + str(int(hashlib.sha256(email.encode("utf-8")).hexdigest(), 16) % 10_000_000).zfill(7),
         password_hash=hash_password("123456"),
         role=role
     )
@@ -49,16 +52,17 @@ def create_product():
 
 
 def get_token(client, email):
-    response = client.post(
-        "/api/v1/auth/login",
-        json={
-            "email": email,
-            "password": "123456"
-        }
-    )
+    # The API permits email login only for administrators.
+    if email.startswith("admin"):
+        credentials = {"email": email, "password": "123456"}
+    else:
+        phone = "+7999" + str(
+            int(hashlib.sha256(email.encode("utf-8")).hexdigest(), 16) % 10_000_000
+        ).zfill(7)
+        credentials = {"phone": phone, "password": "123456"}
 
-    assert response.status_code == 200
-
+    response = client.post("/api/v1/auth/login", json=credentials)
+    assert response.status_code == 200, response.text
     return response.json()["access_token"]
 
 
