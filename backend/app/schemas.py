@@ -1,6 +1,9 @@
+
 from enum import Enum
+from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
+
 
 class CategoryBase(BaseModel):
     name: str
@@ -34,8 +37,16 @@ class ProductUpdate(BaseModel):
     category_id: int | None = Field(default=None, gt=0)
 
 
-class ProductResponse(ProductBase):
+class ProductResponse(BaseModel):
     id: int
+    name: str
+    description: str | None
+    price: float
+    stock_quantity: float
+    unit: str
+    category_id: int
+    is_active: int
+    image_url: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -46,6 +57,7 @@ class OrderItemCreate(BaseModel):
 
 
 class OrderCreate(BaseModel):
+    customer_name: str = Field(default="Покупатель", min_length=2, max_length=100)
     items: list[OrderItemCreate]
     delivery_address: str = Field(min_length=5, max_length=500)
 
@@ -99,12 +111,24 @@ class DeliveryResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class OrderStatusHistoryResponse(BaseModel):
+    id: int
+    order_id: int
+    status: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class OrderResponse(BaseModel):
     id: int
     status: str
     total_price: float
     delivery_address: str
+    customer_name: str
+    customer_phone: str | None = None
     items: list[OrderItemResponse]
+    status_history: list[OrderStatusHistoryResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -114,24 +138,32 @@ class UserCreate(BaseModel):
     password: str
 
 
+
 class UserRegister(BaseModel):
-    email: str
-    password: str
+    phone: str = Field(min_length=10, max_length=30)
+    password: str = Field(min_length=1)
 
 
 class UserResponse(BaseModel):
     id: int
-    email: str
+    email: str | None = None
+    phone: str | None = None
     role: str
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class LoginRequest(BaseModel):
-    email: str
+    email: str | None = None
+    phone: str | None = None
     password: str
+
 
 
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str
+
+
+class ProductStockUpdate(BaseModel):
+    stock_quantity: float = Field(ge=0)

@@ -189,13 +189,17 @@ def update_delivery_status(
     if new_status == "ON_THE_WAY":
         change_order_status(
             delivery.order,
-            "ON_THE_WAY"
+            "ON_THE_WAY",
+            db,
+            current_user.id
         )
 
     if new_status == "DELIVERED":
         change_order_status(
             delivery.order,
-            "DELIVERED"
+            "DELIVERED",
+            db,
+            current_user.id
         )
 
     delivery.status = new_status
@@ -260,7 +264,9 @@ def assign_driver(
 
     change_order_status(
         delivery.order,
-        "ASSIGNED_TO_DRIVER"
+        "ASSIGNED_TO_DRIVER",
+        db,
+        current_user.id
     )
 
     delivery.driver_id = driver.id

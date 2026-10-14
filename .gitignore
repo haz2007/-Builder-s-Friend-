@@ -26,3 +26,5 @@ htmlcov/
 
 # Alembic
 *.db
+# Uploaded product images
+backend/uploads/
