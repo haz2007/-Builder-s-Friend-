@@ -16,11 +16,15 @@ import {
 
   deactivateProduct,
 
+  deleteProduct,
+
   restoreProduct,
 
   createCategory,
 
   updateCategory,
+
+  deleteCategory,
 
   uploadProductImage,
 
@@ -31,10 +35,11 @@ import {
   getAdminOrders,
 
   updateOrderStatus,
+  getAdminAnalytics,
 
 } from "./api";
 
-import type { ApiCategory, ApiOrder, ApiProduct, AuthUser } from "./api";
+import type { ApiCategory, ApiOrder, ApiProduct, AuthUser, AdminAnalytics, AdminAnalyticsPeriod } from "./api";
 
 import "./Admin.css";
 
@@ -123,6 +128,8 @@ function Admin() {
   const [editingId, setEditingId] = useState<number | null>(null);
 
   const [search, setSearch] = useState("");
+  const [productCategoryFilter, setProductCategoryFilter] = useState("ALL");
+  const [productStockFilter, setProductStockFilter] = useState("ALL");
 
   const [loading, setLoading] = useState(false);
 
@@ -159,6 +166,14 @@ function Admin() {
   >({});
 
   const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
+
+  const productFormRef = useRef<HTMLElement | null>(null);
+  const [analyticsPeriod, setAnalyticsPeriod] = useState<AdminAnalyticsPeriod>("30d");
+  const [analyticsFrom, setAnalyticsFrom] = useState("");
+  const [analyticsTo, setAnalyticsTo] = useState("");
+  const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState("");
 
   async function loadOrders(currentToken = token) {
 
@@ -334,6 +349,30 @@ function Admin() {
 
   }, [token, user]);
 
+  useEffect(() => {
+    if (!token || !user) return;
+    if (analyticsPeriod === "custom" && (!analyticsFrom || !analyticsTo)) {
+      setAnalytics(null);
+      setAnalyticsError("Выбери обе даты для произвольного периода.");
+      return;
+    }
+    if (analyticsPeriod === "custom" && analyticsFrom > analyticsTo) {
+      setAnalytics(null);
+      setAnalyticsError("Дата начала не может быть позже даты окончания.");
+      return;
+    }
+    let cancelled = false;
+    setAnalyticsLoading(true);
+    setAnalyticsError("");
+    getAdminAnalytics(token, analyticsPeriod, analyticsFrom, analyticsTo)
+      .then((data) => { if (!cancelled) setAnalytics(data); })
+      .catch((err) => {
+        if (!cancelled) setAnalyticsError(err instanceof Error ? err.message : "Не удалось загрузить аналитику.");
+      })
+      .finally(() => { if (!cancelled) setAnalyticsLoading(false); });
+    return () => { cancelled = true; };
+  }, [token, user, analyticsPeriod, analyticsFrom, analyticsTo]);
+
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
 
     event.preventDefault();
@@ -432,7 +471,12 @@ function Admin() {
 
     setNotice("");
 
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.requestAnimationFrame(() => {
+      productFormRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
 
   }
 
@@ -660,6 +704,24 @@ function Admin() {
 
   }
 
+  async function handleDeleteProduct(product: ApiProduct) {
+    if (!token) return;
+    if (!window.confirm(`Удалить товар «${product.name}»? Это действие нельзя отменить.`)) return;
+    setLoading(true);
+    setError("");
+    setNotice("");
+    try {
+      await deleteProduct(product.id, token);
+      if (editingId === product.id) resetForm();
+      await loadData(token);
+      setNotice(`Товар «${product.name}» удалён.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось удалить товар.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function startEditingCategory(category: ApiCategory) {
 
     setEditingCategoryId(category.id);
@@ -670,6 +732,37 @@ function Admin() {
 
     setNotice("");
 
+  }
+
+  async function handleDeleteCategory(category: ApiCategory) {
+    if (!token) return;
+
+    const categoryProducts = products.filter(
+      (product) => product.category_id === category.id,
+    );
+    const warning = categoryProducts.length
+      ? `В категории «${category.name}» находится товаров: ${categoryProducts.length}.\n\nЕсли продолжить, категория и все товары в ней будут удалены. Это действие нельзя отменить.\n\nУдалить категорию вместе с товарами?`
+      : `Удалить категорию «${category.name}»? Это действие нельзя отменить.`;
+
+    if (!window.confirm(warning)) return;
+
+    setLoading(true);
+    setError("");
+    setNotice("");
+    try {
+      await deleteCategory(category.id, token);
+      if (editingCategoryId === category.id) resetCategoryForm();
+      await loadData(token);
+      setNotice(
+        categoryProducts.length
+          ? `Категория «${category.name}» и её товары удалены.`
+          : `Категория «${category.name}» удалена.`,
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось удалить категорию.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   function resetCategoryForm() {
@@ -790,21 +883,80 @@ function Admin() {
 
   }
 
+
+  const totalRevenue = orders
+    .filter((order) => order.status !== "CANCELLED")
+    .reduce((sum, order) => sum + Number(order.total_price || 0), 0);
+
+  const activeOrders = orders.filter(
+    (order) => !["DELIVERED", "CANCELLED"].includes(order.status),
+  ).length;
+
+  const averageOrder = orders.length
+    ? totalRevenue /
+      Math.max(
+        1,
+        orders.filter((order) => order.status !== "CANCELLED").length,
+      )
+    : 0;
+
+  const productSales = products.reduce<
+    { productId: number; name: string; quantity: number; revenue: number }[]
+  >((result, product) => {
+    const soldItems = orders
+      .filter((order) => order.status !== "CANCELLED")
+      .flatMap((order) => order.items)
+      .filter((item) => item.product_id === product.id);
+
+    const quantity = soldItems.reduce(
+      (sum, item) => sum + Number(item.quantity || 0),
+      0,
+    );
+
+    const revenue = soldItems.reduce(
+      (sum, item) =>
+        sum + Number(item.price || 0) * Number(item.quantity || 0),
+      0,
+    );
+
+    if (quantity > 0) {
+      result.push({
+        productId: product.id,
+        name: product.name,
+        quantity,
+        revenue,
+      });
+    }
+
+    return result;
+  }, []).sort((a, b) => b.quantity - a.quantity).slice(0, 5);
+
+  const statusCounts = orderStatuses.map((status) => ({
+    ...status,
+    count: orders.filter((order) => order.status === status.value).length,
+  }));
+
+
   const visibleOrders = orders.filter(
 
     (order) => orderFilter === "ALL" || order.status === orderFilter,
 
   );
 
-  const visibleProducts = products.filter((product) =>
-
-    `${product.name} ${product.description ?? ""}`
-
+  const visibleProducts = products.filter((product) => {
+    const matchesSearch = `${product.name} ${product.description ?? ""}`
       .toLowerCase()
-
-      .includes(search.toLowerCase()),
-
-  );
+      .includes(search.toLowerCase().trim());
+    const matchesCategory =
+      productCategoryFilter === "ALL" ||
+      String(product.category_id) === productCategoryFilter;
+    const matchesStock =
+      productStockFilter === "ALL" ||
+      (productStockFilter === "IN_STOCK" && product.stock_quantity > 0) ||
+      (productStockFilter === "OUT_OF_STOCK" && product.stock_quantity <= 0) ||
+      (productStockFilter === "LOW_STOCK" && product.stock_quantity > 0 && product.stock_quantity <= 10);
+    return matchesSearch && matchesCategory && matchesStock;
+  });
 
   if (!user) {
 
@@ -927,6 +1079,76 @@ function Admin() {
         {error && <p className="admin-error">{error}</p>}
 
         {notice && <p className="admin-notice">{notice}</p>}
+                
+                
+        <section className="admin-card admin-statistics">
+          <div className="admin-section-heading">
+            <div>
+              <span className="admin-eyebrow">АНАЛИТИКА</span>
+              <h2>Статистика магазина</h2>
+              <p>Данные рассчитываются на сервере по всем заказам за выбранный период.</p>
+            </div>
+            {analyticsLoading && <span>Обновляем статистику...</span>}
+          </div>
+          <div className="admin-analytics-controls">
+            <label>Период
+              <select value={analyticsPeriod} onChange={(event) => setAnalyticsPeriod(event.target.value as AdminAnalyticsPeriod)}>
+                <option value="7d">Последние 7 дней</option>
+                <option value="30d">Последние 30 дней</option>
+                <option value="90d">Последние 90 дней</option>
+                <option value="all">За всё время</option>
+                <option value="custom">Выбрать даты</option>
+              </select>
+            </label>
+            {analyticsPeriod === "custom" && <>
+              <label>С даты<input type="date" value={analyticsFrom} onChange={(event) => setAnalyticsFrom(event.target.value)} /></label>
+              <label>По дату<input type="date" value={analyticsTo} onChange={(event) => setAnalyticsTo(event.target.value)} /></label>
+            </>}
+          </div>
+          {analyticsError && <p className="admin-error">{analyticsError}</p>}
+          {analytics && <>
+            <div className="admin-stats-grid">
+              <article className="admin-stat-card admin-stat-primary"><span>Сумма неотменённых заказов</span><strong>{analytics.revenue.not_cancelled.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽</strong><small>Включая ещё не доставленные</small></article>
+              <article className="admin-stat-card"><span>Фактическая выручка</span><strong>{analytics.revenue.delivered.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽</strong><small>Только доставленные заказы</small></article>
+              <article className="admin-stat-card"><span>Всего заказов</span><strong>{analytics.orders.total}</strong><small>Отменено: {analytics.orders.cancelled}</small></article>
+              <article className="admin-stat-card"><span>Средний чек</span><strong>{analytics.average_order_value.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽</strong><small>Без отменённых заказов</small></article>
+              <article className="admin-stat-card"><span>Доставлено</span><strong>{analytics.orders.delivered}</strong><small>Конверсия: {analytics.delivery_conversion_rate.toLocaleString("ru-RU", { maximumFractionDigits: 1 })}%</small></article>
+            </div>
+            <div className="admin-statistics-columns">
+              <div className="admin-stat-panel">
+                <h3>Динамика заказов и выручки</h3>
+                {analytics.trend.length === 0 ? <p className="admin-empty">За выбранный период заказов нет.</p> : <div className="admin-analytics-trend">
+                  {analytics.trend.map((day) => {
+                    const maxRevenue = Math.max(1, ...analytics.trend.map((item) => item.revenue));
+                    const maxOrders = Math.max(1, ...analytics.trend.map((item) => item.orders));
+                    return <div className="admin-analytics-day" key={day.date} title={`${day.date}: ${day.orders} заказов, ${day.revenue.toLocaleString("ru-RU")} ₽`}>
+                      <span className="admin-analytics-bars">
+                        <span className="admin-analytics-revenue-bar" style={{ height: `${Math.max(day.revenue > 0 ? 3 : 0, day.revenue / maxRevenue * 100)}%` }} />
+                        <span className="admin-analytics-orders-bar" style={{ height: `${Math.max(day.orders > 0 ? 3 : 0, day.orders / maxOrders * 100)}%` }} />
+                      </span><small>{day.date.slice(5)}</small>
+                    </div>;
+                  })}
+                </div>}
+                <p className="admin-analytics-legend"><span className="admin-analytics-legend-revenue" /> Выручка (без отмен) <span className="admin-analytics-legend-orders" /> Количество заказов</p>
+              </div>
+              <div className="admin-stat-panel">
+                <h3>Популярные товары</h3>
+                {analytics.top_products.length === 0 ? <p className="admin-empty">Нет продаж за выбранный период.</p> : <div className="admin-popular-products">
+                  {analytics.top_products.map((product, index) => <div className="admin-popular-product" key={product.product_id}>
+                    <span className="admin-popular-rank">{index + 1}</span><div className="admin-popular-product-info"><strong>{product.name}</strong><span>Продано: {product.quantity} · {product.revenue.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽</span></div>
+                  </div>)}
+                </div>}
+              </div>
+            </div>
+            <div className="admin-stat-panel admin-low-stock-panel">
+              <h3>Низкий остаток (10 или меньше)</h3>
+              {analytics.low_stock_products.length === 0 ? <p className="admin-empty">Нет товаров с низким остатком.</p> : <div className="admin-low-stock-list">
+                {analytics.low_stock_products.map((product) => <div className="admin-low-stock-item" key={product.id}><strong>{product.name}</strong><span>{product.stock_quantity} {product.unit}</span></div>)}
+              </div>}
+            </div>
+          </>}
+        </section>
+
 
         <section className="admin-card">
 
@@ -1308,21 +1530,29 @@ function Admin() {
 
                   </div>
 
-                  <button
-
-                    type="button"
-
-                    className="admin-secondary"
-
-                    disabled={loading}
-
-                    onClick={() => startEditingCategory(category)}
-
-                  >
-
-                    Переименовать
-
-                  </button>
+                  <div className="admin-category-actions" style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      className="admin-secondary"
+                      disabled={loading}
+                      onClick={() => startEditingCategory(category)}
+                    >
+                      Переименовать
+                    </button>
+                    <button
+                      type="button"
+                      className="admin-secondary"
+                      disabled={loading}
+                      onClick={() => handleDeleteCategory(category)}
+                      style={{
+                        background: "#dc2626",
+                        borderColor: "#dc2626",
+                        color: "#ffffff",
+                      }}
+                    >
+                      Удалить
+                    </button>
+                  </div>
 
                 </div>
 
@@ -1334,7 +1564,11 @@ function Admin() {
 
         </section>
 
-        <section className="admin-card">
+        <section
+          className="admin-card"
+          ref={productFormRef}
+          style={{ scrollMarginTop: "24px" }}
+        >
 
           <h2>
 
@@ -1550,21 +1784,41 @@ function Admin() {
 
               <h2>Список товаров</h2>
 
-              <p>Всего загружено: {products.length}</p>
+              <p>Показано: {visibleProducts.length} из {products.length}</p>
 
             </div>
 
-            <input
-
-              className="admin-search"
-
-              placeholder="Поиск по названию..."
-
-              value={search}
-
-              onChange={(event) => setSearch(event.target.value)}
-
-            />
+            <div className="admin-row-actions admin-product-filters">
+              <input
+                className="admin-search"
+                placeholder="Поиск по названию..."
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                aria-label="Поиск товаров по названию и описанию"
+              />
+              <select
+                value={productCategoryFilter}
+                onChange={(event) => setProductCategoryFilter(event.target.value)}
+                aria-label="Фильтр товаров по категории"
+              >
+                <option value="ALL">Все категории</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={String(category.id)}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={productStockFilter}
+                onChange={(event) => setProductStockFilter(event.target.value)}
+                aria-label="Фильтр товаров по остатку"
+              >
+                <option value="ALL">Любой остаток</option>
+                <option value="IN_STOCK">Есть в наличии</option>
+                <option value="LOW_STOCK">Мало на складе (1–10)</option>
+                <option value="OUT_OF_STOCK">Нет в наличии</option>
+              </select>
+            </div>
 
           </div>
 
@@ -1792,6 +2046,19 @@ function Admin() {
 
                             {product.is_active === 1 ? "Скрыть" : "Вернуть"}
 
+                          </button>
+                          <button
+                            type="button"
+                            className="admin-secondary"
+                            disabled={loading}
+                            onClick={() => void handleDeleteProduct(product)}
+                            style={{
+                              backgroundColor: "#dc2626",
+                              borderColor: "#dc2626",
+                              color: "#ffffff",
+                            }}
+                          >
+                            Удалить
                           </button>
 
                         </div>

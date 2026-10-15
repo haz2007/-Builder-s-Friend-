@@ -1,70 +1,62 @@
-
-import json
+import logging
 import os
-import ssl
-from pathlib import Path
-from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
 
-import certifi
+import requests
 from dotenv import load_dotenv
 
+load_dotenv()
 
-BACKEND_DIR = Path(__file__).resolve().parents[2]
-load_dotenv(BACKEND_DIR / ".env")
-
-SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
+logger = logging.getLogger(__name__)
 
 
-def send_telegram_message(message: str) -> bool:
+def send_telegram_message(
+    message: str,
+    reply_markup: dict | None = None,
+) -> bool:
+    """
+    Отправляет сообщение в Telegram.
+    При необходимости добавляет inline-кнопки.
+    Возвращает True при успехе и False при ошибке.
+    """
     token = os.getenv("TELEGRAM_BOT_TOKEN")
     chat_id = os.getenv("TELEGRAM_CHAT_ID")
 
     if not token or not chat_id:
-        print("Telegram: не найден токен или chat_id в backend/.env")
+        logger.warning(
+            "Telegram не настроен: проверь TELEGRAM_BOT_TOKEN и TELEGRAM_CHAT_ID."
+        )
         return False
 
     url = f"https://api.telegram.org/bot{token}/sendMessage"
-    payload = json.dumps({
+
+    payload = {
         "chat_id": chat_id,
         "text": message,
-    }).encode("utf-8")
+        "parse_mode": "HTML",
+    }
 
-    request = Request(
-        url,
-        data=payload,
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
+    if reply_markup is not None:
+        payload["reply_markup"] = reply_markup
 
     try:
-        with urlopen(
-            request,
-            context=SSL_CONTEXT,
-            timeout=10,
-        ) as response:
-            result = json.loads(response.read().decode("utf-8"))
+        response = requests.post(
+            url,
+            json=payload,
+            timeout=5,
+        )
+        response.raise_for_status()
 
-            if result.get("ok"):
-                print("Telegram: сообщение отправлено")
-                return True
+        result = response.json()
 
-            print("Telegram API отклонил сообщение:", result.get("description"))
+        if not result.get("ok"):
+            logger.error("Telegram не подтвердил отправку сообщения.")
             return False
 
-    except HTTPError as error:
-        try:
-            result = json.loads(error.read().decode("utf-8"))
-            print(
-                "Telegram HTTP ошибка:",
-                error.code,
-                result.get("description", "Причина не указана"),
-            )
-        except (ValueError, OSError):
-            print("Telegram HTTP ошибка:", error.code)
+        return True
 
+    except requests.RequestException:
+        logger.exception("Не удалось отправить сообщение в Telegram.")
         return False
-
-    except (URLError, TimeoutError, OSError, ValueError) as error:
-        print("Telegram: ошибка соединения или ответа:", repr(error))
+    except ValueError:
+        logger.exception("Telegram вернул некорректный ответ.")
         return False

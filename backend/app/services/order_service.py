@@ -26,6 +26,17 @@ STATUS_MESSAGES = {
     "CANCELLED": "Ваш заказ отменён.",
 }
 
+STATUS_NAMES = {
+    "NEW": "🆕 Новый",
+    "CONFIRMED": "✅ Подтверждён",
+    "PREPARING": "🪚 Готовится к выдаче",
+    "READY_FOR_DELIVERY": "📦 Готов к доставке",
+    "ASSIGNED_TO_DRIVER": "🚚 Назначен водитель",
+    "ON_THE_WAY": "🛻 В пути",
+    "DELIVERED": "🎉 Доставлен",
+    "CANCELLED": "❌ Отменён",
+}
+
 
 def change_order_status(
     order: Order,

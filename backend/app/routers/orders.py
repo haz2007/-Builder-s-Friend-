@@ -1,4 +1,3 @@
-import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -22,8 +21,6 @@ from ..schemas import (
 from ..services.order_service import change_order_status
 
 
-logger = logging.getLogger(__name__)
-
 router = APIRouter(
     prefix="/api/v1/orders",
     tags=["orders"],
@@ -31,37 +28,72 @@ router = APIRouter(
 
 
 def restore_order_stock(db: Session, order: Order) -> None:
-    """Return product quantities when an order is cancelled."""
-    items = list(order.items)
-    product_ids = sorted({item.product_id for item in items})
+    """Return products from a cancelled order to store inventory."""
+    for item in order.items:
+        product = (
+            db.query(Product)
+            .filter(Product.id == item.product_id)
+            .with_for_update()
+            .first()
+        )
 
-    if not product_ids:
-        return
+        if product is not None:
+            product.stock_quantity += item.quantity
 
-    products = (
-        db.query(Product)
-        .filter(Product.id.in_(product_ids))
-        .order_by(Product.id)
-        .with_for_update()
-        .populate_existing()
-        .all()
+
+def notify_telegram(message: str) -> None:
+    """Send a Telegram notification without breaking order processing."""
+    try:
+        send_telegram_message(message)
+    except Exception:
+        # Telegram errors must not undo a committed order.
+        pass
+
+
+
+def get_status_value(status) -> str:
+    """Возвращает чистый код статуса, даже если передан Enum."""
+    return str(getattr(status, "value", status))
+
+
+STATUS_NAMES = {
+    "NEW": "🆕 Новый",
+    "CONFIRMED": "✅ Подтверждён",
+    "PREPARING": "🪚 Готовится к выдаче",
+    "READY_FOR_DELIVERY": "📦 Готов к доставке",
+    "ASSIGNED_TO_DRIVER": "🚚 Назначен водитель",
+    "ON_THE_WAY": "🛻 В пути",
+    "DELIVERED": "🎉 Доставлен",
+    "CANCELLED": "❌ Отменён",
+}
+
+
+def build_order_message(order: Order, title: str) -> str:
+    """Формирует уведомление о заказе."""
+    items_text = "\n".join(
+        (
+            f"• {item.product.name} — "
+            f"{item.quantity:g} {item.product.unit} × "
+            f"{item.price:g} = "
+            f"{item.quantity * item.price:g}"
+        )
+        for item in order.items
     )
 
-    products_by_id = {
-        product.id: product
-        for product in products
-    }
+    status = get_status_value(order.status)
+    status_name = STATUS_NAMES.get(status, status)
 
-    for item in items:
-        product = products_by_id.get(item.product_id)
+    return (
+        f"{title}\n\n"
+        f"📦 Заказ №{order.id}\n"
+        f"👤 Покупатель: {order.user.phone or 'Не указан'}\n\n"
+        f"🧾 Товары:\n{items_text}\n\n"
+        f"💰 Итого: {order.total_price:g}\n"
+        f"📍 Адрес доставки: "
+        f"{order.delivery_address or 'Не указан'}\n"
+        f"📌 Статус: {status_name}"
+    )
 
-        if product is None:
-            raise HTTPException(
-                status_code=409,
-                detail=f"Product {item.product_id} no longer exists",
-            )
-
-        product.stock_quantity += item.quantity
 
 
 @router.post("/", response_model=OrderResponse)
@@ -79,7 +111,7 @@ def create_order(
     try:
         products = {}
 
-        # Check products and combine duplicate product IDs.
+        # Check products and sum quantities for duplicate product IDs.
         for item in order_data.items:
             if item.quantity <= 0:
                 raise HTTPException(
@@ -111,7 +143,7 @@ def create_order(
 
             products[item.product_id]["quantity"] += item.quantity
 
-        # Check stock before deducting anything.
+        # Check stock before deducting any products.
         for product_id, data in products.items():
             product = data["product"]
             quantity = data["quantity"]
@@ -122,13 +154,11 @@ def create_order(
                     detail=f"Not enough stock for product {product_id}",
                 )
 
-        # Create the order.
         order = Order(
             user_id=current_user.id,
             status="NEW",
             total_price=0,
             delivery_address=order_data.delivery_address,
-            customer_name=order_data.customer_name.strip(),
         )
 
         db.add(order)
@@ -168,42 +198,12 @@ def create_order(
     except HTTPException:
         db.rollback()
         raise
-
     except Exception:
         db.rollback()
         raise
 
-    # Notify Telegram after the order has been committed.
-    try:
-        items_text = "\n".join(
-            (
-                f"• {item.product.name} — "
-                f"{item.quantity:g} {item.product.unit} × "
-                f"{item.price:g} = "
-                f"{item.quantity * item.price:g}"
-            )
-            for item in order.items
-        )
-
-        message = (
-            "🛒 Новый заказ — Друг Строителя\n\n"
-            f"📦 Заказ №{order.id}\n"
-            f"👤 Покупатель: {order.customer_name}\n"
-            f"📞 Телефон: {order.user.phone}\n\n"
-            f"🧾 Товары:\n{items_text}\n\n"
-            f"💰 Итого: {order.total_price:g}\n"
-            f"📍 Адрес доставки: "
-            f"{order.delivery_address or 'Не указан'}\n"
-            f"📌 Статус: {order.status}"
-        )
-
-        send_telegram_message(message)
-
-    except Exception:
-        logger.exception(
-            "Failed to send Telegram notification for order %s",
-            order.id,
-        )
+    # Notify only after the order has been successfully committed.
+    notify_telegram(build_order_message(order, "🛒 Новый заказ — Друг Строителя"))
 
     return order
 
@@ -312,12 +312,10 @@ def cancel_order(
     current_user: User = Depends(get_current_user),
 ):
     try:
-        # Lock the order to prevent simultaneous cancellations.
         order = (
             db.query(Order)
             .filter(Order.id == order_id)
             .with_for_update()
-            .populate_existing()
             .first()
         )
 
@@ -339,8 +337,7 @@ def cancel_order(
                 detail="Only new orders can be cancelled",
             )
 
-        restore_order_stock(db, order)
-
+        # A NEW order can transition to CANCELLED.
         change_order_status(
             order,
             "CANCELLED",
@@ -348,14 +345,20 @@ def cancel_order(
             current_user.id,
         )
 
+        restore_order_stock(db, order)
+
         db.commit()
         db.refresh(order)
-
-        return order
 
     except Exception:
         db.rollback()
         raise
+
+    notify_telegram(
+        build_order_message(order, "❌ Заказ отменён покупателем")
+    )
+
+    return order
 
 
 @router.patch("/{order_id}/status", response_model=OrderResponse)
@@ -372,12 +375,10 @@ def update_order_status(
         )
 
     try:
-        # Lock the order while changing its status.
         order = (
             db.query(Order)
             .filter(Order.id == order_id)
             .with_for_update()
-            .populate_existing()
             .first()
         )
 
@@ -387,25 +388,36 @@ def update_order_status(
                 detail="Order not found",
             )
 
-        # Restore stock if an administrator cancels the order.
-        if status_data.status == "CANCELLED":
-            restore_order_stock(db, order)
+        previous_status = get_status_value(order.status)
+        new_status = get_status_value(status_data.status)
 
+        # Validate and record the transition before changing inventory.
         change_order_status(
             order,
-            status_data.status,
+            new_status,
             db,
             current_user.id,
         )
 
+        # Restore stock only when transitioning into CANCELLED.
+        if previous_status != "CANCELLED" and new_status == "CANCELLED":
+            restore_order_stock(db, order)
+
         db.commit()
         db.refresh(order)
-
-        return order
 
     except Exception:
         db.rollback()
         raise
+
+    notify_telegram(
+        build_order_message(
+            order,
+            f"🔔 Статус заказа изменён: {previous_status} → {new_status}",
+        )
+    )
+
+    return order
 
 
 @router.get("/admin/new-count")

@@ -352,3 +352,54 @@ export function updateOrderStatus(
     body: JSON.stringify({ status }),
   });
 }
+export type AdminAnalyticsPeriod = "7d" | "30d" | "90d" | "all" | "custom";
+export type AdminAnalytics = {
+  period: AdminAnalyticsPeriod;
+  date_from: string | null;
+  date_to: string | null;
+  orders: { total: number; cancelled: number; delivered: number; not_cancelled: number };
+  revenue: { not_cancelled: number; delivered: number };
+  average_order_value: number;
+  delivery_conversion_rate: number;
+  trend: { date: string; orders: number; revenue: number; delivered_revenue: number }[];
+  top_products: { product_id: number; name: string; quantity: number; revenue: number }[];
+  low_stock_products: { id: number; name: string; stock_quantity: number; unit: string }[];
+};
+
+export function getAdminAnalytics(
+  token: string,
+  period: AdminAnalyticsPeriod,
+  dateFrom?: string,
+  dateTo?: string,
+): Promise<AdminAnalytics> {
+  const params = new URLSearchParams({ period });
+  if (period === "custom") {
+    if (dateFrom) params.set("date_from", dateFrom);
+    if (dateTo) params.set("date_to", dateTo);
+  }
+  return request<AdminAnalytics>(`/api/v1/admin/analytics?${params.toString()}`, {
+    headers: adminHeaders(token),
+  });
+}
+
+/** Удалить товар из каталога (мягкое удаление). */
+export function deleteProduct(
+  productId: number,
+  token: string,
+): Promise<{ message: string }> {
+  return request<{ message: string }>(`/api/v1/products/${productId}`, {
+    method: "DELETE",
+    headers: adminHeaders(token),
+  });
+}
+
+/** Удалить категорию, если в ней нет товаров. */
+export function deleteCategory(
+  categoryId: number,
+  token: string,
+): Promise<{ message: string }> {
+  return request<{ message: string }>(`/api/v1/categories/${categoryId}`, {
+    method: "DELETE",
+    headers: adminHeaders(token),
+  });
+}
