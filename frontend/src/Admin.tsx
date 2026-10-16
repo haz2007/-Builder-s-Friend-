@@ -119,7 +119,7 @@ function Admin() {
 
   const [orders, setOrders] = useState<ApiOrder[]>([]);
 
-  const [email, setEmail] = useState("");
+  const [login, setLogin] = useState("");
 
   const [password, setPassword] = useState("");
 
@@ -385,12 +385,12 @@ function Admin() {
 
     try {
 
+      const identifier = login.trim();
       const auth = await loginUser({
-
-        email: email.trim(),
-
+        ...(identifier.includes("@")
+          ? { email: identifier }
+          : { phone: identifier }),
         password,
-
       });
 
       await loadData(auth.access_token);
@@ -884,59 +884,6 @@ function Admin() {
   }
 
 
-  const totalRevenue = orders
-    .filter((order) => order.status !== "CANCELLED")
-    .reduce((sum, order) => sum + Number(order.total_price || 0), 0);
-
-  const activeOrders = orders.filter(
-    (order) => !["DELIVERED", "CANCELLED"].includes(order.status),
-  ).length;
-
-  const averageOrder = orders.length
-    ? totalRevenue /
-      Math.max(
-        1,
-        orders.filter((order) => order.status !== "CANCELLED").length,
-      )
-    : 0;
-
-  const productSales = products.reduce<
-    { productId: number; name: string; quantity: number; revenue: number }[]
-  >((result, product) => {
-    const soldItems = orders
-      .filter((order) => order.status !== "CANCELLED")
-      .flatMap((order) => order.items)
-      .filter((item) => item.product_id === product.id);
-
-    const quantity = soldItems.reduce(
-      (sum, item) => sum + Number(item.quantity || 0),
-      0,
-    );
-
-    const revenue = soldItems.reduce(
-      (sum, item) =>
-        sum + Number(item.price || 0) * Number(item.quantity || 0),
-      0,
-    );
-
-    if (quantity > 0) {
-      result.push({
-        productId: product.id,
-        name: product.name,
-        quantity,
-        revenue,
-      });
-    }
-
-    return result;
-  }, []).sort((a, b) => b.quantity - a.quantity).slice(0, 5);
-
-  const statusCounts = orderStatuses.map((status) => ({
-    ...status,
-    count: orders.filter((order) => order.status === status.value).length,
-  }));
-
-
   const visibleOrders = orders.filter(
 
     (order) => orderFilter === "ALL" || order.status === orderFilter,
@@ -980,17 +927,19 @@ function Admin() {
 
           <label>
 
-            Электронная почта
+            Почта или номер телефона
 
             <input
 
-              type="email"
+              type="text"
 
-              value={email}
+              value={login}
 
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(event) => setLogin(event.target.value)}
 
               autoComplete="username"
+
+              placeholder="admin@example.com или +79991234567"
 
               required
 
@@ -1054,7 +1003,7 @@ function Admin() {
 
             <h1>Управление магазином</h1>
 
-            <p>Вы вошли как {user.email}</p>
+            <p>Вы вошли как {user.phone ?? user.email ?? "Администратор"}</p>
 
           </div>
 

@@ -3448,3 +3448,180 @@ select:focus-visible {
     font-size: 14px;
   }
 }
+
+/* Исправление личного кабинета: заказы остаются доступны, уведомления прокручиваются отдельно */
+.account-panel {
+  overflow-y: auto !important;
+}
+
+.account-orders {
+  flex: 0 0 auto !important;
+  min-height: auto !important;
+  overflow: visible !important;
+}
+
+.account-notifications {
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+.notification-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 210px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px 6px 2px 0;
+  scrollbar-width: thin;
+  scrollbar-color: #a6b69c #edf1e9;
+}
+
+.notification-list::-webkit-scrollbar {
+  width: 7px;
+}
+
+.notification-list::-webkit-scrollbar-track {
+  background: #edf1e9;
+  border-radius: 8px;
+}
+
+.notification-list::-webkit-scrollbar-thumb {
+  background: #a6b69c;
+  border-radius: 8px;
+}
+
+.account-order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.account-order-card {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 600px) {
+  .account-panel {
+    padding: 18px !important;
+    border-radius: 0 !important;
+  }
+
+  .notification-list {
+    max-height: 180px;
+  }
+}
+
+/* Финальное исправление прокрутки мышью и тачпадом */
+.account-panel {
+  overflow-x: hidden !important;
+  overflow-y: scroll !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-y !important;
+  overscroll-behavior-y: auto !important;
+  scroll-behavior: auto !important;
+}
+
+.account-panel > * {
+  flex-shrink: 0;
+}
+
+.account-orders,
+.account-notifications,
+.account-order-list {
+  overflow: visible !important;
+  touch-action: pan-y !important;
+}
+
+.notification-list {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-y !important;
+  overscroll-behavior-y: contain !important;
+}
+
+
+/* Уведомления открываются отдельно по кнопке-колокольчику */
+.account-notification-launcher {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid #e4e9df;
+  border-radius: 15px;
+  background: #fff;
+}
+.account-notification-launcher strong { display: block; color: #29352a; font-size: 14px; }
+.account-notification-launcher p { margin: 5px 0 0; color: #81897d; font-size: 12px; }
+.notification-bell-button {
+  position: relative; display: grid; place-items: center; flex: 0 0 auto;
+  width: 46px; height: 46px; border: 1px solid #dfe7d9; border-radius: 14px;
+  background: #edf3e8; color: #355535; cursor: pointer; transition: transform .18s ease, background .18s ease;
+}
+.notification-bell-button:hover { background: #e2ecd9; transform: translateY(-1px); }
+.notification-bell-count {
+  position: absolute; top: -6px; right: -6px; min-width: 21px; height: 21px;
+  display: grid; place-items: center; padding: 0 5px; border: 2px solid #fff;
+  border-radius: 999px; background: #c94b3f; color: #fff; font-size: 10px; font-weight: 800;
+}
+.notifications-modal-backdrop {
+  position: fixed; inset: 0; z-index: 1100; display: flex; align-items: center; justify-content: center;
+  padding: 20px; background: rgba(20, 30, 21, .48); backdrop-filter: blur(3px);
+}
+.notifications-modal {
+  display: flex; flex-direction: column; gap: 14px; width: min(520px, 100%); max-height: min(76dvh, 680px);
+  padding: 22px; overflow: hidden; border: 1px solid #e2e8dc; border-radius: 20px;
+  background: #fffdf8; box-shadow: 0 22px 70px rgba(12, 25, 14, .28);
+}
+.notifications-modal-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 14px; border-bottom: 1px solid #e7ebe2; }
+.notifications-modal-header h3 { margin: 0; color: #29352a; font-size: 22px; }
+.notifications-modal-header p { margin: 5px 0 0; color: #81897d; font-size: 12px; }
+.notifications-modal-close { display: grid; place-items: center; width: 38px; height: 38px; flex: 0 0 auto; border: 1px solid #e0e6dc; border-radius: 11px; background: #fff; color: #354b35; cursor: pointer; }
+.notifications-modal .notification-list { max-height: none; min-height: 0; overflow-y: auto; flex: 1; }
+.notifications-modal .notification-read-all { align-self: flex-start; }
+@media (max-width: 600px) {
+  .notifications-modal-backdrop { padding: 10px; }
+  .notifications-modal { max-height: 82dvh; padding: 17px; border-radius: 16px; }
+  .account-notification-launcher { padding: 12px; }
+}
+
+
+/* Глобальный колокольчик уведомлений в шапке сайта */
+.header-notification-bell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  padding: 0;
+  border: 1px solid var(--line, #dfe5d8);
+  border-radius: 50%;
+  background: #fff;
+  color: #243126;
+  cursor: pointer;
+}
+.header-notification-bell:hover { background: #edf3e8; }
+.header-notification-bell .notification-bell-count {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: #d94836;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+@media (max-width: 560px) {
+  .header-notification-bell { width: 38px; height: 38px; min-width: 38px; }
+}

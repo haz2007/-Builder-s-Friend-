@@ -1,7 +1,16 @@
 
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime
-from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
+
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Float,
+    ForeignKey,
+    DateTime,
+    BigInteger,
+)
+from sqlalchemy.orm import relationship
 
 from .database import Base
 
@@ -50,8 +59,6 @@ class Product(Base):
     )
 
     is_active = Column(Integer, nullable=False, default=1)
-
-    # Ссылка на фотографию товара. Для старых товаров может быть пустой.
     image_url = Column(String(500), nullable=True)
 
     category = relationship("Category", back_populates="products")
@@ -65,7 +72,11 @@ class Order(Base):
     status = Column(String(50), nullable=False, default="NEW")
     total_price = Column(Float, nullable=False, default=0)
     delivery_address = Column(String(500), nullable=False)
-    customer_name = Column(String(100), nullable=False, default="Покупатель")
+    customer_name = Column(
+        String(100),
+        nullable=False,
+        default="Покупатель",
+    )
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     user = relationship("User", back_populates="orders")
@@ -105,8 +116,16 @@ class OrderItem(Base):
     __tablename__ = "order_items"
 
     id = Column(Integer, primary_key=True)
-    order_id = Column(Integer, ForeignKey("orders.id"), nullable=False)
-    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    order_id = Column(
+        Integer,
+        ForeignKey("orders.id"),
+        nullable=False,
+    )
+    product_id = Column(
+        Integer,
+        ForeignKey("products.id"),
+        nullable=False,
+    )
     quantity = Column(Float, nullable=False)
     price = Column(Float, nullable=False)
 
@@ -118,7 +137,11 @@ class OrderStatusHistory(Base):
     __tablename__ = "order_status_history"
 
     id = Column(Integer, primary_key=True)
-    order_id = Column(Integer, ForeignKey("orders.id"), nullable=False)
+    order_id = Column(
+        Integer,
+        ForeignKey("orders.id"),
+        nullable=False,
+    )
     status = Column(String(50), nullable=False)
     created_at = Column(
         DateTime,
@@ -151,8 +174,16 @@ class Notification(Base):
     __tablename__ = "notifications"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    order_id = Column(Integer, ForeignKey("orders.id"), nullable=False)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id"),
+        nullable=False,
+    )
+    order_id = Column(
+        Integer,
+        ForeignKey("orders.id"),
+        nullable=False,
+    )
     status = Column(String(50), nullable=False)
     message = Column(String(500), nullable=False)
     is_read = Column(Integer, nullable=False, default=0)
@@ -164,3 +195,35 @@ class Notification(Base):
 
     user = relationship("User", back_populates="notifications")
     order = relationship("Order", back_populates="notifications")
+
+
+class TelegramAccountLink(Base):
+    __tablename__ = "telegram_account_links"
+
+    id = Column(Integer, primary_key=True)
+
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+    )
+
+    telegram_user_id = Column(
+        BigInteger,
+        nullable=False,
+        unique=True,
+    )
+
+    telegram_chat_id = Column(
+        BigInteger,
+        nullable=False,
+    )
+
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+    user = relationship("User")

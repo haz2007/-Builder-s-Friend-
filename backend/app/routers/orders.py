@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
@@ -18,13 +17,144 @@ from ..schemas import (
     OrderStatusHistoryResponse,
     OrderStatusUpdate,
 )
-from ..services.order_service import change_order_status
+from ..services.order_service import (
+    ALLOWED_TRANSITIONS,
+    change_order_status,
+)
 
 
 router = APIRouter(
     prefix="/api/v1/orders",
     tags=["orders"],
 )
+
+
+STATUS_NAMES = {
+    "NEW": "Новый заказ",
+    "CONFIRMED": "Подтверждён",
+    "PREPARING": "Готовится",
+    "READY_FOR_DELIVERY": "Готов к доставке",
+    "ASSIGNED_TO_DRIVER": "Водитель назначен",
+    "ON_THE_WAY": "В пути",
+    "DELIVERED": "Доставлен",
+    "CANCELLED": "Отменён",
+}
+
+
+ACTION_LABELS = {
+    "CONFIRMED": "✅ Подтвердить заказ",
+    "PREPARING": "🪚 Начать подготовку",
+    "READY_FOR_DELIVERY": "📦 Отметить готовым к выдаче",
+    "ASSIGNED_TO_DRIVER": "🚚 Назначить водителя",
+    "ON_THE_WAY": "🛻 Заказ в пути",
+    "DELIVERED": "🎉 Отметить доставленным",
+    "CANCELLED": "❌ Отменить заказ",
+}
+
+
+STATUS_ORDER = [
+    "CONFIRMED",
+    "PREPARING",
+    "READY_FOR_DELIVERY",
+    "ASSIGNED_TO_DRIVER",
+    "ON_THE_WAY",
+    "DELIVERED",
+    "CANCELLED",
+]
+
+
+def get_status_value(status) -> str:
+    """Return the status as a normalized string."""
+    value = getattr(status, "value", status)
+    return str(value).upper()
+
+
+def build_order_keyboard(order_id: int, status: str) -> dict | None:
+    """Build buttons for valid next actions only."""
+    current_status = get_status_value(status)
+    next_statuses = ALLOWED_TRANSITIONS.get(current_status, set())
+
+    buttons = []
+
+    for next_status in STATUS_ORDER:
+        if next_status in next_statuses:
+            buttons.append([
+                {
+                    "text": ACTION_LABELS[next_status],
+                    "callback_data": f"order:{order_id}:{next_status}",
+                }
+            ])
+
+    if not buttons:
+        return None
+
+    return {"inline_keyboard": buttons}
+
+
+def build_order_message(order: Order, title: str) -> str:
+    """Build a formatted Telegram message with order details."""
+    status = get_status_value(order.status)
+    status_name = STATUS_NAMES.get(status, status)
+
+    customer = getattr(order, "user", None)
+
+    customer_name = (
+        getattr(order, "customer_name", None)
+        or getattr(customer, "full_name", None)
+        or getattr(customer, "name", None)
+        or "Имя не указано"
+    )
+
+    customer_phone = (
+        getattr(order, "customer_phone", None)
+        or getattr(customer, "phone", None)
+        or "Телефон не указан"
+    )
+
+    lines = [
+        f"<b>{title}</b>",
+        f"📦 Заказ №{order.id}",
+        f"👤 Покупатель: {customer_name}",
+        f"📞 Телефон: {customer_phone}",
+        "",
+        "🧾 Товары:",
+    ]
+
+    for item in order.items:
+        product = getattr(item, "product", None)
+        product_name = getattr(product, "name", None) or (
+            f"Товар №{item.product_id}"
+        )
+
+        lines.append(
+            f"• {product_name} × {item.quantity} — "
+            f"{item.price} × {item.quantity} = "
+            f"{item.price * item.quantity}"
+        )
+
+    lines.extend([
+        "",
+        f"💰 Итого: {order.total_price}",
+        f"📍 Адрес доставки: {order.delivery_address or 'Не указан'}",
+        f"📌 Статус: {status_name}",
+    ])
+
+    return "\n".join(lines)
+
+
+def notify_telegram(
+    message: str,
+    reply_markup: dict | None = None,
+) -> None:
+    """Telegram failures must not break order processing."""
+    try:
+        send_telegram_message(
+            message,
+            reply_markup=reply_markup,
+        )
+    except Exception:
+        import logging
+        logging.exception("Не удалось отправить уведомление в Telegram")
 
 
 def restore_order_stock(db: Session, order: Order) -> None:
@@ -39,61 +169,6 @@ def restore_order_stock(db: Session, order: Order) -> None:
 
         if product is not None:
             product.stock_quantity += item.quantity
-
-
-def notify_telegram(message: str) -> None:
-    """Send a Telegram notification without breaking order processing."""
-    try:
-        send_telegram_message(message)
-    except Exception:
-        # Telegram errors must not undo a committed order.
-        pass
-
-
-
-def get_status_value(status) -> str:
-    """Возвращает чистый код статуса, даже если передан Enum."""
-    return str(getattr(status, "value", status))
-
-
-STATUS_NAMES = {
-    "NEW": "🆕 Новый",
-    "CONFIRMED": "✅ Подтверждён",
-    "PREPARING": "🪚 Готовится к выдаче",
-    "READY_FOR_DELIVERY": "📦 Готов к доставке",
-    "ASSIGNED_TO_DRIVER": "🚚 Назначен водитель",
-    "ON_THE_WAY": "🛻 В пути",
-    "DELIVERED": "🎉 Доставлен",
-    "CANCELLED": "❌ Отменён",
-}
-
-
-def build_order_message(order: Order, title: str) -> str:
-    """Формирует уведомление о заказе."""
-    items_text = "\n".join(
-        (
-            f"• {item.product.name} — "
-            f"{item.quantity:g} {item.product.unit} × "
-            f"{item.price:g} = "
-            f"{item.quantity * item.price:g}"
-        )
-        for item in order.items
-    )
-
-    status = get_status_value(order.status)
-    status_name = STATUS_NAMES.get(status, status)
-
-    return (
-        f"{title}\n\n"
-        f"📦 Заказ №{order.id}\n"
-        f"👤 Покупатель: {order.user.phone or 'Не указан'}\n\n"
-        f"🧾 Товары:\n{items_text}\n\n"
-        f"💰 Итого: {order.total_price:g}\n"
-        f"📍 Адрес доставки: "
-        f"{order.delivery_address or 'Не указан'}\n"
-        f"📌 Статус: {status_name}"
-    )
-
 
 
 @router.post("/", response_model=OrderResponse)
@@ -111,7 +186,7 @@ def create_order(
     try:
         products = {}
 
-        # Check products and sum quantities for duplicate product IDs.
+        # Validate products and combine duplicate product IDs.
         for item in order_data.items:
             if item.quantity <= 0:
                 raise HTTPException(
@@ -143,7 +218,7 @@ def create_order(
 
             products[item.product_id]["quantity"] += item.quantity
 
-        # Check stock before deducting any products.
+        # Check all stock levels before deducting anything.
         for product_id, data in products.items():
             product = data["product"]
             quantity = data["quantity"]
@@ -156,6 +231,7 @@ def create_order(
 
         order = Order(
             user_id=current_user.id,
+            customer_name=order_data.customer_name.strip(),
             status="NEW",
             total_price=0,
             delivery_address=order_data.delivery_address,
@@ -173,7 +249,6 @@ def create_order(
 
         total_price = 0
 
-        # Add order items and deduct stock.
         for data in products.values():
             product = data["product"]
             quantity = data["quantity"]
@@ -202,8 +277,13 @@ def create_order(
         db.rollback()
         raise
 
-    # Notify only after the order has been successfully committed.
-    notify_telegram(build_order_message(order, "🛒 Новый заказ — Друг Строителя"))
+    # New-order message: retain admin action buttons.
+    notify_telegram(
+        build_order_message(
+            order,
+            "🛒 Новый заказ — Друг Строителя",
+            ),
+        )
 
     return order
 
@@ -331,13 +411,12 @@ def cancel_order(
                 detail="You do not have access to this order",
             )
 
-        if order.status != "NEW":
+        if get_status_value(order.status) != "NEW":
             raise HTTPException(
                 status_code=400,
                 detail="Only new orders can be cancelled",
             )
 
-        # A NEW order can transition to CANCELLED.
         change_order_status(
             order,
             "CANCELLED",
@@ -354,8 +433,12 @@ def cancel_order(
         db.rollback()
         raise
 
+    # Cancellation notification: no buttons.
     notify_telegram(
-        build_order_message(order, "❌ Заказ отменён покупателем")
+        build_order_message(
+            order,
+            "❌ Заказ отменён покупателем",
+        )
     )
 
     return order
@@ -391,7 +474,6 @@ def update_order_status(
         previous_status = get_status_value(order.status)
         new_status = get_status_value(status_data.status)
 
-        # Validate and record the transition before changing inventory.
         change_order_status(
             order,
             new_status,
@@ -399,7 +481,6 @@ def update_order_status(
             current_user.id,
         )
 
-        # Restore stock only when transitioning into CANCELLED.
         if previous_status != "CANCELLED" and new_status == "CANCELLED":
             restore_order_stock(db, order)
 
@@ -410,10 +491,13 @@ def update_order_status(
         db.rollback()
         raise
 
+    # Status-update notification: deliberately no reply_markup.
     notify_telegram(
         build_order_message(
             order,
-            f"🔔 Статус заказа изменён: {previous_status} → {new_status}",
+            f"🔔 Статус заказа изменён: "
+            f"{STATUS_NAMES.get(previous_status, previous_status)} → "
+            f"{STATUS_NAMES.get(new_status, new_status)}",
         )
     )
 

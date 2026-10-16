@@ -153,7 +153,7 @@ def get_sales_statistics(
 
 @router.get("/analytics")
 def get_admin_analytics(
-    period: str = Query("30d", regex="^(7d|30d|90d|all|custom)$"),
+    period: str = Query("30d", pattern="^(7d|30d|90d|all|custom)$"),
     date_from: Optional[date] = Query(None),
     date_to: Optional[date] = Query(None),
     db: Session = Depends(get_db),

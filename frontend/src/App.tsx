@@ -19,6 +19,7 @@ import {
   LogOut,
   ClipboardList,
   MapPin,
+  Bell,
 } from "lucide-react";
 import {
   getProducts,
@@ -30,8 +31,12 @@ import {
   getCurrentUser,
   getMyOrders,
   cancelOrder,
+  getNotifications,
+  getUnreadNotificationsCount,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
 } from "./api";
-import type { ApiProduct, ApiCategory, ApiOrder } from "./api";
+import type { ApiProduct, ApiCategory, ApiOrder, ApiNotification } from "./api";
 import "./App.css";
 
 type Product = {
@@ -167,6 +172,12 @@ function App() {
   const [ordersError, setOrdersError] = useState("");
   const [cancelLoadingId, setCancelLoadingId] = useState<number | null>(null);
   const [accountNotice, setAccountNotice] = useState("");
+  const [notifications, setNotifications] = useState<ApiNotification[]>([]);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [notificationsError, setNotificationsError] = useState("");
+  const [notificationActionLoading, setNotificationActionLoading] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -246,6 +257,41 @@ function App() {
       cancelled = true;
     };
   }, []);
+
+  // Обновляем счётчик непрочитанных уведомлений в фоне.
+  useEffect(() => {
+    if (!customer) return;
+
+    let cancelled = false;
+
+    async function refreshUnreadCount() {
+      const token = localStorage.getItem(TOKEN_KEY);
+
+      if (!token) {
+        setUnreadNotificationsCount(0);
+        return;
+      }
+
+      try {
+        const result = await getUnreadNotificationsCount(token);
+        if (!cancelled) {
+          setUnreadNotificationsCount(result.count);
+        }
+      } catch {
+        // Не показываем ошибку при временном сбое фонового обновления.
+      }
+    }
+
+    void refreshUnreadCount();
+    const intervalId = window.setInterval(() => {
+      void refreshUnreadCount();
+    }, 15000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [customer]);
 
   const categories = useMemo(
     () => ["Все товары", ...apiCategories.map((category) => category.name)],
@@ -344,6 +390,70 @@ function App() {
     }
   }
 
+  async function refreshNotifications(token?: string) {
+    const activeToken = token ?? localStorage.getItem(TOKEN_KEY);
+
+    if (!activeToken) {
+      setNotifications([]);
+      setUnreadNotificationsCount(0);
+      return;
+    }
+
+    setNotificationsLoading(true);
+    setNotificationsError("");
+
+    try {
+      const [loadedNotifications, unreadResult] = await Promise.all([
+        getNotifications(activeToken),
+        getUnreadNotificationsCount(activeToken),
+      ]);
+      setNotifications(loadedNotifications);
+      setUnreadNotificationsCount(unreadResult.count);
+    } catch (error) {
+      setNotificationsError(
+        error instanceof Error ? error.message : "Не удалось загрузить уведомления.",
+      );
+    } finally {
+      setNotificationsLoading(false);
+    }
+  }
+
+  async function handleMarkNotificationAsRead(notificationId: number) {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) return;
+
+    setNotificationActionLoading(true);
+    setNotificationsError("");
+    try {
+      await markNotificationAsRead(notificationId, token);
+      await refreshNotifications(token);
+    } catch (error) {
+      setNotificationsError(
+        error instanceof Error ? error.message : "Не удалось отметить уведомление прочитанным.",
+      );
+    } finally {
+      setNotificationActionLoading(false);
+    }
+  }
+
+  async function handleMarkAllNotificationsAsRead() {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) return;
+
+    setNotificationActionLoading(true);
+    setNotificationsError("");
+    try {
+      await markAllNotificationsAsRead(token);
+      await refreshNotifications(token);
+    } catch (error) {
+      setNotificationsError(
+        error instanceof Error ? error.message : "Не удалось отметить уведомления прочитанными.",
+      );
+    } finally {
+      setNotificationActionLoading(false);
+    }
+  }
+
   useEffect(() => {
     if (!accountOpen || accountMode !== "orders" || !customer) {
       return;
@@ -392,7 +502,7 @@ function App() {
       setAccountPassword("");
       setAccountMode("orders");
 
-      await refreshOrders(auth.access_token);
+      await Promise.all([refreshOrders(auth.access_token), refreshNotifications(auth.access_token)]);
     } catch (error) {
       setAccountError(
         error instanceof Error
@@ -416,7 +526,7 @@ function App() {
 
     if (token && customer) {
       setAccountMode("orders");
-      await refreshOrders(token);
+      await Promise.all([refreshOrders(token), refreshNotifications(token)]);
     } else {
       setAccountMode("login");
     }
@@ -426,6 +536,9 @@ function App() {
     localStorage.removeItem(TOKEN_KEY);
     setCustomer(null);
     setOrders([]);
+    setNotifications([]);
+    setUnreadNotificationsCount(0);
+    setNotificationsError("");
     setAccountMode("login");
     setAccountError("");
     setAccountNotice("Ты вышел из аккаунта.");
@@ -625,6 +738,26 @@ function App() {
             >
               {mobileMenuOpen ? <X size={21} /> : <Menu size={21} />}
             </button>
+
+            {customer && (
+              <button
+                type="button"
+                className="notification-bell-button header-notification-bell"
+                onClick={() => {
+                  setNotificationsOpen(true);
+                  void refreshNotifications();
+                }}
+                aria-label={`Открыть уведомления${unreadNotificationsCount ? `, непрочитанных: ${unreadNotificationsCount}` : ""}`}
+                title="Уведомления"
+              >
+                <Bell size={21} />
+                {unreadNotificationsCount > 0 && (
+                  <span className="notification-bell-count">
+                    {unreadNotificationsCount > 99 ? "99+" : unreadNotificationsCount}
+                  </span>
+                )}
+              </button>
+            )}
 
             <button
               className="cart-button"
@@ -1637,6 +1770,136 @@ function App() {
           </section>
         </div>
       )}
+
+      {notificationsOpen && customer && (
+
+                  <div className="notifications-modal-backdrop" onClick={() => setNotificationsOpen(false)}>
+                    <section
+                      className="notifications-modal"
+                      role="dialog"
+                      aria-modal="true"
+                      aria-label="Уведомления"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <div className="notifications-modal-header">
+                        <div>
+                          <h3>Уведомления</h3>
+                          <p>{unreadNotificationsCount ? `Непрочитанных: ${unreadNotificationsCount}` : "Все сообщения о заказах"}</p>
+                        </div>
+                        <button type="button" className="notifications-modal-close" onClick={() => setNotificationsOpen(false)} aria-label="Закрыть уведомления">
+                          <X size={20} />
+                        </button>
+                      </div>
+
+                      {notificationsError && <p className="checkout-error" role="alert">{notificationsError}</p>}
+                      {notificationsLoading && notifications.length === 0 ? (
+                        <p className="account-notifications-empty">Загружаем уведомления...</p>
+                      ) : notifications.length === 0 ? (
+                        <p className="account-notifications-empty">Пока уведомлений нет.</p>
+                      ) : (
+                        <>
+                          {unreadNotificationsCount > 0 && (
+                            <button
+                              className="notification-read-all"
+                              onClick={() => void handleMarkAllNotificationsAsRead()}
+                              disabled={notificationActionLoading}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: 8,
+                                padding: "10px 15px",
+                                border: "1px solid #d8e3d5",
+                                borderRadius: 12,
+                                background: notificationActionLoading ? "#f1f3f0" : "#edf5e9",
+                                color: "#315c35",
+                                fontSize: 13,
+                                fontWeight: 650,
+                                lineHeight: 1.2,
+                                cursor: notificationActionLoading ? "wait" : "pointer",
+                                transition: "background 160ms ease, border-color 160ms ease, transform 160ms ease",
+                                opacity: notificationActionLoading ? 0.7 : 1,
+                              }}
+                            >
+                              <Check size={16} />
+                              {notificationActionLoading ? "Обновляем..." : "Прочитать все"}
+                            </button>
+                          )}
+                          <div className="notification-list">
+                            {notifications.map((notification) => (
+                              <article
+                                className={`notification-card ${notification.is_read ? "is-read" : "is-unread"}`}
+                                key={notification.id}
+                                style={{
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  alignItems: "center",
+                                  textAlign: "center",
+                                  gap: 14,
+                                  padding: "20px 18px",
+                                }}
+                              >
+                                <div className="notification-card-content" style={{ width: "100%" }}>
+                                  <strong>Заказ №{notification.order_id}</strong>
+                                  <p>{notification.message}</p>
+                                  <small>{formatDate(notification.created_at)}</small>
+                                </div>
+                                {notification.is_read ? (
+                                  <span
+                                    className="notification-read-status"
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      gap: 7,
+                                      padding: "7px 13px",
+                                      borderRadius: 999,
+                                      background: "#edf7ee",
+                                      color: "#367447",
+                                      fontSize: 12,
+                                      fontWeight: 700,
+                                      lineHeight: 1.2,
+                                    }}
+                                  >
+                                    <Check size={14} />
+                                    Прочитано
+                                  </span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="notification-read-button"
+                                    onClick={() => void handleMarkNotificationAsRead(notification.id)}
+                                    disabled={notificationActionLoading}
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      gap: 8,
+                                      padding: "11px 18px",
+                                      border: "1px solid #24372b",
+                                      borderRadius: 10,
+                                      background: notificationActionLoading ? "#68776c" : "#24372b",
+                                      color: "#ffffff",
+                                      fontSize: 13,
+                                      fontWeight: 650,
+                                      lineHeight: 1.2,
+                                      cursor: notificationActionLoading ? "wait" : "pointer",
+                                      transition: "background 160ms ease, transform 160ms ease",
+                                      opacity: notificationActionLoading ? 0.7 : 1,
+                                    }}
+                                  >
+                                    <Check size={15} />
+                                    Отметить как прочитанное
+                                  </button>
+                                )}
+                              </article>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </section>
+                  </div>
+                      )}
     </div>
   );
 }

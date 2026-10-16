@@ -29,7 +29,7 @@ export type ApiProduct = {
 
 export type RegisterData = { phone: string; password: string };
 export type CustomerLoginData = { phone: string; password: string };
-export type AdminLoginData = { email: string; password: string };
+export type AdminLoginData = { email: string; password: string } | { phone: string; password: string };
 export type LoginData = CustomerLoginData | AdminLoginData;
 
 export type AuthUser = {
@@ -402,4 +402,66 @@ export function deleteCategory(
     method: "DELETE",
     headers: adminHeaders(token),
   });
+}
+export type ApiNotification = {
+  id: number;
+  user_id: number;
+  order_id: number | null;
+  status: string;
+  message: string;
+  is_read: number;
+  created_at: string;
+};
+
+/** Получить уведомления текущего пользователя. */
+export function getNotifications(
+  token: string,
+  unreadOnly = false,
+): Promise<ApiNotification[]> {
+  const params = new URLSearchParams({
+    unread_only: String(unreadOnly),
+    limit: "100",
+  });
+
+  return request<ApiNotification[]>(
+    `/api/v1/notifications/?${params.toString()}`,
+    { headers: adminHeaders(token) },
+  );
+}
+
+/** Получить количество непрочитанных уведомлений. */
+export function getUnreadNotificationsCount(
+  token: string,
+): Promise<{ count: number }> {
+  return request<{ count: number }>(
+    "/api/v1/notifications/unread-count",
+    { headers: adminHeaders(token) },
+  );
+}
+
+/** Отметить одно уведомление прочитанным. */
+export function markNotificationAsRead(
+  notificationId: number,
+  token: string,
+): Promise<ApiNotification> {
+  return request<ApiNotification>(
+    `/api/v1/notifications/${notificationId}/read`,
+    {
+      method: "PATCH",
+      headers: adminHeaders(token),
+    },
+  );
+}
+
+/** Отметить все уведомления прочитанными. */
+export function markAllNotificationsAsRead(
+  token: string,
+): Promise<{ message: string; count: number }> {
+  return request<{ message: string; count: number }>(
+    "/api/v1/notifications/read-all",
+    {
+      method: "PATCH",
+      headers: adminHeaders(token),
+    },
+  );
 }
