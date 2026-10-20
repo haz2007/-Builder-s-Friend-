@@ -128,12 +128,19 @@ textarea:focus-visible {
 /* ===== Шапка сайта ===== */
 
 .header {
-  position: sticky;
+  /* Закрепление — классом is-pinned (см. usePinnedHeader в App.tsx) */
+  position: relative;
   z-index: 20;
-  top: 0;
   background: rgba(255, 255, 255, 0.97);
   border-bottom: 1px solid #eeebe8;
   backdrop-filter: blur(16px);
+}
+
+.header.is-pinned {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
 }
 
 .header-inner {
@@ -5110,4 +5117,9 @@ a.category-tab {
 .review-order-link:hover {
   background: #b5762c;
   transform: translateY(-1px);
+}
+
+/* В поиске каталога своя кнопка «Очистить» — браузерный крестик не нужен */
+.search-box input[type="search"]::-webkit-search-cancel-button {
+  appearance: none;
 }

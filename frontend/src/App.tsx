@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
@@ -179,7 +179,45 @@ function ScrollManager() {
   return null;
 }
 
+/**
+ * Шапка закрепляется через position: fixed, когда её пролистали.
+ * Не sticky: Chrome при наборе в поле поиска внутри sticky-шапки
+ * «показывает курсор» и сам листает страницу вверх.
+ */
+function usePinnedHeader() {
+  const slotRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
+  const [pinned, setPinned] = useState(false);
+
+  useEffect(() => {
+    const slot = slotRef.current;
+    const header = headerRef.current;
+    if (!slot || !header) return;
+
+    // Место под шапкой остаётся, даже когда она закреплена — контент не прыгает
+    const keepHeight = () => {
+      slot.style.height = `${header.offsetHeight}px`;
+    };
+    const update = () => setPinned(slot.getBoundingClientRect().top < 0);
+    const resize = new ResizeObserver(keepHeight);
+
+    keepHeight();
+    update();
+    resize.observe(header);
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      resize.disconnect();
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+
+  return { slotRef, headerRef, pinned };
+}
+
 function App() {
+  const pinnedHeader = usePinnedHeader();
   const [products, setProducts] = useState<Product[]>([]);
   const [apiCategories, setApiCategories] = useState<ApiCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -827,7 +865,11 @@ function App() {
         </div>
       </div>
 
-      <header className="header">
+      <div className="header-slot" ref={pinnedHeader.slotRef}>
+      <header
+        className={`header ${pinnedHeader.pinned ? "is-pinned" : ""}`}
+        ref={pinnedHeader.headerRef}
+      >
         <div className="container header-inner">
           <Link to="/" className="brand" aria-label="Друг Строителя — на главную">
             <Logo />
@@ -914,6 +956,7 @@ function App() {
           </div>
         </div>
       </header>
+      </div>
 
       <main>
         <Routes>
