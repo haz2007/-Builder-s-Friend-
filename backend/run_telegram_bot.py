@@ -56,6 +56,7 @@ from app.services.order_notifications import (
     notify_order_status_changed,
     status_name,
 )
+from app.services.telegram_service import telegram_proxies
 from app.services.order_service import (
     ALLOWED_TRANSITIONS,
     change_order_status,
@@ -105,7 +106,9 @@ ROLE_NAMES = {
 
 
 def telegram_request(method: str, payload: dict) -> dict:
-    response = requests.post(f"{API_URL}/{method}", json=payload, timeout=35)
+    response = requests.post(
+        f"{API_URL}/{method}", json=payload, timeout=35, proxies=telegram_proxies()
+    )
     try:
         result = response.json()
     except ValueError:

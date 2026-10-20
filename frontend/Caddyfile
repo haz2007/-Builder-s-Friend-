@@ -1,0 +1,35 @@
+# SITE_ADDRESS — домен (например drug-stroitelya.ru): Caddy сам получит
+# сертификат Let's Encrypt. Для проверки без домена — ":80".
+{$SITE_ADDRESS::80} {
+	encode zstd gzip
+
+	# API и загруженные фото — на бэкенд
+	handle /api/* {
+		reverse_proxy backend:8000
+	}
+	handle /uploads/* {
+		reverse_proxy backend:8000
+	}
+	handle /docs* {
+		reverse_proxy backend:8000
+	}
+	handle /openapi.json {
+		reverse_proxy backend:8000
+	}
+
+	# Сайт: файлы сборки, остальные адреса (/catalog/1, /admin) — index.html
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+	}
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+}

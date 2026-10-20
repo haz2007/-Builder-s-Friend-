@@ -4,6 +4,10 @@
 таблицы с нуля, поэтому для новой базы — так):
     .venv/bin/python manage.py init-db
 
+Привести базу в актуальное состояние (для Docker: новая база — init-db,
+существующая — alembic upgrade head):
+    .venv/bin/python manage.py migrate
+
 Назначить владельца магазина (он сможет добавлять других админов):
     .venv/bin/python manage.py set-owner owner@example.com
     .venv/bin/python manage.py set-owner +79991234567
@@ -27,6 +31,16 @@ def init_db() -> None:
     print("Готово: таблицы созданы, база на последней миграции")
 
 
+def migrate() -> None:
+    from sqlalchemy import inspect
+
+    if "alembic_version" not in inspect(engine).get_table_names():
+        init_db()
+        return
+    command.upgrade(Config(str(Path(__file__).with_name("alembic.ini"))), "head")
+    print("Готово: миграции применены")
+
+
 def set_owner(login: str) -> None:
     db = SessionLocal()
     try:
@@ -45,6 +59,8 @@ def set_owner(login: str) -> None:
 if __name__ == "__main__":
     if sys.argv[1:] == ["init-db"]:
         init_db()
+    elif sys.argv[1:] == ["migrate"]:
+        migrate()
     elif len(sys.argv) == 3 and sys.argv[1] == "set-owner":
         set_owner(sys.argv[2])
     else:

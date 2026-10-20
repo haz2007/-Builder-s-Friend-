@@ -1,5 +1,7 @@
 
-export const API_ORIGIN = "http://127.0.0.1:8000";
+// Пусто — фото и API идут с того же адреса, что и сайт
+// (в разработке их проксирует Vite, на сервере — Caddy)
+export const API_ORIGIN = import.meta.env.VITE_API_ORIGIN ?? "";
 
 export function getImageUrl(
   imageUrl: string | null | undefined,

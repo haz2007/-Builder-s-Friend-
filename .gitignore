@@ -34,3 +34,6 @@ backups/
 
 # Local tooling
 frontend/dist/
+
+# Production secrets
+.env.production

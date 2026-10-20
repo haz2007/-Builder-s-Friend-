@@ -9,6 +9,12 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 
+def telegram_proxies() -> dict | None:
+    """TELEGRAM_PROXY=socks5://user:pass@host:port — если Telegram недоступен напрямую."""
+    proxy = os.getenv("TELEGRAM_PROXY")
+    return {"https": proxy, "http": proxy} if proxy else None
+
+
 def send_telegram_message(
     chat_id: int | str,
     message: str,
@@ -37,7 +43,8 @@ def send_telegram_message(
         response = requests.post(
             f"https://api.telegram.org/bot{token}/sendMessage",
             json=payload,
-            timeout=5,
+            timeout=10,
+            proxies=telegram_proxies(),
         )
         result = response.json()
 

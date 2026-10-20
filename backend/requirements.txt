@@ -14,3 +14,4 @@ requests
 psycopg[binary]
 pillow
 python-multipart
+requests[socks]

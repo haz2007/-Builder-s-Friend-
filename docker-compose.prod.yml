@@ -1,0 +1,73 @@
+# Продакшен: сайт + API + Telegram-бот + PostgreSQL на одном сервере.
+#   cp .env.production.example .env.production   # заполнить
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+#
+# Наружу открыты только 80/443 (Caddy). База и API доступны только внутри.
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-wood}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Задай POSTGRES_PASSWORD в .env.production}
+      POSTGRES_DB: ${POSTGRES_DB:-wood_commerce}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment: &backend-env
+      APP_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-wood}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-wood_commerce}
+      SECRET_KEY: ${SECRET_KEY:?Задай SECRET_KEY в .env.production}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-10080}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_PROXY: ${TELEGRAM_PROXY:-}
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  bot:
+    build: ./backend
+    restart: unless-stopped
+    command: ["python", "run_telegram_bot.py"]
+    environment: *backend-env
+    depends_on:
+      backend:
+        condition: service_healthy
+    profiles: ["bot"]   # включается, только если задан токен: --profile bot
+
+  web:
+    build: ./frontend
+    restart: unless-stopped
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  db_data:
+  uploads:
+  caddy_data:
+  caddy_config:

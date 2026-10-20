@@ -94,6 +94,10 @@ cd backend && python run_telegram_bot.py
 
 Для уже существующей базы обновления схемы применяются обычно: `alembic upgrade head`.
 
+## Деплой
+
+Сайт, API, бот и база запускаются одной командой через Docker Compose с автоматическим HTTPS (Caddy) — см. [DEPLOY.md](DEPLOY.md).
+
 ## Тесты
 
 Тесты используют отдельную базу `wood_commerce_test` и никогда не пишут в настоящий Telegram.

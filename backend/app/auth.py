@@ -12,10 +12,13 @@ from .database import get_db
 from .models import User
 
 
-SECRET_KEY = os.getenv(
-    "SECRET_KEY",
-    "super_secure_lumber_secret_key_change_me"
-)
+SECRET_KEY = os.getenv("SECRET_KEY") or ""
+
+if not SECRET_KEY:
+    # На сервере без настоящего ключа любой мог бы подделать токен входа
+    if os.getenv("APP_ENV") == "production":
+        raise RuntimeError("Задай SECRET_KEY в окружении: без него запуск на сервере запрещён")
+    SECRET_KEY = "super_secure_lumber_secret_key_change_me"  # только для разработки
 
 def phone_variants(phone: str) -> list[str]:
     """Все записи одного российского номера: +7…, 7…, 8… и 10 цифр.
