@@ -11,6 +11,7 @@ from .routers.deliveries import router as deliveries_router
 from .routers.users import router as users_router
 from .routers.admin import router as admin_router
 from .routers.notifications import router as notifications_router
+from .routers.admins import router as admins_router
 
 
 app = FastAPI(
@@ -39,6 +40,7 @@ app.include_router(deliveries_router)
 app.include_router(users_router)
 app.include_router(admin_router)
 app.include_router(notifications_router)
+app.include_router(admins_router)
 
 
 @app.get("/api/v1/health")

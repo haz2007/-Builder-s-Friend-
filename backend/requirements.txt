@@ -11,3 +11,6 @@ python-jose[cryptography]
 pwdlib[argon2]
 alembic
 requests
+psycopg[binary]
+pillow
+python-multipart

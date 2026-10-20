@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 
 from ..auth import (
     create_access_token,
+    find_user_by_email,
+    find_user_by_phone,
     hash_password,
     verify_password,
     get_current_user,
@@ -46,11 +48,7 @@ def register(
 ):
     phone = normalize_phone(user_data.phone)
 
-    existing_user = (
-        db.query(User)
-        .filter(User.phone == phone)
-        .first()
-    )
+    existing_user = find_user_by_phone(db, phone)
 
     if existing_user:
         raise HTTPException(
@@ -86,22 +84,12 @@ def login(
     if login_data.phone:
         phone = normalize_phone(login_data.phone)
 
-        user = (
-            db.query(User)
-            .filter(User.phone == phone)
-            .first()
-        )
+        user = find_user_by_phone(db, phone)
 
         error_message = "Invalid phone number or password"
 
     else:
-        email = login_data.email.strip()
-
-        user = (
-            db.query(User)
-            .filter(User.email == email)
-            .first()
-        )
+        user = find_user_by_email(db, login_data.email)
 
         error_message = "Invalid email or password"
 

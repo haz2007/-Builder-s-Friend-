@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from ..auth import hash_password, require_admin
+from ..auth import hash_password, require_admin, require_owner
 from ..database import get_db
 from ..models import User
 from ..schemas import UserCreate, UserResponse
@@ -57,7 +57,8 @@ def change_user_role(
     user_id: int,
     role: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin)
+    # Назначать роли (в том числе ADMIN) может только владелец
+    current_user: User = Depends(require_owner)
 ):
     user = (
         db.query(User)
@@ -81,6 +82,12 @@ def change_user_role(
         raise HTTPException(
             status_code=400,
             detail="Invalid role"
+        )
+
+    if user.is_owner == 1 and role != "ADMIN":
+        raise HTTPException(
+            status_code=400,
+            detail="Владельца нельзя лишить прав администратора"
         )
 
     user.role = role

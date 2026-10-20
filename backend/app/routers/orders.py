@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from ..services.telegram_service import send_telegram_message
 from ..auth import get_current_user
 from ..database import get_db
 from ..models import (
@@ -17,9 +16,19 @@ from ..schemas import (
     OrderStatusHistoryResponse,
     OrderStatusUpdate,
 )
+from ..services.order_notifications import (
+    notify_order_cancelled_by_customer,
+    notify_order_created,
+    notify_order_status_changed,
+)
 from ..services.order_service import (
-    ALLOWED_TRANSITIONS,
     change_order_status,
+    get_status_value,
+)
+from ..services.variant_service import (
+    get_primary_variant,
+    requires_whole_quantity,
+    restore_order_stock,
 )
 
 
@@ -29,151 +38,10 @@ router = APIRouter(
 )
 
 
-STATUS_NAMES = {
-    "NEW": "Новый заказ",
-    "CONFIRMED": "Подтверждён",
-    "PREPARING": "Готовится",
-    "READY_FOR_DELIVERY": "Готов к доставке",
-    "ASSIGNED_TO_DRIVER": "Водитель назначен",
-    "ON_THE_WAY": "В пути",
-    "DELIVERED": "Доставлен",
-    "CANCELLED": "Отменён",
-}
-
-
-ACTION_LABELS = {
-    "CONFIRMED": "✅ Подтвердить заказ",
-    "PREPARING": "🪚 Начать подготовку",
-    "READY_FOR_DELIVERY": "📦 Отметить готовым к выдаче",
-    "ASSIGNED_TO_DRIVER": "🚚 Назначить водителя",
-    "ON_THE_WAY": "🛻 Заказ в пути",
-    "DELIVERED": "🎉 Отметить доставленным",
-    "CANCELLED": "❌ Отменить заказ",
-}
-
-
-STATUS_ORDER = [
-    "CONFIRMED",
-    "PREPARING",
-    "READY_FOR_DELIVERY",
-    "ASSIGNED_TO_DRIVER",
-    "ON_THE_WAY",
-    "DELIVERED",
-    "CANCELLED",
-]
-
-
-def get_status_value(status) -> str:
-    """Return the status as a normalized string."""
-    value = getattr(status, "value", status)
-    return str(value).upper()
-
-
-def build_order_keyboard(order_id: int, status: str) -> dict | None:
-    """Build buttons for valid next actions only."""
-    current_status = get_status_value(status)
-    next_statuses = ALLOWED_TRANSITIONS.get(current_status, set())
-
-    buttons = []
-
-    for next_status in STATUS_ORDER:
-        if next_status in next_statuses:
-            buttons.append([
-                {
-                    "text": ACTION_LABELS[next_status],
-                    "callback_data": f"order:{order_id}:{next_status}",
-                }
-            ])
-
-    if not buttons:
-        return None
-
-    return {"inline_keyboard": buttons}
-
-
-def build_order_message(order: Order, title: str) -> str:
-    """Build a formatted Telegram message with order details."""
-    status = get_status_value(order.status)
-    status_name = STATUS_NAMES.get(status, status)
-
-    customer = getattr(order, "user", None)
-
-    customer_name = (
-        getattr(order, "customer_name", None)
-        or getattr(customer, "full_name", None)
-        or getattr(customer, "name", None)
-        or "Имя не указано"
-    )
-
-    customer_phone = (
-        getattr(order, "customer_phone", None)
-        or getattr(customer, "phone", None)
-        or "Телефон не указан"
-    )
-
-    lines = [
-        f"<b>{title}</b>",
-        f"📦 Заказ №{order.id}",
-        f"👤 Покупатель: {customer_name}",
-        f"📞 Телефон: {customer_phone}",
-        "",
-        "🧾 Товары:",
-    ]
-
-    for item in order.items:
-        product = getattr(item, "product", None)
-        product_name = getattr(product, "name", None) or (
-            f"Товар №{item.product_id}"
-        )
-
-        lines.append(
-            f"• {product_name} × {item.quantity} — "
-            f"{item.price} × {item.quantity} = "
-            f"{item.price * item.quantity}"
-        )
-
-    lines.extend([
-        "",
-        f"💰 Итого: {order.total_price}",
-        f"📍 Адрес доставки: {order.delivery_address or 'Не указан'}",
-        f"📌 Статус: {status_name}",
-    ])
-
-    return "\n".join(lines)
-
-
-def notify_telegram(
-    message: str,
-    reply_markup: dict | None = None,
-) -> None:
-    """Telegram failures must not break order processing."""
-    try:
-        send_telegram_message(
-            message,
-            reply_markup=reply_markup,
-        )
-    except Exception:
-        import logging
-        logging.exception("Не удалось отправить уведомление в Telegram")
-
-
-def restore_order_stock(db: Session, order: Order) -> None:
-    """Return products from a cancelled order to store inventory."""
-    for item in order.items:
-        product = (
-            db.query(Product)
-            .filter(Product.id == item.product_id)
-            .with_for_update()
-            .first()
-        )
-
-        if product is not None:
-            product.stock_quantity += item.quantity
-
-
 @router.post("/", response_model=OrderResponse)
 def create_order(
     order_data: OrderCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -184,9 +52,9 @@ def create_order(
         )
 
     try:
-        products = {}
+        variants = {}
 
-        # Validate products and combine duplicate product IDs.
+        # Validate products/variants and combine duplicate variants.
         for item in order_data.items:
             if item.quantity <= 0:
                 raise HTTPException(
@@ -210,20 +78,61 @@ def create_order(
                     detail=f"Product {item.product_id} not found",
                 )
 
-            if item.product_id not in products:
-                products[item.product_id] = {
+            if item.variant_id is None:
+                variant = get_primary_variant(product)
+            else:
+                variant = next(
+                    (v for v in product.variants if v.id == item.variant_id),
+                    None,
+                )
+
+            if variant is None or variant.is_active != 1:
+                raise HTTPException(
+                    status_code=404,
+                    detail=(
+                        f"Variant {item.variant_id} of product "
+                        f"{item.product_id} not found"
+                    ),
+                )
+
+            if (
+                requires_whole_quantity(product, variant)
+                and item.quantity != int(item.quantity)
+            ):
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"«{product.name}» продаётся только целым "
+                        f"количеством ({variant.unit})"
+                    ),
+                )
+
+            if variant.id not in variants:
+                variants[variant.id] = {
                     "product": product,
+                    "variant": variant,
                     "quantity": 0,
                 }
 
-            products[item.product_id]["quantity"] += item.quantity
+            variants[variant.id]["quantity"] += item.quantity
+
+        # Склад общий для всех вариантов товара: 4 м³ по 27 шт = 108 шт.
+        needed_by_product = {}
+        for data in variants.values():
+            product = data["product"]
+            needed = data["quantity"] * data["variant"].base_quantity
+            needed_by_product[product.id] = (
+                needed_by_product.get(product.id, 0) + needed
+            )
 
         # Check all stock levels before deducting anything.
-        for product_id, data in products.items():
-            product = data["product"]
-            quantity = data["quantity"]
-
-            if product.stock_quantity < quantity:
+        for product_id, needed in needed_by_product.items():
+            product = next(
+                data["product"]
+                for data in variants.values()
+                if data["product"].id == product_id
+            )
+            if product.stock_quantity < needed:
                 raise HTTPException(
                     status_code=400,
                     detail=f"Not enough stock for product {product_id}",
@@ -235,6 +144,7 @@ def create_order(
             status="NEW",
             total_price=0,
             delivery_address=order_data.delivery_address,
+            delivery_method=order_data.delivery_method,
         )
 
         db.add(order)
@@ -249,19 +159,23 @@ def create_order(
 
         total_price = 0
 
-        for data in products.values():
+        for data in variants.values():
             product = data["product"]
+            variant = data["variant"]
             quantity = data["quantity"]
 
-            total_price += product.price * quantity
-            product.stock_quantity -= quantity
+            total_price += variant.price * quantity
+            product.stock_quantity -= quantity * variant.base_quantity
 
             db.add(
                 OrderItem(
                     order=order,
                     product=product,
+                    variant=variant,
                     quantity=quantity,
-                    price=product.price,
+                    price=variant.price,
+                    unit=variant.unit,
+                    base_quantity=variant.base_quantity,
                 )
             )
 
@@ -277,13 +191,7 @@ def create_order(
         db.rollback()
         raise
 
-    # New-order message: retain admin action buttons.
-    notify_telegram(
-        build_order_message(
-            order,
-            "🛒 Новый заказ — Друг Строителя",
-            ),
-        )
+    background_tasks.add_task(notify_order_created, order.id)
 
     return order
 
@@ -388,6 +296,7 @@ def get_order_history(
 @router.post("/{order_id}/cancel", response_model=OrderResponse)
 def cancel_order(
     order_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -433,13 +342,7 @@ def cancel_order(
         db.rollback()
         raise
 
-    # Cancellation notification: no buttons.
-    notify_telegram(
-        build_order_message(
-            order,
-            "❌ Заказ отменён покупателем",
-        )
-    )
+    background_tasks.add_task(notify_order_cancelled_by_customer, order.id)
 
     return order
 
@@ -448,6 +351,7 @@ def cancel_order(
 def update_order_status(
     order_id: int,
     status_data: OrderStatusUpdate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -491,14 +395,12 @@ def update_order_status(
         db.rollback()
         raise
 
-    # Status-update notification: deliberately no reply_markup.
-    notify_telegram(
-        build_order_message(
-            order,
-            f"🔔 Статус заказа изменён: "
-            f"{STATUS_NAMES.get(previous_status, previous_status)} → "
-            f"{STATUS_NAMES.get(new_status, new_status)}",
-        )
+    background_tasks.add_task(
+        notify_order_status_changed,
+        order.id,
+        previous_status,
+        new_status,
+        current_user.id,
     )
 
     return order

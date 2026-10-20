@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock
+
 import pytest
 from fastapi import HTTPException
 
@@ -17,7 +19,7 @@ def create_order(status: str) -> Order:
 def test_new_to_confirmed():
     order = create_order("NEW")
 
-    change_order_status(order, "CONFIRMED")
+    change_order_status(order, "CONFIRMED", MagicMock(), 1)
 
     assert order.status == "CONFIRMED"
 
@@ -25,7 +27,7 @@ def test_new_to_confirmed():
 def test_confirmed_to_preparing():
     order = create_order("CONFIRMED")
 
-    change_order_status(order, "PREPARING")
+    change_order_status(order, "PREPARING", MagicMock(), 1)
 
     assert order.status == "PREPARING"
 
@@ -33,7 +35,7 @@ def test_confirmed_to_preparing():
 def test_preparing_to_ready_for_delivery():
     order = create_order("PREPARING")
 
-    change_order_status(order, "READY_FOR_DELIVERY")
+    change_order_status(order, "READY_FOR_DELIVERY", MagicMock(), 1)
 
     assert order.status == "READY_FOR_DELIVERY"
 
@@ -41,7 +43,7 @@ def test_preparing_to_ready_for_delivery():
 def test_ready_for_delivery_to_assigned():
     order = create_order("READY_FOR_DELIVERY")
 
-    change_order_status(order, "ASSIGNED_TO_DRIVER")
+    change_order_status(order, "ASSIGNED_TO_DRIVER", MagicMock(), 1)
 
     assert order.status == "ASSIGNED_TO_DRIVER"
 
@@ -49,7 +51,7 @@ def test_ready_for_delivery_to_assigned():
 def test_assigned_to_on_the_way():
     order = create_order("ASSIGNED_TO_DRIVER")
 
-    change_order_status(order, "ON_THE_WAY")
+    change_order_status(order, "ON_THE_WAY", MagicMock(), 1)
 
     assert order.status == "ON_THE_WAY"
 
@@ -57,7 +59,7 @@ def test_assigned_to_on_the_way():
 def test_on_the_way_to_delivered():
     order = create_order("ON_THE_WAY")
 
-    change_order_status(order, "DELIVERED")
+    change_order_status(order, "DELIVERED", MagicMock(), 1)
 
     assert order.status == "DELIVERED"
 
@@ -66,25 +68,25 @@ def test_cannot_skip_status():
     order = create_order("NEW")
 
     with pytest.raises(HTTPException):
-        change_order_status(order, "DELIVERED")
+        change_order_status(order, "DELIVERED", MagicMock(), 1)
 
 
 def test_cannot_return_to_previous_status():
     order = create_order("PREPARING")
 
     with pytest.raises(HTTPException):
-        change_order_status(order, "CONFIRMED")
+        change_order_status(order, "CONFIRMED", MagicMock(), 1)
 
 
 def test_cannot_change_delivered_order():
     order = create_order("DELIVERED")
 
     with pytest.raises(HTTPException):
-        change_order_status(order, "CONFIRMED")
+        change_order_status(order, "CONFIRMED", MagicMock(), 1)
 
 
 def test_cannot_use_same_status():
     order = create_order("NEW")
 
     with pytest.raises(HTTPException):
-        change_order_status(order, "NEW")
+        change_order_status(order, "NEW", MagicMock(), 1)

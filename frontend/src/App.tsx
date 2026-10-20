@@ -1,18 +1,14 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { Link, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   Check,
-  ChevronDown,
   Clock3,
-  Heart,
   Menu,
   Minus,
-  Package,
   Plus,
   Search,
-  ShieldCheck,
   ShoppingCart,
-  Truck,
   UserRound,
   X,
   RefreshCw,
@@ -20,6 +16,10 @@ import {
   ClipboardList,
   MapPin,
   Bell,
+  Truck,
+  Warehouse,
+  Phone,
+  Star,
 } from "lucide-react";
 import {
   getProducts,
@@ -38,19 +38,20 @@ import {
 } from "./api";
 import type { ApiProduct, ApiCategory, ApiOrder, ApiNotification } from "./api";
 import "./App.css";
-
-type Product = {
-  id: number;
-  name: string;
-  category: string;
-  categoryId: number;
-  description: string;
-  price: number;
-  unit: string;
-  stockQuantity: number;
-  image: string;
-  badge?: string;
-};
+import Logo from "./components/Logo";
+import CatalogPage from "./pages/CatalogPage";
+import HomePage from "./pages/HomePage";
+import ProductPage from "./pages/ProductPage";
+import { PHONES, WORKING_HOURS, YANDEX_REVIEW_URL, YEARS_ON_MARKET } from "./shop/contacts";
+import { formatPrice, pluralize } from "./shop/format";
+import { ShopContext } from "./shop/ShopContext";
+import type {
+  CartEntry,
+  Product,
+  ProductVariant,
+  ShopContextValue,
+} from "./shop/types";
+import { showFallbackImage } from "./shop/images";
 
 type Customer = {
   id: number;
@@ -78,10 +79,6 @@ const orderStatusLabels: Record<string, string> = {
   CANCELLED: "Отменён",
 };
 
-function formatPrice(price: number) {
-  return new Intl.NumberFormat("ru-RU").format(price) + " ₽";
-}
-
 function formatDate(date: string) {
   const parsedDate = new Date(date);
 
@@ -108,11 +105,40 @@ function mapProducts(
       (item) => item.id === product.category_id,
     );
 
+    const categoryNames = apiCategories
+      .filter((item) =>
+        (product.category_ids ?? [product.category_id]).includes(item.id),
+      )
+      .map((item) => item.name);
+
+    const variants = (product.variants ?? [])
+      .filter((variant) => variant.is_active === 1)
+      .map((variant) => ({
+        id: variant.id,
+        name: variant.name,
+        unit: variant.unit,
+        price: variant.price,
+        baseQuantity: variant.base_quantity ?? 1,
+        stockQuantity: variant.stock_quantity,
+      }));
+
     return {
       id: product.id,
       name: product.name,
       category: category?.name ?? "Без категории",
       categoryId: product.category_id,
+      categoryIds: product.category_ids ?? [product.category_id],
+      categoryNames,
+      piecesPerCube: product.pieces_per_cubic_meter ?? null,
+      dimensions:
+        product.thickness_mm && product.width_mm && product.length_mm
+          ? {
+              thickness: product.thickness_mm,
+              width: product.width_mm,
+              length: product.length_mm,
+            }
+          : null,
+      variants,
       description: product.description || "Описание пока не добавлено",
       price: product.price,
       unit: product.unit,
@@ -124,15 +150,22 @@ function mapProducts(
   });
 }
 
-function getProductWord(count: number) {
-  const lastTwo = count % 100;
-  const last = count % 10;
+/** При переходе между страницами — наверх; ссылки вида /#delivery — к блоку. */
+function ScrollManager() {
+  const { pathname, hash } = useLocation();
 
-  if (lastTwo >= 11 && lastTwo <= 14) return "товаров";
-  if (last === 1) return "товар";
-  if (last >= 2 && last <= 4) return "товара";
+  useEffect(() => {
+    if (hash) {
+      // Ждём, пока страница отрисует нужный блок
+      const timer = window.setTimeout(() => {
+        document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: "smooth" });
+      }, 50);
+      return () => window.clearTimeout(timer);
+    }
+    window.scrollTo({ top: 0 });
+  }, [pathname, hash]);
 
-  return "товаров";
+  return null;
 }
 
 function App() {
@@ -141,19 +174,26 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
-  const [activeCategory, setActiveCategory] = useState("Все товары");
-  const [search, setSearch] = useState("");
+  // Корзина: id варианта → количество
   const [cart, setCart] = useState<Record<number, number>>({});
+  // Выбранный в карточке вариант: id товара → id варианта
+  const [selectedVariants, setSelectedVariants] = useState<
+    Record<number, number>
+  >({});
   const [favorites, setFavorites] = useState<number[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [sort, setSort] = useState("popular");
+  const [headerSearch, setHeaderSearch] = useState("");
+  const navigate = useNavigate();
 
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [deliveryMethod, setDeliveryMethod] = useState<"DELIVERY" | "PICKUP">(
+    "DELIVERY",
+  );
   const [customerName, setCustomerName] = useState("");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
@@ -293,64 +333,96 @@ function App() {
     };
   }, [customer]);
 
-  const categories = useMemo(
-    () => ["Все товары", ...apiCategories.map((category) => category.name)],
-    [apiCategories],
-  );
-
-  const filteredProducts = useMemo(() => {
-    let result = products.filter((product) => {
-      const matchesCategory =
-        activeCategory === "Все товары" ||
-        product.category === activeCategory;
-
-      const matchesSearch = (
-        product.name +
-        " " +
-        product.description +
-        " " +
-        product.category
-      )
-        .toLowerCase()
-        .includes(search.toLowerCase());
-
-      return matchesCategory && matchesSearch;
-    });
-
-    if (sort === "cheap") {
-      result = [...result].sort((a, b) => a.price - b.price);
-    }
-
-    if (sort === "expensive") {
-      result = [...result].sort((a, b) => b.price - a.price);
-    }
-
-    return result;
-  }, [products, activeCategory, search, sort]);
-
   const cartCount = Object.values(cart).reduce(
     (total, quantity) => total + quantity,
     0,
   );
 
-  const cartTotal = products.reduce(
-    (total, product) => total + product.price * (cart[product.id] || 0),
+  const variantIndex = useMemo(() => {
+    const index = new Map<
+      number,
+      { product: Product; variant: ProductVariant }
+    >();
+
+    for (const product of products) {
+      for (const variant of product.variants) {
+        index.set(variant.id, { product, variant });
+      }
+    }
+
+    return index;
+  }, [products]);
+
+  const cartEntries = useMemo(() => {
+    const entries: CartEntry[] = [];
+
+    for (const [variantId, quantity] of Object.entries(cart)) {
+      const found = variantIndex.get(Number(variantId));
+      if (found && quantity > 0) {
+        entries.push({ ...found, quantity });
+      }
+    }
+
+    return entries;
+  }, [cart, variantIndex]);
+
+  const cartTotal = cartEntries.reduce(
+    (total, entry) => total + entry.variant.price * entry.quantity,
     0,
   );
 
-  function changeQuantity(id: number, amount: number) {
-    const product = products.find((item) => item.id === id);
+  function getSelectedVariant(product: Product): ProductVariant | undefined {
+    return (
+      product.variants.find(
+        (variant) => variant.id === selectedVariants[product.id],
+      ) ?? product.variants[0]
+    );
+  }
 
-    if (!product) return;
+  function selectVariant(productId: number, variantId: number) {
+    setSelectedVariants((current) => ({ ...current, [productId]: variantId }));
+  }
+
+  // Склад у товара общий: штуки и кубы в корзине тратят один остаток
+  function usedBaseUnits(
+    product: Product,
+    currentCart: Record<number, number>,
+  ) {
+    return product.variants.reduce(
+      (total, variant) =>
+        total + (currentCart[variant.id] || 0) * variant.baseQuantity,
+      0,
+    );
+  }
+
+  function canAddVariant(product: Product, variant: ProductVariant) {
+    return (
+      usedBaseUnits(product, cart) + variant.baseQuantity <=
+      product.stockQuantity
+    );
+  }
+
+  function maxAddable(product: Product, variant: ProductVariant) {
+    const free = product.stockQuantity - usedBaseUnits(product, cart);
+    return Math.max(0, Math.floor(free / variant.baseQuantity + 1e-9));
+  }
+
+  function changeQuantity(variantId: number, amount: number) {
+    const found = variantIndex.get(variantId);
+
+    if (!found) return;
 
     setCart((current) => {
       const next = { ...current };
-      const quantity = (next[id] || 0) + amount;
+      const quantity = (next[variantId] || 0) + amount;
+      const used =
+        usedBaseUnits(found.product, current) +
+        amount * found.variant.baseQuantity;
 
       if (quantity <= 0) {
-        delete next[id];
-      } else if (quantity <= product.stockQuantity) {
-        next[id] = quantity;
+        delete next[variantId];
+      } else if (amount < 0 || used <= found.product.stockQuantity) {
+        next[variantId] = quantity;
       }
 
       return next;
@@ -592,12 +664,15 @@ function App() {
       return;
     }
 
-    if (deliveryAddress.trim().length < 5) {
+    if (deliveryMethod === "DELIVERY" && deliveryAddress.trim().length < 5) {
       setCheckoutError("Укажи адрес доставки — не менее 5 символов.");
       return;
     }
 
-    if (!phone.trim() || !password) {
+    // Если покупатель уже вошёл через «Личный кабинет», используем его токен
+    const storedToken = customer ? localStorage.getItem(TOKEN_KEY) : null;
+
+    if (!storedToken && (!phone.trim() || !password)) {
       setCheckoutError("Заполни номер телефона и пароль.");
       return;
     }
@@ -605,19 +680,37 @@ function App() {
     setCheckoutLoading(true);
 
     try {
-      if (authMode === "register") {
-        await registerUser({
+      let accessToken: string;
+
+      if (storedToken) {
+        accessToken = storedToken;
+      } else {
+        if (authMode === "register") {
+          await registerUser({
+            phone: phone.trim(),
+            password,
+          });
+        }
+
+        const auth = await loginUser({
           phone: phone.trim(),
           password,
         });
+        accessToken = auth.access_token;
       }
 
-      const auth = await loginUser({
-        phone: phone.trim(),
-        password,
-      });
-
-      const user = await getCurrentUser(auth.access_token);
+      let user;
+      try {
+        user = await getCurrentUser(accessToken);
+      } catch (error) {
+        if (storedToken) {
+          // Токен истёк — просим войти заново, корзину не трогаем
+          localStorage.removeItem(TOKEN_KEY);
+          setCustomer(null);
+          throw new Error("Сессия истекла. Войди в аккаунт ещё раз.");
+        }
+        throw error;
+      }
 
       if (user.role !== "CUSTOMER") {
         throw new Error("Оформить заказ можно только с аккаунта покупателя.");
@@ -626,18 +719,18 @@ function App() {
       const order = await createOrder(
         {
           customer_name: customerName.trim(),
-          items: products
-            .filter((product) => (cart[product.id] || 0) > 0)
-            .map((product) => ({
-              product_id: product.id,
-              quantity: cart[product.id],
-            })),
-          delivery_address: deliveryAddress.trim(),
+          items: cartEntries.map((entry) => ({
+            product_id: entry.product.id,
+            variant_id: entry.variant.id,
+            quantity: entry.quantity,
+          })),
+          delivery_method: deliveryMethod,
+          delivery_address: deliveryMethod === "DELIVERY" ? deliveryAddress.trim() : "",
         },
-        auth.access_token,
+        accessToken,
       );
 
-      localStorage.setItem(TOKEN_KEY, auth.access_token);
+      localStorage.setItem(TOKEN_KEY, accessToken);
 
       setCustomer({
         id: user.id,
@@ -649,23 +742,14 @@ function App() {
       setCheckoutSuccess(order.id);
       setCart({});
 
-      setProducts((current) =>
-        current.map((product) => {
-          const orderedItem = order.items.find(
-            (item) => item.product_id === product.id,
-          );
-
-          return orderedItem
-            ? {
-                ...product,
-                stockQuantity: Math.max(
-                  0,
-                  product.stockQuantity - orderedItem.quantity,
-                ),
-              }
-            : product;
-        }),
-      );
+      // Остатки пересчитывает сервер (штуки ↔ кубы), просто перечитываем каталог
+      getProducts()
+        .then((loadedProducts) =>
+          setProducts(mapProducts(loadedProducts, apiCategories)),
+        )
+        .catch(() => {
+          // Каталог обновится при следующей загрузке страницы
+        });
 
       setPassword("");
     } catch (error) {
@@ -686,49 +770,84 @@ function App() {
     setCheckoutSuccess(null);
   }
 
+  const shop: ShopContextValue = {
+    products,
+    categories: apiCategories,
+    loading,
+    loadError,
+    cart,
+    cartCount,
+    favorites,
+    toggleFavorite,
+    getSelectedVariant,
+    selectVariant,
+    changeQuantity,
+    canAddVariant,
+    maxAddable,
+    openCart: () => setCartOpen(true),
+    openCheckout,
+  };
+
   return (
+    <ShopContext.Provider value={shop}>
+    <ScrollManager />
     <div className="site-shell">
       <div className="topbar">
         <div className="container topbar-inner">
           <span>
             <span className="status-dot" />
-            Работаем ежедневно, без выходных
+            {WORKING_HOURS}
           </span>
 
           <div className="topbar-right">
-            <span>30 лет на рынке пиломатериалов</span>
-            <a href="#contacts">Контакты</a>
+            <span>{YEARS_ON_MARKET} лет на рынке пиломатериалов</span>
+            {PHONES.map((phone) => (
+              <a key={phone.href} href={phone.href} className="topbar-phone">
+                <Phone size={13} />
+                {phone.display}
+              </a>
+            ))}
           </div>
         </div>
       </div>
 
       <header className="header">
         <div className="container header-inner">
-          <a href="#" className="brand">
-            <span className="brand-mark">
-              <Package size={25} strokeWidth={1.8} />
-            </span>
-
-            <span className="brand-copy">
-              <strong>ДРУГ СТРОИТЕЛЯ</strong>
-              <small>МАТЕРИАЛЫ ДЛЯ СТРОИТЕЛЬСТВА</small>
-            </span>
-          </a>
+          <Link to="/" className="brand" aria-label="Друг Строителя — на главную">
+            <Logo />
+          </Link>
 
           <nav className={`main-nav ${mobileMenuOpen ? "nav-open" : ""}`}>
-            <a href="#catalog" onClick={() => setMobileMenuOpen(false)}>
+            <NavLink to="/catalog" onClick={() => setMobileMenuOpen(false)}>
               Каталог
-            </a>
-            <a href="#advantages" onClick={() => setMobileMenuOpen(false)}>
-              О магазине
-            </a>
-            <a href="#delivery" onClick={() => setMobileMenuOpen(false)}>
+            </NavLink>
+            <Link to="/#delivery" onClick={() => setMobileMenuOpen(false)}>
               Доставка
-            </a>
-            <a href="#contacts" onClick={() => setMobileMenuOpen(false)}>
+            </Link>
+            <Link to="/#contacts" onClick={() => setMobileMenuOpen(false)}>
               Контакты
-            </a>
+            </Link>
           </nav>
+
+          <form
+            className="header-search"
+            role="search"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const query = headerSearch.trim();
+              navigate(query ? `/catalog?q=${encodeURIComponent(query)}` : "/catalog");
+              setMobileMenuOpen(false);
+            }}
+          >
+            <Search size={17} />
+            <input
+              type="search"
+              placeholder="Поиск: доска, брус, саморезы…"
+              value={headerSearch}
+              onChange={(event) => setHeaderSearch(event.target.value)}
+              aria-label="Поиск по каталогу"
+            />
+          </form>
 
           <div className="header-actions">
             <button
@@ -781,415 +900,27 @@ function App() {
       </header>
 
       <main>
-        <section className="hero">
-          <div className="hero-photo" />
-          <div className="hero-shade" />
-
-          <div className="container hero-content">
-            <div className="hero-label">
-              <span />
-              НАДЁЖНАЯ ОСНОВА ВАШЕГО ПРОЕКТА
-            </div>
-
-            <h1>
-              Хороший материал.
-              <br />
-              <span>Крепкий результат.</span>
-            </h1>
-
-            <p>
-              Пиломатериалы для дома, стройки и отделки.
-              <br />
-              Выбирайте нужное — остальное мы поможем организовать.
-            </p>
-
-            <div className="hero-actions">
-              <a href="#catalog" className="button button-primary">
-                Смотреть каталог <ArrowRight size={18} />
-              </a>
-
-              <a href="#advantages" className="hero-secondary">
-                Почему мы <ArrowRight size={17} />
-              </a>
-            </div>
-
-            <div className="hero-trust">
-              <div className="trust-avatars">
-                <span>Д</span>
-                <span>С</span>
-                <span>М</span>
-              </div>
-
-              <div>
-                <strong>30 лет на рынке</strong>
-                <small>Опыт, проверенный временем</small>
-              </div>
-            </div>
-          </div>
-
-          <div className="hero-side-note">
-            <span>01 / 03</span>
-            <span className="hero-side-line" />
-            <span>НАТУРАЛЬНОЕ ДЕРЕВО</span>
-          </div>
-        </section>
-
-        <section className="benefits-strip" id="advantages">
-          <div className="container benefits-grid">
-            <div className="benefit">
-              <span className="benefit-icon">
-                <ShieldCheck size={22} />
-              </span>
-              <div>
-                <strong>Проверенные материалы</strong>
-                <small>Внимание к качеству каждой партии</small>
-              </div>
-            </div>
-
-            <div className="benefit">
-              <span className="benefit-icon">
-                <Truck size={22} />
-              </span>
-              <div>
-                <strong>Доставка на объект</strong>
-                <small>Согласуем удобные условия</small>
-              </div>
-            </div>
-
-            <div className="benefit">
-              <span className="benefit-icon">
-                <Clock3 size={22} />
-              </span>
-              <div>
-                <strong>Быстрый расчёт</strong>
-                <small>Поможем подобрать объём</small>
-              </div>
-            </div>
-
-            <div className="benefit">
-              <span className="benefit-icon">
-                <Check size={22} />
-              </span>
-              <div>
-                <strong>Понятные цены</strong>
-                <small>Стоимость указана в каталоге</small>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="catalog-section" id="catalog">
-          <div className="container">
-            <div className="section-heading">
-              <div>
-                <span className="eyebrow">ВЫБИРАЙТЕ СВОЁ</span>
-                <h2>
-                  Каталог материалов<span>.</span>
-                </h2>
-                <p>
-                  Всё необходимое для строительства и отделки в одном месте.
-                </p>
-              </div>
-
-              <div className="catalog-count">
-                <strong>
-                  {filteredProducts.length.toString().padStart(2, "0")}
-                </strong>
-                <span>ПОЗИЦИЙ В КАТАЛОГЕ</span>
-              </div>
-            </div>
-
-            <div className="catalog-toolbar">
-              <div className="category-tabs">
-                {categories.map((category) => (
-                  <button
-                    key={category}
-                    className={
-                      activeCategory === category
-                        ? "category-tab active"
-                        : "category-tab"
-                    }
-                    onClick={() => setActiveCategory(category)}
-                  >
-                    {category}
-                  </button>
-                ))}
-              </div>
-
-              <div className="catalog-tools">
-                <label className="search-box">
-                  <Search size={18} />
-
-                  <input
-                    type="search"
-                    placeholder="Найти материал..."
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                  />
-
-                  {search && (
-                    <button
-                      className="clear-search"
-                      onClick={() => setSearch("")}
-                      aria-label="Очистить поиск"
-                    >
-                      <X size={15} />
-                    </button>
-                  )}
-                </label>
-
-                <label className="sort-box">
-                  <select
-                    value={sort}
-                    onChange={(event) => setSort(event.target.value)}
-                    aria-label="Сортировка товаров"
-                  >
-                    <option value="popular">По популярности</option>
-                    <option value="cheap">Сначала дешевле</option>
-                    <option value="expensive">Сначала дороже</option>
-                  </select>
-                  <ChevronDown size={15} />
-                </label>
-              </div>
-            </div>
-
-            {loading ? (
-              <div className="empty-results">
-                <Package size={30} />
-                <h3>Загружаем каталог</h3>
-                <p>Получаем товары и категории с сервера.</p>
-              </div>
-            ) : loadError ? (
-              <div className="empty-results">
-                <Package size={30} />
-                <h3>Не удалось загрузить товары</h3>
-                <p>{loadError}</p>
-                <button
-                  className="button button-dark"
-                  onClick={() => window.location.reload()}
-                >
-                  Повторить
-                </button>
-              </div>
-            ) : filteredProducts.length > 0 ? (
-              <div className="product-grid">
-                {filteredProducts.map((product, index) => (
-                  <article className="product-card" key={product.id}>
-                    <div className="product-image-wrap">
-                      <img
-                        className="product-image"
-                        src={product.image}
-                        alt={product.name}
-                        loading="lazy"
-                      />
-
-                      {product.badge && (
-                        <span className="product-badge">{product.badge}</span>
-                      )}
-
-                      <button
-                        className={`favorite-button ${
-                          favorites.includes(product.id) ? "is-favorite" : ""
-                        }`}
-                        aria-label={
-                          favorites.includes(product.id)
-                            ? "Убрать из избранного"
-                            : "Добавить в избранное"
-                        }
-                        onClick={() => toggleFavorite(product.id)}
-                      >
-                        <Heart
-                          size={18}
-                          fill={
-                            favorites.includes(product.id)
-                              ? "currentColor"
-                              : "none"
-                          }
-                        />
-                      </button>
-
-                      <span className="product-number">
-                        {String(index + 1).padStart(2, "0")}
-                      </span>
-                    </div>
-
-                    <div className="product-info">
-                      <span className="product-category">
-                        {product.category}
-                      </span>
-                      <h3>{product.name}</h3>
-                      <p>{product.description}</p>
-
-                      <div
-                        className={`product-stock ${
-                          product.stockQuantity > 0 ? "is-available" : "is-unavailable"
-                        }`}
-                      >
-                        <span className="product-stock-dot" />
-                        {product.stockQuantity > 0
-                          ? `В наличии: ${product.stockQuantity} ${product.unit}`
-                          : "Нет в наличии"}
-                      </div>
-
-                      <div className="product-bottom">
-                        <div className="product-price">
-                          <strong>{formatPrice(product.price)}</strong>
-                          <small>/ {product.unit}</small>
-                        </div>
-
-                        {cart[product.id] ? (
-                          <div className="quantity-control">
-                            <button
-                              onClick={() => changeQuantity(product.id, -1)}
-                              aria-label="Уменьшить количество"
-                            >
-                              <Minus size={15} />
-                            </button>
-                            <span>{cart[product.id]}</span>
-                            <button
-                              onClick={() => changeQuantity(product.id, 1)}
-                              disabled={
-                                cart[product.id] >= product.stockQuantity
-                              }
-                              aria-label="Увеличить количество"
-                            >
-                              <Plus size={15} />
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            className="add-button"
-                            onClick={() => changeQuantity(product.id, 1)}
-                            disabled={product.stockQuantity < 1}
-                            aria-label={`Добавить ${product.name} в корзину`}
-                          >
-                            <Plus size={19} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <div className="empty-results">
-                <Search size={30} />
-                <h3>Ничего не найдено</h3>
-                <p>
-                  Попробуйте изменить запрос или выбрать другую категорию.
-                </p>
-                <button
-                  className="button button-dark"
-                  onClick={() => {
-                    setSearch("");
-                    setActiveCategory("Все товары");
-                  }}
-                >
-                  Сбросить фильтры
-                </button>
-              </div>
-            )}
-
-            <div className="catalog-footer">
-              <span>
-                Цены и наличие уточняются при оформлении заказа.
-              </span>
-              <a href="#contacts">
-                Нужна помощь с выбором? <ArrowRight size={16} />
-              </a>
-            </div>
-          </div>
-        </section>
-
-        <section className="delivery-section" id="delivery">
-          <div className="container delivery-panel">
-            <div className="delivery-copy">
-              <span className="eyebrow">ОТ ЗАКАЗА ДО ОБЪЕКТА</span>
-              <h2>
-                Строить проще,
-                <br />
-                когда всё <span>под рукой.</span>
-              </h2>
-              <p>
-                Расскажите, что нужно для вашего проекта. Поможем с подбором
-                материалов, количеством и организацией доставки.
-              </p>
-              <button
-                className="button button-primary"
-                onClick={() => {
-                  if (cartCount > 0) {
-                    openCheckout();
-                  } else {
-                    document.getElementById("catalog")?.scrollIntoView({
-                      behavior: "smooth",
-                    });
-                  }
-                }}
-              >
-                {cartCount > 0 ? "Оформить заказ" : "Выбрать материалы"}{" "}
-                <ArrowRight size={18} />
-              </button>
-            </div>
-
-            <div className="delivery-visual">
-              <img
-                src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1100&q=85"
-                alt="Строительные материалы на объекте"
-                loading="lazy"
-              />
-              <div className="delivery-stamp">
-                <Truck size={24} />
-                <strong>ДОСТАВКА</strong>
-                <span>По договорённости</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="contact-section" id="contacts">
-          <div className="container contact-inner">
-            <div>
-              <span className="eyebrow">ЕСТЬ ВОПРОСЫ?</span>
-              <h2>Давайте обсудим ваш проект.</h2>
-              <p>
-                Свяжитесь с нами, чтобы уточнить наличие, цены и условия
-                доставки.
-              </p>
-            </div>
-
-            <button
-              className="button button-light"
-              onClick={() => {
-                if (cartCount > 0) {
-                  openCheckout();
-                } else {
-                  document.getElementById("catalog")?.scrollIntoView({
-                    behavior: "smooth",
-                  });
-                }
-              }}
-            >
-              {cartCount > 0 ? "Оформить заказ" : "Вернуться в каталог"}{" "}
-              <ArrowRight size={18} />
-            </button>
-          </div>
-        </section>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/catalog" element={<CatalogPage />} />
+          <Route path="/catalog/:categoryId" element={<CatalogPage />} />
+          <Route path="/product/:productId" element={<ProductPage />} />
+          <Route path="*" element={<CatalogPage />} />
+        </Routes>
       </main>
 
       <footer className="footer">
         <div className="container footer-inner">
-          <a href="#" className="brand footer-brand">
-            <span className="brand-mark">
-              <Package size={23} />
-            </span>
-            <span className="brand-copy">
-              <strong>ДРУГ СТРОИТЕЛЯ</strong>
-              <small>МАТЕРИАЛЫ ДЛЯ СТРОИТЕЛЬСТВА</small>
-            </span>
-          </a>
+          <Link to="/" className="brand footer-brand" aria-label="Друг Строителя — на главную">
+            <Logo inverted />
+          </Link>
 
-          <span className="footer-note">
-            Материалы для хороших проектов.
+          <span className="footer-note footer-phones">
+            {PHONES.map((phone) => (
+              <a key={phone.href} href={phone.href}>
+                {phone.display}
+              </a>
+            ))}
           </span>
           <span className="copyright">© 2026 Друг Строителя</span>
         </div>
@@ -1209,7 +940,7 @@ function App() {
 
             <span className="sticky-cart-copy">
               <strong>
-                {cartCount} {getProductWord(cartCount)}
+                {cartCount} {pluralize(cartCount, ["товар", "товара", "товаров"])}
               </strong>
               <small>Открыть корзину</small>
             </span>
@@ -1259,43 +990,41 @@ function App() {
             ) : (
               <>
                 <div className="cart-items">
-                  {products
-                    .filter((product) => cart[product.id])
-                    .map((product) => (
-                      <div className="cart-item" key={product.id}>
-                        <img src={product.image} alt={product.name} />
+                  {cartEntries.map(({ product, variant, quantity }) => (
+                    <div className="cart-item" key={variant.id}>
+                      <img src={product.image} alt={product.name} onError={showFallbackImage} />
 
-                        <div className="cart-item-info">
-                          <strong>{product.name}</strong>
-                          <small>
-                            {formatPrice(product.price)} / {product.unit}
-                          </small>
+                      <div className="cart-item-info">
+                        <strong>{product.name}</strong>
+                        <small>
+                          {product.variants.length > 1 &&
+                            `${variant.name} · `}
+                          {formatPrice(variant.price)} / {variant.unit}
+                        </small>
 
-                          <div className="quantity-control">
-                            <button
-                              onClick={() => changeQuantity(product.id, -1)}
-                              aria-label="Уменьшить количество"
-                            >
-                              <Minus size={14} />
-                            </button>
-                            <span>{cart[product.id]}</span>
-                            <button
-                              onClick={() => changeQuantity(product.id, 1)}
-                              disabled={
-                                cart[product.id] >= product.stockQuantity
-                              }
-                              aria-label="Увеличить количество"
-                            >
-                              <Plus size={14} />
-                            </button>
-                          </div>
+                        <div className="quantity-control">
+                          <button
+                            onClick={() => changeQuantity(variant.id, -1)}
+                            aria-label="Уменьшить количество"
+                          >
+                            <Minus size={14} />
+                          </button>
+                          <span>{quantity}</span>
+                          <button
+                            onClick={() => changeQuantity(variant.id, 1)}
+                            disabled={!canAddVariant(product, variant)}
+                            aria-label="Увеличить количество"
+                          >
+                            <Plus size={14} />
+                          </button>
                         </div>
-
-                        <strong className="cart-item-total">
-                          {formatPrice(product.price * cart[product.id])}
-                        </strong>
                       </div>
-                    ))}
+
+                      <strong className="cart-item-total">
+                        {formatPrice(variant.price * quantity)}
+                      </strong>
+                    </div>
+                  ))}
                 </div>
 
                 <div className="cart-summary">
@@ -1384,68 +1113,86 @@ function App() {
               </div>
             ) : (
               <form className="checkout-form" onSubmit={handleCheckout}>
-                <p className="checkout-description">
-                  Войди в аккаунт или создай новый, чтобы отправить заказ.
-                </p>
+                {customer ? (
+                  <div className="checkout-account">
+                    <span>
+                      Заказ будет оформлен на аккаунт{" "}
+                      <strong>{customer.phone}</strong>
+                    </span>
+                    <button
+                      type="button"
+                      className="checkout-account-switch"
+                      onClick={logoutCustomer}
+                    >
+                      Сменить аккаунт
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <p className="checkout-description">
+                      Войди в аккаунт или создай новый, чтобы отправить заказ.
+                    </p>
 
-                <div className="auth-tabs">
-                  <button
-                    type="button"
-                    className={
-                      authMode === "login" ? "auth-tab active" : "auth-tab"
-                    }
-                    onClick={() => {
-                      setAuthMode("login");
-                      setCheckoutError("");
-                    }}
-                  >
-                    Войти
-                  </button>
-                  <button
-                    type="button"
-                    className={
-                      authMode === "register"
-                        ? "auth-tab active"
-                        : "auth-tab"
-                    }
-                    onClick={() => {
-                      setAuthMode("register");
-                      setCheckoutError("");
-                    }}
-                  >
-                    Регистрация
-                  </button>
-                </div>
+                    <div className="auth-tabs">
+                      <button
+                        type="button"
+                        className={
+                          authMode === "login" ? "auth-tab active" : "auth-tab"
+                        }
+                        onClick={() => {
+                          setAuthMode("login");
+                          setCheckoutError("");
+                        }}
+                      >
+                        Войти
+                      </button>
+                      <button
+                        type="button"
+                        className={
+                          authMode === "register"
+                            ? "auth-tab active"
+                            : "auth-tab"
+                        }
+                        onClick={() => {
+                          setAuthMode("register");
+                          setCheckoutError("");
+                        }}
+                      >
+                        Регистрация
+                      </button>
+                    </div>
 
-                <label className="checkout-field">
-                  <span>Номер телефона</span>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(event) => setPhone(event.target.value)}
-                    placeholder="+7 999 123-45-67"
-                    autoComplete="tel"
-                    maxLength={30}
-                    required
-                  />
-                </label>
+                    <label className="checkout-field">
+                      <span>Номер телефона</span>
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={(event) => setPhone(event.target.value)}
+                        placeholder="+7 999 123-45-67"
+                        autoComplete="tel"
+                        maxLength={30}
+                        required
+                      />
+                    </label>
 
-                <label className="checkout-field">
-                  <span>Пароль</span>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    placeholder="Введите пароль"
-                    autoComplete={
-                      authMode === "register"
-                        ? "new-password"
-                        : "current-password"
-                    }
-                    minLength={1}
-                    required
-                  />
-                </label>
+                    <label className="checkout-field">
+                      <span>Пароль</span>
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                        placeholder="Введите пароль"
+                        autoComplete={
+                          authMode === "register"
+                            ? "new-password"
+                            : "current-password"
+                        }
+                        minLength={1}
+                        required
+                      />
+                    </label>
+                  </>
+                )}
 
                 <label className="checkout-field">
                   <span>Как к вам обращаться?</span>
@@ -1461,20 +1208,52 @@ function App() {
                   />
                 </label>
 
-                <label className="checkout-field">
-                  <span>Адрес доставки</span>
-                  <textarea
-                    value={deliveryAddress}
-                    onChange={(event) =>
-                      setDeliveryAddress(event.target.value)
-                    }
-                    placeholder="Город, улица, дом, дополнительные ориентиры"
-                    minLength={5}
-                    maxLength={500}
-                    rows={3}
-                    required
-                  />
-                </label>
+                <div className="checkout-field">
+                  <span>Как получить заказ</span>
+                  <div className="delivery-options" role="radiogroup">
+                    {(
+                      [
+                        ["DELIVERY", "Доставка", "Привезём на объект своим транспортом"],
+                        ["PICKUP", "Самовывоз", "Заберёте сами — на своей или нанятой машине"],
+                      ] as const
+                    ).map(([value, title, hint]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        role="radio"
+                        aria-checked={deliveryMethod === value}
+                        className={`delivery-option ${deliveryMethod === value ? "is-selected" : ""}`}
+                        onClick={() => setDeliveryMethod(value)}
+                      >
+                        {value === "DELIVERY" ? <Truck size={18} /> : <Warehouse size={18} />}
+                        <strong>{title}</strong>
+                        <small>{hint}</small>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {deliveryMethod === "DELIVERY" ? (
+                  <label className="checkout-field">
+                    <span>Адрес доставки</span>
+                    <textarea
+                      value={deliveryAddress}
+                      onChange={(event) =>
+                        setDeliveryAddress(event.target.value)
+                      }
+                      placeholder="Город, улица, дом, дополнительные ориентиры"
+                      minLength={5}
+                      maxLength={500}
+                      rows={3}
+                      required
+                    />
+                  </label>
+                ) : (
+                  <p className="checkout-pickup-note">
+                    После подтверждения заказа мы позвоним и скажем, когда
+                    подъехать. Телефоны: {PHONES.map((phone) => phone.display).join(", ")}.
+                  </p>
+                )}
 
                 <div className="checkout-order-summary">
                   <span>Товаров в заказе: {cartCount}</span>
@@ -1494,9 +1273,11 @@ function App() {
                 >
                   {checkoutLoading
                     ? "Отправляем заказ..."
-                    : authMode === "register"
-                      ? "Зарегистрироваться и заказать"
-                      : "Войти и оформить заказ"}
+                    : customer
+                      ? "Оформить заказ"
+                      : authMode === "register"
+                        ? "Зарегистрироваться и заказать"
+                        : "Войти и оформить заказ"}
                   {!checkoutLoading && <ArrowRight size={18} />}
                 </button>
 
@@ -1694,7 +1475,11 @@ function App() {
 
                         <div className="account-order-address">
                           <MapPin size={15} />
-                          <span>{order.delivery_address}</span>
+                          <span>
+                            {order.delivery_method === "PICKUP"
+                              ? "Самовывоз со склада"
+                              : order.delivery_address}
+                          </span>
                         </div>
 
                         <div className="account-order-items">
@@ -1709,9 +1494,14 @@ function App() {
                                 key={item.id}
                               >
                                 <span>
-                                  {product?.name ?? `Товар №${item.product_id}`}
+                                  {item.product_name ??
+                                    product?.name ??
+                                    `Товар №${item.product_id}`}
+                                  {item.variant_name &&
+                                    item.variant_name !== item.unit &&
+                                    ` (${item.variant_name})`}
                                   {" × "}
-                                  {item.quantity}
+                                  {item.quantity} {item.unit}
                                 </span>
                                 <strong>
                                   {formatPrice(item.price * item.quantity)}
@@ -1760,6 +1550,17 @@ function App() {
                               ? "Отменяем заказ..."
                               : "Отменить заказ"}
                           </button>
+                        )}
+
+                        {order.status === "DELIVERED" && (
+                          <a
+                            className="review-order-link"
+                            href={YANDEX_REVIEW_URL}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            <Star size={16} /> Оставить отзыв на Яндекс Картах
+                          </a>
                         )}
                       </article>
                     ))}
@@ -1901,6 +1702,7 @@ function App() {
                   </div>
                       )}
     </div>
+    </ShopContext.Provider>
   );
 }
 

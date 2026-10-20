@@ -5,6 +5,7 @@ from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from pwdlib import PasswordHash
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from .database import get_db
@@ -16,8 +17,48 @@ SECRET_KEY = os.getenv(
     "super_secure_lumber_secret_key_change_me"
 )
 
+def phone_variants(phone: str) -> list[str]:
+    """Все записи одного российского номера: +7…, 7…, 8… и 10 цифр.
+
+    Пользователь мог зарегистрироваться с «+7 999…», а входить с «8999…».
+    """
+    raw = "".join(ch for ch in phone.strip() if ch.isdigit() or ch == "+")
+    digits = raw.lstrip("+")
+    variants = {raw, digits, f"+{digits}"}
+
+    if len(digits) == 11 and digits[0] in "78":
+        digits = digits[1:]
+
+    if len(digits) == 10:
+        variants |= {f"+7{digits}", f"7{digits}", f"8{digits}", digits}
+
+    return sorted(variant for variant in variants if variant)
+
+
+def find_user_by_phone(db: Session, phone: str) -> User | None:
+    return (
+        db.query(User)
+        .filter(User.phone.in_(phone_variants(phone)))
+        .order_by(User.id)
+        .first()
+    )
+
+
+def find_user_by_email(db: Session, email: str) -> User | None:
+    """Email без учёта регистра: Telegram на телефоне любит заглавную букву."""
+    return (
+        db.query(User)
+        .filter(func.lower(User.email) == email.strip().lower())
+        .order_by(User.id)
+        .first()
+    )
+
+
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+# Покупатель не должен перелогиниваться каждый час: по умолчанию 7 дней
+ACCESS_TOKEN_EXPIRE_MINUTES = int(
+    os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", str(60 * 24 * 7))
+)
 
 password_hash = PasswordHash.recommended()
 
@@ -143,6 +184,26 @@ def require_admin(
         )
 
     return current_user
+
+
+def require_owner(
+    current_user: User = Depends(require_admin)
+):
+    if current_user.is_owner != 1:
+        raise HTTPException(
+            status_code=403,
+            detail="Только владелец магазина может управлять администраторами"
+        )
+
+    return current_user
+
+
+def find_user_by_login(db: Session, login: str) -> User | None:
+    """Поиск по email (если есть «@») или по телефону."""
+    login = login.strip()
+    if "@" in login:
+        return find_user_by_email(db, login)
+    return find_user_by_phone(db, login)
 
 
 def require_driver(

@@ -64,11 +64,15 @@ def create_order(customer_id, product_id, quantity=3, status="NEW"):
     db.add(order)
     db.flush()
 
+    product = db.get(Product, product_id)
+
     order_item = OrderItem(
         order_id=order.id,
         product_id=product_id,
+        variant_id=product.variants[0].id,
         quantity=quantity,
-        price=100
+        price=100,
+        unit=product.unit,
     )
 
     db.add(order_item)

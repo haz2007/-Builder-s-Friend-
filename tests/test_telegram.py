@@ -1,6 +1,13 @@
+from app.services import telegram_service
 
-from app.services.telegram_service import send_telegram_message
 
-result = send_telegram_message("Тест Telegram — Друг Строителя")
+def test_send_is_skipped_without_token(monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        telegram_service.requests,
+        "post",
+        lambda *args, **kwargs: calls.append(args),
+    )
 
-print("Сообщение отправлено:", result)
+    assert telegram_service.send_telegram_message(123, "Тест") is False
+    assert calls == []

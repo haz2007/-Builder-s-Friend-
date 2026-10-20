@@ -17,13 +17,31 @@ from sqlalchemy.orm import Session
 
 from ..auth import require_admin
 from ..database import get_db
-from ..models import Category, Product, User
+from ..models import (
+    Category,
+    OrderItem,
+    Product,
+    ProductVariant,
+    User,
+    is_piece_unit,
+)
+from .categories import category_with_children_ids
 from ..schemas import (
     ProductCreate,
     ProductResponse,
     ProductStockUpdate,
     ProductUpdate,
+    ProductVariantCreate,
+    ProductVariantResponse,
+    ProductVariantUpdate,
 )
+from ..services.variant_service import (
+    apply_product_fields_to_primary,
+    recalc_cubic_variants,
+    sync_product_from_primary,
+)
+
+DIMENSION_FIELDS = ("thickness_mm", "width_mm", "length_mm")
 
 
 router = APIRouter(prefix="/api/v1/products", tags=["Products"])
@@ -35,6 +53,73 @@ ALLOWED_FORMATS = {
     "PNG": ".png",
     "WEBP": ".webp",
 }
+
+
+def set_product_categories(
+    db: Session,
+    product: Product,
+    main_category_id: int,
+    extra_category_ids: list[int],
+) -> None:
+    """Связывает товар с основной и дополнительными категориями."""
+    category_ids = {main_category_id, *extra_category_ids}
+    categories = db.query(Category).filter(Category.id.in_(category_ids)).all()
+
+    if len(categories) != len(category_ids):
+        raise HTTPException(status_code=404, detail="Category not found")
+
+    product.categories = categories
+
+
+def validate_dimensions(product: Product) -> None:
+    """Размеры задаются все три сразу; тогда склад ведётся в штуках."""
+    dimensions = [getattr(product, field) for field in DIMENSION_FIELDS]
+
+    if not any(dimensions):
+        return
+
+    if not all(dimensions):
+        raise HTTPException(
+            status_code=400,
+            detail="Укажи толщину, ширину и длину доски вместе",
+        )
+
+    if not is_piece_unit(product.unit):
+        raise HTTPException(
+            status_code=400,
+            detail="Для доски с размерами остаток ведётся в штуках: единица «шт»",
+        )
+
+    recalc_cubic_variants(product)
+
+
+def get_product_or_404(db: Session, product_id: int) -> Product:
+    product = db.query(Product).filter(Product.id == product_id).first()
+
+    if product is None:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    return product
+
+
+def get_variant_or_404(
+    db: Session,
+    product_id: int,
+    variant_id: int,
+) -> ProductVariant:
+    variant = (
+        db.query(ProductVariant)
+        .filter(
+            ProductVariant.id == variant_id,
+            ProductVariant.product_id == product_id,
+        )
+        .first()
+    )
+
+    if variant is None:
+        raise HTTPException(status_code=404, detail="Variant not found")
+
+    return variant
 
 
 @router.get("/", response_model=list[ProductResponse])
@@ -58,7 +143,12 @@ def get_products(
         )
 
     if category_id is not None:
-        query = query.filter(Product.category_id == category_id)
+        # Категория вместе с подкатегориями: «Пиломатериалы» = доска + брус + …
+        ids = category_with_children_ids(db, category_id)
+        query = query.filter(
+            Product.category_id.in_(ids)
+            | Product.categories.any(Category.id.in_(ids))
+        )
 
     if is_active is not None:
         query = query.filter(Product.is_active == is_active)
@@ -127,6 +217,16 @@ def create_product(
         stock_quantity=product.stock_quantity,
         unit=product.unit,
         category_id=product.category_id,
+        thickness_mm=product.thickness_mm,
+        width_mm=product.width_mm,
+        length_mm=product.length_mm,
+    )
+    validate_dimensions(new_product)
+    set_product_categories(
+        db,
+        new_product,
+        product.category_id,
+        product.category_ids,
     )
 
     db.add(new_product)
@@ -156,17 +256,37 @@ def update_product(
         if category is None:
             raise HTTPException(status_code=404, detail="Category not found")
 
-    for field in (
-        "name",
-        "description",
-        "price",
-        "stock_quantity",
-        "unit",
-        "category_id",
-    ):
+    old_category_id = product.category_id
+
+    for field in ("name", "description", "category_id", "stock_quantity"):
         value = getattr(product_data, field)
         if value is not None:
             setattr(product, field, value)
+
+    # null в размерах означает «убрать размеры», поэтому смотрим,
+    # какие поля прислали явно
+    for field in DIMENSION_FIELDS:
+        if field in product_data.model_fields_set:
+            setattr(product, field, getattr(product_data, field))
+
+    # Цена из формы — это цена основного варианта
+    apply_product_fields_to_primary(
+        product,
+        price=product_data.price,
+        unit=product_data.unit,
+    )
+    validate_dimensions(product)
+
+    if product_data.category_ids is not None:
+        extra_ids = product_data.category_ids
+    else:
+        extra_ids = [
+            category_id
+            for category_id in product.category_ids
+            if category_id != old_category_id
+        ]
+
+    set_product_categories(db, product, product.category_id, extra_ids)
 
     db.commit()
     db.refresh(product)
@@ -232,6 +352,106 @@ def update_product_stock(
     db.refresh(product)
 
     return product
+
+
+@router.post(
+    "/{product_id}/variants",
+    response_model=ProductVariantResponse,
+)
+def create_variant(
+    product_id: int,
+    variant_data: ProductVariantCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    product = get_product_or_404(db, product_id)
+
+    variant = ProductVariant(**variant_data.model_dump(), is_active=1)
+    product.variants.append(variant)
+    recalc_cubic_variants(product)
+    sync_product_from_primary(product)
+
+    db.commit()
+    db.refresh(variant)
+
+    return variant
+
+
+@router.patch(
+    "/{product_id}/variants/{variant_id}",
+    response_model=ProductVariantResponse,
+)
+def update_variant(
+    product_id: int,
+    variant_id: int,
+    variant_data: ProductVariantUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    product = get_product_or_404(db, product_id)
+    variant = get_variant_or_404(db, product_id, variant_id)
+
+    if variant_data.is_active == 0 and variant.is_active == 1:
+        active_count = sum(1 for v in product.variants if v.is_active == 1)
+        if active_count <= 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Product must have at least one active variant",
+            )
+
+    for field, value in variant_data.model_dump(exclude_none=True).items():
+        setattr(variant, field, value)
+
+    recalc_cubic_variants(product)
+    sync_product_from_primary(product)
+
+    db.commit()
+    db.refresh(variant)
+
+    return variant
+
+
+@router.delete("/{product_id}/variants/{variant_id}")
+def delete_variant(
+    product_id: int,
+    variant_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    product = get_product_or_404(db, product_id)
+    variant = get_variant_or_404(db, product_id, variant_id)
+
+    others_active = [
+        v for v in product.variants
+        if v.id != variant.id and v.is_active == 1
+    ]
+    if not others_active:
+        raise HTTPException(
+            status_code=400,
+            detail="Product must have at least one active variant",
+        )
+
+    used_in_orders = (
+        db.query(OrderItem)
+        .filter(OrderItem.variant_id == variant.id)
+        .first()
+        is not None
+    )
+
+    # Вариант из старых заказов не удаляем, а скрываем
+    if used_in_orders:
+        variant.is_active = 0
+    else:
+        product.variants.remove(variant)
+
+    sync_product_from_primary(product)
+    db.commit()
+
+    return {
+        "message": (
+            "Variant deactivated" if used_in_orders else "Variant deleted"
+        )
+    }
 
 
 @router.post("/{product_id}/image", response_model=ProductResponse)

@@ -10,24 +10,19 @@ logger = logging.getLogger(__name__)
 
 
 def send_telegram_message(
+    chat_id: int | str,
     message: str,
     reply_markup: dict | None = None,
 ) -> bool:
-    """
-    Отправляет сообщение в Telegram.
-    При необходимости добавляет inline-кнопки.
-    Возвращает True при успехе и False при ошибке.
+    """Отправляет сообщение в конкретный чат Telegram.
+
+    Возвращает True при успехе и False при ошибке или если бот не настроен.
     """
     token = os.getenv("TELEGRAM_BOT_TOKEN")
-    chat_id = os.getenv("TELEGRAM_CHAT_ID")
 
-    if not token or not chat_id:
-        logger.warning(
-            "Telegram не настроен: проверь TELEGRAM_BOT_TOKEN и TELEGRAM_CHAT_ID."
-        )
+    if not token:
+        logger.debug("Telegram не настроен: нет TELEGRAM_BOT_TOKEN.")
         return False
-
-    url = f"https://api.telegram.org/bot{token}/sendMessage"
 
     payload = {
         "chat_id": chat_id,
@@ -40,16 +35,18 @@ def send_telegram_message(
 
     try:
         response = requests.post(
-            url,
+            f"https://api.telegram.org/bot{token}/sendMessage",
             json=payload,
             timeout=5,
         )
-        response.raise_for_status()
-
         result = response.json()
 
         if not result.get("ok"):
-            logger.error("Telegram не подтвердил отправку сообщения.")
+            logger.warning(
+                "Telegram не доставил сообщение в чат %s: %s",
+                chat_id,
+                result.get("description"),
+            )
             return False
 
         return True

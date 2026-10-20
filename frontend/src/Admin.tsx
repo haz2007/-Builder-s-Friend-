@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { NavLink, useNavigate, useParams } from "react-router-dom";
 
 import {
 
@@ -42,6 +43,11 @@ import {
 import type { ApiCategory, ApiOrder, ApiProduct, AuthUser, AdminAnalytics, AdminAnalyticsPeriod } from "./api";
 
 import "./Admin.css";
+import { CategoryRevenue, PipelinePanel, RevenueChart } from "./AdminCharts";
+import AdminsSection from "./AdminsSection";
+import { LogoMark } from "./components/Logo";
+import ProductVariantsEditor from "./ProductVariantsEditor";
+import { showFallbackImage } from "./shop/images";
 
 const TOKEN_KEY = "wood_admin_token";
 
@@ -58,6 +64,9 @@ type ProductForm = {
   unit: string;
 
   category_id: string;
+  thickness_mm: string;
+  width_mm: string;
+  length_mm: string;
 
 };
 
@@ -74,6 +83,9 @@ const emptyForm: ProductForm = {
   unit: "шт.",
 
   category_id: "",
+  thickness_mm: "",
+  width_mm: "",
+  length_mm: "",
 
 };
 
@@ -97,13 +109,40 @@ const orderStatuses = [
 
 ];
 
+// Подписи кнопок: что произойдёт с заказом (как в Telegram-боте)
+const STATUS_ACTIONS: Record<string, string> = {
+  CONFIRMED: "✅ Подтвердить",
+  PREPARING: "🪚 Начать подготовку",
+  READY_FOR_DELIVERY: "📦 Готов к выдаче",
+  ASSIGNED_TO_DRIVER: "🚚 Назначить водителя",
+  ON_THE_WAY: "🛻 Отправить в путь",
+  DELIVERED: "🎉 Доставлен / выдан",
+  CANCELLED: "Отменить заказ",
+};
+
 function orderStatusLabel(status: string) {
 
   return orderStatuses.find((item) => item.value === status)?.label ?? status;
 
 }
 
+
+const ADMIN_SECTIONS = [
+  { key: "analytics", label: "Обзор", icon: "📊" },
+  { key: "orders", label: "Заказы", icon: "📦" },
+  { key: "products", label: "Товары", icon: "🪵" },
+  { key: "categories", label: "Категории", icon: "🗂" },
+  { key: "admins", label: "Администраторы", icon: "👥" },
+];
+
 function Admin() {
+  // Раздел берётся из адреса: /admin/orders, /admin/products …
+  const params = useParams();
+  const navigate = useNavigate();
+  const section = ADMIN_SECTIONS.some((item) => item.key === params["*"])
+    ? (params["*"] as string)
+    : "analytics";
+
 
   const [token, setToken] = useState(
 
@@ -146,6 +185,8 @@ function Admin() {
   const [newOrdersCount, setNewOrdersCount] = useState(0);
 
   const [categoryName, setCategoryName] = useState("");
+  // "" — категория верхнего уровня, иначе id родителя
+  const [categoryParentId, setCategoryParentId] = useState("");
 
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(
 
@@ -439,12 +480,63 @@ function Admin() {
 
   }
 
+  // То же правило, что и на сервере: 27,333 доски в кубе → 27 шт
+  const piecesPerCubePreview = (() => {
+    const [t, w, l] = [form.thickness_mm, form.width_mm, form.length_mm].map(
+      (value) => Number(value.replace(",", ".")),
+    );
+    if (!(t > 0 && w > 0 && l > 0)) return null;
+    return Math.floor(1 / ((t * w * l) / 1_000_000_000) + 1e-9);
+  })();
+
+  // Разделы, а сразу под каждым — его подкатегории
+  const categoriesTree = categories
+    .filter((category) => category.parent_id === null)
+    .flatMap((top) => [
+      top,
+      ...categories.filter((category) => category.parent_id === top.id),
+    ]);
+
+  function categoryProductCount(categoryId: number) {
+    return products.filter((product) => product.category_ids.includes(categoryId)).length;
+  }
+
+  const editingProduct =
+    products.find((product) => product.id === editingId) ?? null;
+
+  // После изменения вариантов основной вариант мог поменяться —
+  // подтягиваем его цену/остаток/единицу в форму товара.
+  async function reloadEditedProduct() {
+    const loadedProducts = await getAdminProducts(token);
+    setProducts(loadedProducts);
+
+    const updated = loadedProducts.find((product) => product.id === editingId);
+    if (updated) {
+      setForm((current) => ({
+        ...current,
+        price: String(updated.price),
+        stock_quantity: String(updated.stock_quantity),
+        unit: updated.unit,
+      }));
+    }
+  }
+
   function resetForm() {
 
     setForm(emptyForm);
 
     setEditingId(null);
 
+  }
+
+  function openVariants(product: ApiProduct) {
+    startEditing(product);
+    // Ждём, пока отрисуется блок вариантов, и прокручиваем к нему
+    window.setTimeout(() => {
+      document
+        .getElementById("product-variants")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 150);
   }
 
   function startEditing(product: ApiProduct) {
@@ -464,6 +556,9 @@ function Admin() {
       unit: product.unit,
 
       category_id: String(product.category_id),
+      thickness_mm: product.thickness_mm ? String(product.thickness_mm) : "",
+      width_mm: product.width_mm ? String(product.width_mm) : "",
+      length_mm: product.length_mm ? String(product.length_mm) : "",
 
     });
 
@@ -518,6 +613,19 @@ function Admin() {
 
     }
 
+    const dimensionValues = [form.thickness_mm, form.width_mm, form.length_mm]
+      .map((value) => value.trim());
+    const filledDimensions = dimensionValues.filter(Boolean).length;
+
+    if (filledDimensions !== 0 && filledDimensions !== 3) {
+      setError("Укажи толщину, ширину и длину доски вместе — или оставь все пустыми.");
+      return;
+    }
+
+    const [thickness, width, length] = dimensionValues.map((value) =>
+      value ? Number(value.replace(",", ".")) : null,
+    );
+
     setLoading(true);
 
     setError("");
@@ -537,28 +645,28 @@ function Admin() {
       unit: form.unit.trim(),
 
       category_id: categoryId,
+      thickness_mm: thickness,
+      width_mm: width,
+      length_mm: length,
 
     };
 
     try {
 
       if (editingId === null) {
-
-        await createProduct(data, token);
-
-        setNotice("Товар добавлен.");
-
+        const created = await createProduct(data, token);
+        await loadData(token);
+        // Сразу открываем новый товар: ниже появится блок «Варианты продажи»
+        openVariants(created);
+        setNotice(
+          "Товар добавлен. Ниже можно добавить варианты продажи — например, «Куб» или «Пачка».",
+        );
       } else {
-
         await updateProduct(editingId, data, token);
-
         setNotice("Изменения сохранены.");
-
+        resetForm();
+        await loadData(token);
       }
-
-      resetForm();
-
-      await loadData(token);
 
     } catch (err) {
 
@@ -727,6 +835,7 @@ function Admin() {
     setEditingCategoryId(category.id);
 
     setCategoryName(category.name);
+    setCategoryParentId(category.parent_id ? String(category.parent_id) : "");
 
     setError("");
 
@@ -770,6 +879,7 @@ function Admin() {
     setEditingCategoryId(null);
 
     setCategoryName("");
+    setCategoryParentId("");
 
   }
 
@@ -799,15 +909,15 @@ function Admin() {
 
       if (editingCategoryId === null) {
 
-        await createCategory({ name }, token);
+        await createCategory({ name, parent_id: categoryParentId ? Number(categoryParentId) : null }, token);
 
         setNotice("Категория добавлена.");
 
       } else {
 
-        await updateCategory(editingCategoryId, { name }, token);
+        await updateCategory(editingCategoryId, { name, parent_id: categoryParentId ? Number(categoryParentId) : null }, token);
 
-        setNotice("Название категории изменено.");
+        setNotice("Категория сохранена.");
 
       }
 
@@ -919,6 +1029,8 @@ function Admin() {
 
           </a>
 
+          <LogoMark size={44} />
+
           <span className="admin-eyebrow">ДРУГ СТРОИТЕЛЯ</span>
 
           <h1>Вход для администратора</h1>
@@ -999,6 +1111,8 @@ function Admin() {
 
             </a>
 
+            <LogoMark size={40} />
+
             <span className="admin-eyebrow">ПАНЕЛЬ УПРАВЛЕНИЯ</span>
 
             <h1>Управление магазином</h1>
@@ -1025,11 +1139,34 @@ function Admin() {
 
         </header>
 
+        <div className="admin-layout">
+        <nav className="admin-sidebar" aria-label="Разделы админки">
+          {ADMIN_SECTIONS.map((item) => (
+            <NavLink
+              key={item.key}
+              to={`/admin/${item.key}`}
+              className={({ isActive }) =>
+                isActive || (item.key === "analytics" && section === "analytics")
+                  ? "admin-nav-link active"
+                  : "admin-nav-link"
+              }
+            >
+              <span>{item.icon}</span>
+              {item.label}
+              {item.key === "orders" && newOrdersCount > 0 && (
+                <em className="admin-nav-badge">{newOrdersCount}</em>
+              )}
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="admin-content">
         {error && <p className="admin-error">{error}</p>}
 
         {notice && <p className="admin-notice">{notice}</p>}
                 
                 
+        {section === "analytics" && (
         <section className="admin-card admin-statistics">
           <div className="admin-section-heading">
             <div>
@@ -1064,21 +1201,23 @@ function Admin() {
               <article className="admin-stat-card"><span>Доставлено</span><strong>{analytics.orders.delivered}</strong><small>Конверсия: {analytics.delivery_conversion_rate.toLocaleString("ru-RU", { maximumFractionDigits: 1 })}%</small></article>
             </div>
             <div className="admin-statistics-columns">
+              <div className="admin-stat-panel admin-stat-panel-wide">
+                <h3>Выручка за период</h3>
+                <RevenueChart analytics={analytics} />
+              </div>
               <div className="admin-stat-panel">
-                <h3>Динамика заказов и выручки</h3>
-                {analytics.trend.length === 0 ? <p className="admin-empty">За выбранный период заказов нет.</p> : <div className="admin-analytics-trend">
-                  {analytics.trend.map((day) => {
-                    const maxRevenue = Math.max(1, ...analytics.trend.map((item) => item.revenue));
-                    const maxOrders = Math.max(1, ...analytics.trend.map((item) => item.orders));
-                    return <div className="admin-analytics-day" key={day.date} title={`${day.date}: ${day.orders} заказов, ${day.revenue.toLocaleString("ru-RU")} ₽`}>
-                      <span className="admin-analytics-bars">
-                        <span className="admin-analytics-revenue-bar" style={{ height: `${Math.max(day.revenue > 0 ? 3 : 0, day.revenue / maxRevenue * 100)}%` }} />
-                        <span className="admin-analytics-orders-bar" style={{ height: `${Math.max(day.orders > 0 ? 3 : 0, day.orders / maxOrders * 100)}%` }} />
-                      </span><small>{day.date.slice(5)}</small>
-                    </div>;
-                  })}
-                </div>}
-                <p className="admin-analytics-legend"><span className="admin-analytics-legend-revenue" /> Выручка (без отмен) <span className="admin-analytics-legend-orders" /> Количество заказов</p>
+                <h3>Заказы по этапам</h3>
+                <PipelinePanel
+                  analytics={analytics}
+                  onSelect={(status) => {
+                    setOrderFilter(status);
+                    navigate("/admin/orders");
+                  }}
+                />
+              </div>
+              <div className="admin-stat-panel">
+                <h3>Выручка по разделам</h3>
+                <CategoryRevenue analytics={analytics} />
               </div>
               <div className="admin-stat-panel">
                 <h3>Популярные товары</h3>
@@ -1097,8 +1236,10 @@ function Admin() {
             </div>
           </>}
         </section>
+        )}
 
 
+        {section === "orders" && (
         <section className="admin-card">
 
           <div className="admin-list-heading">
@@ -1233,8 +1374,12 @@ function Admin() {
                   </p>
 
                   <p>
-                    <strong>Адрес доставки:</strong>{" "}
-                    {order.delivery_address || "Не указан"}
+                    <strong>
+                      {order.delivery_method === "PICKUP" ? "Получение:" : "Адрес доставки:"}
+                    </strong>{" "}
+                    {order.delivery_method === "PICKUP"
+                      ? "Самовывоз со склада"
+                      : order.delivery_address || "Не указан"}
                   </p>
 
                   <div>
@@ -1257,9 +1402,11 @@ function Admin() {
 
                             <span>
 
-                              {product?.name ?? `Товар №${item.product_id}`} ×{" "}
+                              {item.product_name ?? product?.name ?? `Товар №${item.product_id}`}
 
-                              {item.quantity}
+                              {item.variant_name && item.variant_name !== item.unit && ` (${item.variant_name})`} ×{" "}
+
+                              {item.quantity} {item.unit}
 
                             </span>
 
@@ -1286,51 +1433,41 @@ function Admin() {
                   </div>
 
                   <div className="admin-order-status-control">
-
-                    <label>
-
-                      Изменить статус
-
-                      <select
-
-                        value={order.status}
-
-                        disabled={updatingOrderId === order.id}
-
-                        onChange={(event) =>
-
-                          void handleOrderStatusChange(
-
-                            order.id,
-
-                            event.target.value,
-
-                          )
-
-                        }
-
-                      >
-
-                        {orderStatuses.map((status) => (
-
-                          <option key={status.value} value={status.value}>
-
-                            {status.label}
-
-                          </option>
-
-                        ))}
-
-                      </select>
-
-                    </label>
-
-                    {updatingOrderId === order.id && (
-
-                      <span>Сохраняем статус...</span>
-
+                    {(order.allowed_statuses ?? []).length === 0 ? (
+                      <span className="admin-order-final">
+                        {order.status === "CANCELLED"
+                          ? "Заказ отменён — статус больше не меняется"
+                          : "Заказ завершён"}
+                      </span>
+                    ) : (
+                      <div className="admin-order-actions">
+                        {(order.allowed_statuses ?? []).map((status) => {
+                          const isCancel = status === "CANCELLED";
+                          return (
+                            <button
+                              key={status}
+                              type="button"
+                              className={isCancel ? "admin-status-cancel" : "admin-status-next"}
+                              disabled={updatingOrderId === order.id}
+                              onClick={() => {
+                                if (
+                                  isCancel &&
+                                  !window.confirm(
+                                    `Отменить заказ №${order.id}? Товар вернётся на склад.`,
+                                  )
+                                ) {
+                                  return;
+                                }
+                                void handleOrderStatusChange(order.id, status);
+                              }}
+                            >
+                              {STATUS_ACTIONS[status] ?? orderStatusLabel(status)}
+                            </button>
+                          );
+                        })}
+                      </div>
                     )}
-
+                    {updatingOrderId === order.id && <span>Сохраняем статус...</span>}
                   </div>
 
                   {order.status_history?.length > 0 && (
@@ -1380,7 +1517,9 @@ function Admin() {
           )}
 
         </section>
+        )}
 
+        {section === "categories" && (
         <section className="admin-card">
 
           <h2>
@@ -1421,6 +1560,27 @@ function Admin() {
 
             </label>
 
+            <label className="admin-full">
+              Где находится
+              <select
+                value={categoryParentId}
+                onChange={(event) => setCategoryParentId(event.target.value)}
+              >
+                <option value="">Отдельный раздел (верхний уровень)</option>
+                {categories
+                  .filter(
+                    (category) =>
+                      category.parent_id === null &&
+                      category.id !== editingCategoryId,
+                  )
+                  .map((category) => (
+                    <option key={category.id} value={category.id}>
+                      Подкатегория в «{category.name}»
+                    </option>
+                  ))}
+              </select>
+            </label>
+
             <div className="admin-form-actions admin-full">
 
               <button className="admin-primary" disabled={loading}>
@@ -1433,7 +1593,7 @@ function Admin() {
 
                     ? "Добавить категорию"
 
-                    : "Сохранить название"}
+                    : "Сохранить"}
 
               </button>
 
@@ -1467,16 +1627,21 @@ function Admin() {
 
             ) : (
 
-              categories.map((category) => (
-
-                <div className="admin-category-row" key={category.id}>
-
+              categoriesTree.map((category) => (
+                <div
+                  className={`admin-category-row ${category.parent_id ? "is-child" : ""}`}
+                  key={category.id}
+                >
                   <div>
-
-                    <strong>{category.name}</strong>
-
-                    <small>ID: {category.id}</small>
-
+                    <strong>
+                      {category.parent_id ? "↳ " : ""}
+                      {category.name}
+                    </strong>
+                    <small>
+                      {category.parent_id
+                        ? `Подкатегория · товаров: ${categoryProductCount(category.id)}`
+                        : `Раздел · подкатегорий: ${categories.filter((item) => item.parent_id === category.id).length}`}
+                    </small>
                   </div>
 
                   <div className="admin-category-actions" style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
@@ -1486,7 +1651,7 @@ function Admin() {
                       disabled={loading}
                       onClick={() => startEditingCategory(category)}
                     >
-                      Переименовать
+                      Изменить
                     </button>
                     <button
                       type="button"
@@ -1512,7 +1677,10 @@ function Admin() {
           </div>
 
         </section>
+        )}
 
+        {section === "products" && (
+        <>
         <section
           className="admin-card"
           ref={productFormRef}
@@ -1572,16 +1740,27 @@ function Admin() {
               >
 
                 <option value="">Выбрать категорию</option>
-
-                {categories.map((category) => (
-
-                  <option key={category.id} value={category.id}>
-
-                    {category.name}
-
-                  </option>
-
-                ))}
+                {categories
+                  .filter((category) => category.parent_id === null)
+                  .map((top) => {
+                    const children = categories.filter(
+                      (category) => category.parent_id === top.id,
+                    );
+                    return children.length ? (
+                      <optgroup key={top.id} label={top.name}>
+                        <option value={top.id}>{top.name} (без подкатегории)</option>
+                        {children.map((child) => (
+                          <option key={child.id} value={child.id}>
+                            {child.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ) : (
+                      <option key={top.id} value={top.id}>
+                        {top.name}
+                      </option>
+                    );
+                  })}
 
               </select>
 
@@ -1589,7 +1768,7 @@ function Admin() {
 
             <label>
 
-              Цена, ₽
+              Цена основного варианта, ₽
 
               <input
 
@@ -1615,7 +1794,7 @@ function Admin() {
 
             <label>
 
-              Остаток
+              Остаток на складе (в единице товара)
 
               <input
 
@@ -1662,6 +1841,61 @@ function Admin() {
               />
 
             </label>
+
+            <fieldset className="admin-dimensions admin-full">
+              <legend>Размеры доски, мм (только для пиломатериалов)</legend>
+              <p>
+                Если заполнить, остаток ведётся в штуках (единица «шт»), а
+                вариант «м³» сам списывает столько досок, сколько целых
+                входит в куб.
+              </p>
+              <div className="admin-dimensions-grid">
+                <label>
+                  Толщина
+                  <input
+                    type="number"
+                    min="1"
+                    step="0.1"
+                    value={form.thickness_mm}
+                    onChange={(event) =>
+                      setForm({ ...form, thickness_mm: event.target.value })
+                    }
+                    placeholder="50"
+                  />
+                </label>
+                <label>
+                  Ширина
+                  <input
+                    type="number"
+                    min="1"
+                    step="0.1"
+                    value={form.width_mm}
+                    onChange={(event) =>
+                      setForm({ ...form, width_mm: event.target.value })
+                    }
+                    placeholder="150"
+                  />
+                </label>
+                <label>
+                  Длина
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={form.length_mm}
+                    onChange={(event) =>
+                      setForm({ ...form, length_mm: event.target.value })
+                    }
+                    placeholder="6000"
+                  />
+                </label>
+              </div>
+              {piecesPerCubePreview !== null && (
+                <strong className="admin-dimensions-result">
+                  В 1 м³ — {piecesPerCubePreview} шт
+                </strong>
+              )}
+            </fieldset>
 
             <label className="admin-full">
 
@@ -1722,6 +1956,25 @@ function Admin() {
             </div>
 
           </form>
+
+          {editingProduct === null && (
+            <p className="admin-hint admin-variants-hint">
+              💡 Продавать товар по-разному (штука, куб, пачка) можно будет
+              сразу после сохранения: появится блок «Варианты продажи». Для
+              досок укажи размеры — количество штук в кубе посчитается само.
+            </p>
+          )}
+
+          {editingProduct && (
+            <ProductVariantsEditor
+              key={editingProduct.id}
+              product={editingProduct}
+              token={token}
+              onChanged={reloadEditedProduct}
+              onError={setError}
+              onNotice={setNotice}
+            />
+          )}
 
         </section>
 
@@ -1787,7 +2040,7 @@ function Admin() {
 
                     <th>Товар и фото</th>
 
-                    <th>Цена</th>
+                    <th>Варианты и цены</th>
 
                     <th>Остаток</th>
 
@@ -1826,6 +2079,8 @@ function Admin() {
                           <img
 
                             src={getImageUrl(product.image_url) ?? undefined}
+
+                            onError={showFallbackImage}
 
                             alt={product.name}
 
@@ -1928,11 +2183,19 @@ function Admin() {
                       </td>
 
                       <td>
-
-                        {product.price.toLocaleString("ru-RU")} ₽ /{" "}
-
-                        {product.unit}
-
+                        <div className="admin-variant-prices">
+                          {product.variants
+                            .filter((variant) => variant.is_active === 1)
+                            .map((variant) => (
+                              <span key={variant.id}>
+                                {variant.name}:{" "}
+                                <strong>
+                                  {variant.price.toLocaleString("ru-RU")} ₽
+                                </strong>{" "}
+                                / {variant.unit}
+                              </span>
+                            ))}
+                        </div>
                       </td>
 
                       <td>
@@ -1971,6 +2234,13 @@ function Admin() {
 
                         <div className="admin-row-actions">
 
+                          <button
+                            className="admin-secondary"
+                            onClick={() => openVariants(product)}
+                            title="Штука, куб, пачка — как продаётся товар"
+                          >
+                            Варианты ({product.variants.length})
+                          </button>
                           <button
 
                             className="admin-secondary"
@@ -2027,6 +2297,19 @@ function Admin() {
           )}
 
         </section>
+        </>
+        )}
+
+        {section === "admins" && (
+          <AdminsSection
+            token={token}
+            user={user}
+            onError={setError}
+            onNotice={setNotice}
+          />
+        )}
+        </div>
+        </div>
 
       </div>
 

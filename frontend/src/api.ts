@@ -13,7 +13,20 @@ export function getImageUrl(
   return `${API_ORIGIN}${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`;
 }
 
-export type ApiCategory = { id: number; name: string };
+export type ApiCategory = { id: number; name: string; parent_id: number | null };
+
+export type ApiProductVariant = {
+  id: number;
+  product_id: number;
+  name: string;
+  unit: string;
+  price: number;
+  /** Сколько базовых единиц товара в 1 единице варианта (м³ → 27 шт). */
+  base_quantity: number;
+  /** Сколько единиц варианта доступно из общего склада. */
+  stock_quantity: number;
+  is_active: number;
+};
 
 export type ApiProduct = {
   id: number;
@@ -25,6 +38,12 @@ export type ApiProduct = {
   category_id: number;
   is_active: number;
   image_url?: string | null;
+  category_ids: number[];
+  thickness_mm: number | null;
+  width_mm: number | null;
+  length_mm: number | null;
+  pieces_per_cubic_meter: number | null;
+  variants: ApiProductVariant[];
 };
 
 export type RegisterData = { phone: string; password: string };
@@ -37,7 +56,11 @@ export type AuthUser = {
   email: string | null;
   phone: string | null;
   role: string;
+  /** 1 — владелец магазина, может управлять администраторами */
+  is_owner?: number;
 };
+
+export type ApiAdmin = AuthUser & { has_telegram: boolean };
 
 export type AuthToken = {
   access_token: string;
@@ -46,15 +69,22 @@ export type AuthToken = {
 
 export type CreateOrderData = {
   customer_name: string;
-  items: { product_id: number; quantity: number }[];
+  items: { product_id: number; variant_id: number; quantity: number }[];
+  /** DELIVERY — привозит магазин, PICKUP — самовывоз */
+  delivery_method: "DELIVERY" | "PICKUP";
   delivery_address: string;
 };
 
 export type ApiOrderItem = {
   id: number;
   product_id: number;
+  variant_id: number;
   quantity: number;
   price: number;
+  unit: string;
+  base_quantity: number;
+  product_name: string | null;
+  variant_name: string | null;
 };
 
 export type ApiOrderStatusHistory = {
@@ -69,6 +99,9 @@ export type ApiOrder = {
   status: string;
   total_price: number;
   delivery_address: string;
+  delivery_method?: "DELIVERY" | "PICKUP";
+  /** Допустимые следующие статусы: следующий этап и/или отмена */
+  allowed_statuses?: string[];
   customer_name: string;
   customer_phone: string | null;
   items: ApiOrderItem[];
@@ -82,10 +115,24 @@ export type ProductCreateData = {
   stock_quantity: number;
   unit: string;
   category_id: number;
+  thickness_mm?: number | null;
+  width_mm?: number | null;
+  length_mm?: number | null;
 };
 
 export type ProductUpdateData = Partial<ProductCreateData>;
-export type CategoryCreateData = { name: string };
+
+export type VariantCreateData = {
+  name: string;
+  unit: string;
+  price: number;
+  base_quantity?: number;
+};
+
+export type VariantUpdateData = Partial<VariantCreateData> & {
+  is_active?: number;
+};
+export type CategoryCreateData = { name: string; parent_id?: number | null };
 
 async function request<T>(
   url: string,
@@ -362,6 +409,12 @@ export type AdminAnalytics = {
   average_order_value: number;
   delivery_conversion_rate: number;
   trend: { date: string; orders: number; revenue: number; delivered_revenue: number }[];
+  /** day — для 7 дней, week — для 30/90, month — за всё время */
+  granularity: "day" | "week" | "month";
+  revenue_series: { start: string; end: string; revenue: number; orders: number }[];
+  /** Сколько заказов сейчас на каждом этапе (не зависит от периода) */
+  pipeline: { status: string; count: number }[];
+  category_revenue: { name: string; revenue: number }[];
   top_products: { product_id: number; name: string; quantity: number; revenue: number }[];
   low_stock_products: { id: number; name: string; stock_quantity: number; unit: string }[];
 };
@@ -464,4 +517,70 @@ export function markAllNotificationsAsRead(
       headers: adminHeaders(token),
     },
   );
+}
+
+/** Добавить вариант продажи товара (например, «Штука»). */
+export function createVariant(
+  productId: number,
+  data: VariantCreateData,
+  token: string,
+): Promise<ApiProductVariant> {
+  return request<ApiProductVariant>(`/api/v1/products/${productId}/variants`, {
+    method: "POST",
+    headers: adminHeaders(token),
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateVariant(
+  productId: number,
+  variantId: number,
+  data: VariantUpdateData,
+  token: string,
+): Promise<ApiProductVariant> {
+  return request<ApiProductVariant>(
+    `/api/v1/products/${productId}/variants/${variantId}`,
+    {
+      method: "PATCH",
+      headers: adminHeaders(token),
+      body: JSON.stringify(data),
+    },
+  );
+}
+
+/** Удалить вариант; если он есть в заказах — бэкенд его только скроет. */
+export function deleteVariant(
+  productId: number,
+  variantId: number,
+  token: string,
+): Promise<{ message: string }> {
+  return request<{ message: string }>(
+    `/api/v1/products/${productId}/variants/${variantId}`,
+    {
+      method: "DELETE",
+      headers: adminHeaders(token),
+    },
+  );
+}
+
+export function getAdmins(token: string): Promise<ApiAdmin[]> {
+  return request<ApiAdmin[]>("/api/v1/admins/", {
+    headers: adminHeaders(token),
+  });
+}
+
+/** Назначить администратором уже зарегистрированного пользователя. */
+export function addAdmin(login: string, token: string): Promise<ApiAdmin> {
+  return request<ApiAdmin>("/api/v1/admins/", {
+    method: "POST",
+    headers: adminHeaders(token),
+    body: JSON.stringify({ login }),
+  });
+}
+
+export function removeAdmin(userId: number, token: string): Promise<ApiAdmin> {
+  return request<ApiAdmin>(`/api/v1/admins/${userId}`, {
+    method: "DELETE",
+    headers: adminHeaders(token),
+  });
 }

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from ..auth import require_admin
 from ..database import get_db
 from ..models import (
+    Category,
     Delivery,
     Order,
     OrderItem,
@@ -17,6 +18,76 @@ from ..models import (
 )
 
 router = APIRouter(prefix="/api/v1/admin", tags=["Admin"])
+
+
+# Этапы, которые сейчас «в работе» — в порядке движения заказа
+PIPELINE_STATUSES = [
+    "NEW",
+    "CONFIRMED",
+    "PREPARING",
+    "READY_FOR_DELIVERY",
+    "ASSIGNED_TO_DRIVER",
+    "ON_THE_WAY",
+]
+
+
+def _granularity(start: Optional[datetime], end: Optional[datetime]) -> str:
+    """День для короткого периода, неделя для месяца-квартала, месяц для долгого."""
+    if start is None or end is None:
+        return "month"
+    days = (end - start).days
+    if days <= 14:
+        return "day"
+    if days <= 120:
+        return "week"
+    return "month"
+
+
+def _bucket_start(day: date, granularity: str) -> date:
+    if granularity == "week":
+        return day - timedelta(days=day.weekday())
+    if granularity == "month":
+        return day.replace(day=1)
+    return day
+
+
+def _next_bucket(day: date, granularity: str) -> date:
+    if granularity == "day":
+        return day + timedelta(days=1)
+    if granularity == "week":
+        return day + timedelta(days=7)
+    return (day.replace(day=28) + timedelta(days=4)).replace(day=1)
+
+
+def _revenue_series(rows, start, end, granularity: str) -> list[dict]:
+    """Выручка без отмен по корзинам периода; пустые корзины тоже есть."""
+    buckets: dict[date, dict] = {}
+    for order_date, status, total_price in rows:
+        key = _bucket_start(order_date.date(), granularity)
+        item = buckets.setdefault(key, {"revenue": 0.0, "orders": 0})
+        if status != "CANCELLED":
+            item["revenue"] += float(total_price or 0)
+            item["orders"] += 1
+
+    if not buckets and start is None:
+        return []
+
+    first = _bucket_start(start.date(), granularity) if start else min(buckets)
+    last = (end - timedelta(days=1)).date() if end else max(buckets)
+
+    series = []
+    cursor = first
+    while cursor <= last:
+        following = _next_bucket(cursor, granularity)
+        item = buckets.get(cursor, {"revenue": 0.0, "orders": 0})
+        series.append({
+            "start": cursor.isoformat(),
+            "end": (following - timedelta(days=1)).isoformat(),
+            "revenue": round(item["revenue"], 2),
+            "orders": item["orders"],
+        })
+        cursor = following
+    return series
 
 
 def _date_range(period: str, date_from: Optional[date], date_to: Optional[date]):
@@ -267,8 +338,53 @@ def get_admin_analytics(
         .all()
     )
 
+    # Заказы на каждом этапе прямо сейчас (не зависит от периода)
+    status_counts = dict(
+        db.query(Order.status, func.count(Order.id))
+        .filter(Order.status.in_(PIPELINE_STATUSES))
+        .group_by(Order.status)
+        .all()
+    )
+
+    # Выручка по разделам каталога (подкатегории сворачиваются в раздел)
+    categories = {category.id: category for category in db.query(Category).all()}
+    category_query = (
+        db.query(
+            Product.category_id,
+            func.sum(OrderItem.price * OrderItem.quantity),
+        )
+        .join(OrderItem, OrderItem.product_id == Product.id)
+        .join(Order, Order.id == OrderItem.order_id)
+        .join(first_status, first_status.c.order_id == Order.id)
+        .filter(Order.status != "CANCELLED")
+    )
+    if start is not None:
+        category_query = category_query.filter(
+            first_status.c.order_date >= start,
+            first_status.c.order_date < end,
+        )
+    by_section: dict[str, float] = {}
+    for category_id, revenue in category_query.group_by(Product.category_id).all():
+        category = categories.get(category_id)
+        if category is not None and category.parent_id in categories:
+            category = categories[category.parent_id]
+        name = category.name if category else "Без раздела"
+        by_section[name] = by_section.get(name, 0.0) + float(revenue or 0)
+
+    granularity = _granularity(start, end)
+
     return {
         "period": period,
+        "granularity": granularity,
+        "revenue_series": _revenue_series(rows, start, end, granularity),
+        "pipeline": [
+            {"status": status, "count": int(status_counts.get(status, 0))}
+            for status in PIPELINE_STATUSES
+        ],
+        "category_revenue": [
+            {"name": name, "revenue": round(revenue, 2)}
+            for name, revenue in sorted(by_section.items(), key=lambda item: -item[1])
+        ],
         "date_from": start.date().isoformat() if start else None,
         "date_to": (end - timedelta(days=1)).date().isoformat() if end else None,
         "orders": {

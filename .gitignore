@@ -28,3 +28,9 @@ htmlcov/
 *.db
 # Uploaded product images
 backend/uploads/
+
+# DB backups
+backups/
+
+# Local tooling
+frontend/dist/

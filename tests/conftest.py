@@ -5,6 +5,10 @@ os.environ["DATABASE_URL"] = (
     "postgresql://postgres:postgres@localhost:5110/wood_commerce_test"
 )
 
+# Тесты никогда не пишут в настоящий Telegram: пустые значения
+# load_dotenv() не перезаписывает, поэтому токен из backend/.env не подхватится
+os.environ["TELEGRAM_BOT_TOKEN"] = ""
+
 import pytest
 from fastapi.testclient import TestClient
 
