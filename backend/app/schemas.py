@@ -144,7 +144,6 @@ class OrderStatus(str, Enum):
     CONFIRMED = "CONFIRMED"
     PREPARING = "PREPARING"
     READY_FOR_DELIVERY = "READY_FOR_DELIVERY"
-    ASSIGNED_TO_DRIVER = "ASSIGNED_TO_DRIVER"
     ON_THE_WAY = "ON_THE_WAY"
     DELIVERED = "DELIVERED"
     CANCELLED = "CANCELLED"
@@ -152,31 +151,6 @@ class OrderStatus(str, Enum):
 
 class OrderStatusUpdate(BaseModel):
     status: OrderStatus
-
-
-class DeliveryStatus(str, Enum):
-    WAITING = "WAITING"
-    LOADED = "LOADED"
-    ON_THE_WAY = "ON_THE_WAY"
-    DELIVERED = "DELIVERED"
-
-
-class DeliveryCreate(BaseModel):
-    address: str
-
-
-class DeliveryStatusUpdate(BaseModel):
-    status: DeliveryStatus
-
-
-class DeliveryResponse(BaseModel):
-    id: int
-    status: str
-    address: str
-    order_id: int
-    driver_id: int | None
-
-    model_config = ConfigDict(from_attributes=True)
 
 
 class OrderStatusHistoryResponse(BaseModel):
@@ -208,20 +182,18 @@ class OrderResponse(BaseModel):
         from .services.order_service import ALLOWED_TRANSITIONS
 
         order = ["CONFIRMED", "PREPARING", "READY_FOR_DELIVERY",
-                 "ASSIGNED_TO_DRIVER", "ON_THE_WAY", "DELIVERED", "CANCELLED"]
+                 "ON_THE_WAY", "DELIVERED", "CANCELLED"]
         allowed = ALLOWED_TRANSITIONS.get(self.status.upper(), set())
         return [status for status in order if status in allowed]
 
 
-class UserCreate(BaseModel):
-    email: str
-    password: str
-
+# Минимальная длина пароля при регистрации; старые короткие пароли продолжают работать
+PASSWORD_MIN_LENGTH = 8
 
 
 class UserRegister(BaseModel):
     phone: str = Field(min_length=10, max_length=30)
-    password: str = Field(min_length=1)
+    password: str = Field(min_length=PASSWORD_MIN_LENGTH, max_length=128)
 
 
 class UserResponse(BaseModel):

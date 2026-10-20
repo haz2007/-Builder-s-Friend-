@@ -14,6 +14,7 @@ from ..auth import (
 )
 from ..database import get_db
 from ..models import User
+from ..rate_limit import login_limiter, register_limiter
 from ..schemas import (
     LoginRequest,
     TokenResponse,
@@ -41,7 +42,11 @@ def normalize_phone(phone: str) -> str:
     return normalized
 
 
-@router.post("/register", response_model=UserResponse)
+@router.post(
+    "/register",
+    response_model=UserResponse,
+    dependencies=[Depends(register_limiter)],
+)
 def register(
     user_data: UserRegister,
     db: Session = Depends(get_db),
@@ -69,7 +74,11 @@ def register(
     return user
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post(
+    "/login",
+    response_model=TokenResponse,
+    dependencies=[Depends(login_limiter)],
+)
 def login(
     login_data: LoginRequest,
     db: Session = Depends(get_db),

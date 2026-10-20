@@ -5,7 +5,7 @@ from app.database import SessionLocal
 from app.models import Category, Product, TelegramAccountLink, User
 from app.services import order_notifications
 
-FLOW = ["CONFIRMED", "PREPARING", "READY_FOR_DELIVERY", "ASSIGNED_TO_DRIVER", "ON_THE_WAY"]
+FLOW = ["CONFIRMED", "PREPARING", "READY_FOR_DELIVERY", "ON_THE_WAY"]
 
 
 def create_user(role, **fields):

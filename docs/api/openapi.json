@@ -1377,253 +1377,6 @@
         ]
       }
     },
-    "/api/v1/deliveries/{order_id}": {
-      "post": {
-        "tags": [
-          "Deliveries"
-        ],
-        "summary": "Create Delivery",
-        "operationId": "create_delivery_api_v1_deliveries__order_id__post",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "order_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "Order Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DeliveryCreate"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DeliveryResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/deliveries/": {
-      "get": {
-        "tags": [
-          "Deliveries"
-        ],
-        "summary": "Get Deliveries",
-        "operationId": "get_deliveries_api_v1_deliveries__get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/DeliveryResponse"
-                  },
-                  "type": "array",
-                  "title": "Response Get Deliveries Api V1 Deliveries  Get"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
-      }
-    },
-    "/api/v1/deliveries/{delivery_id}": {
-      "get": {
-        "tags": [
-          "Deliveries"
-        ],
-        "summary": "Get Delivery",
-        "operationId": "get_delivery_api_v1_deliveries__delivery_id__get",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "delivery_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "Delivery Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DeliveryResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/deliveries/{delivery_id}/status": {
-      "patch": {
-        "tags": [
-          "Deliveries"
-        ],
-        "summary": "Update Delivery Status",
-        "operationId": "update_delivery_status_api_v1_deliveries__delivery_id__status_patch",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "delivery_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "Delivery Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DeliveryStatusUpdate"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DeliveryResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/deliveries/{delivery_id}/assign/{driver_id}": {
-      "patch": {
-        "tags": [
-          "Deliveries"
-        ],
-        "summary": "Assign Driver",
-        "operationId": "assign_driver_api_v1_deliveries__delivery_id__assign__driver_id__patch",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "delivery_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "Delivery Id"
-            }
-          },
-          {
-            "name": "driver_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "Driver Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DeliveryResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/users/": {
       "get": {
         "tags": [
@@ -1642,52 +1395,6 @@
                   },
                   "type": "array",
                   "title": "Response Get Users Api V1 Users  Get"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
-      }
-    },
-    "/api/v1/users/drivers": {
-      "post": {
-        "tags": [
-          "Users"
-        ],
-        "summary": "Create Driver",
-        "operationId": "create_driver_api_v1_users_drivers_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UserCreate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -2348,81 +2055,6 @@
         ],
         "title": "CategoryResponse"
       },
-      "DeliveryCreate": {
-        "properties": {
-          "address": {
-            "type": "string",
-            "title": "Address"
-          }
-        },
-        "type": "object",
-        "required": [
-          "address"
-        ],
-        "title": "DeliveryCreate"
-      },
-      "DeliveryResponse": {
-        "properties": {
-          "id": {
-            "type": "integer",
-            "title": "Id"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status"
-          },
-          "address": {
-            "type": "string",
-            "title": "Address"
-          },
-          "order_id": {
-            "type": "integer",
-            "title": "Order Id"
-          },
-          "driver_id": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Driver Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "status",
-          "address",
-          "order_id",
-          "driver_id"
-        ],
-        "title": "DeliveryResponse"
-      },
-      "DeliveryStatus": {
-        "type": "string",
-        "enum": [
-          "WAITING",
-          "LOADED",
-          "ON_THE_WAY",
-          "DELIVERED"
-        ],
-        "title": "DeliveryStatus"
-      },
-      "DeliveryStatusUpdate": {
-        "properties": {
-          "status": {
-            "$ref": "#/components/schemas/DeliveryStatus"
-          }
-        },
-        "type": "object",
-        "required": [
-          "status"
-        ],
-        "title": "DeliveryStatusUpdate"
-      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -2685,7 +2317,6 @@
           "CONFIRMED",
           "PREPARING",
           "READY_FOR_DELIVERY",
-          "ASSIGNED_TO_DRIVER",
           "ON_THE_WAY",
           "DELIVERED",
           "CANCELLED"
@@ -3273,24 +2904,6 @@
         ],
         "title": "TokenResponse"
       },
-      "UserCreate": {
-        "properties": {
-          "email": {
-            "type": "string",
-            "title": "Email"
-          },
-          "password": {
-            "type": "string",
-            "title": "Password"
-          }
-        },
-        "type": "object",
-        "required": [
-          "email",
-          "password"
-        ],
-        "title": "UserCreate"
-      },
       "UserRegister": {
         "properties": {
           "phone": {
@@ -3301,7 +2914,8 @@
           },
           "password": {
             "type": "string",
-            "minLength": 1,
+            "maxLength": 128,
+            "minLength": 8,
             "title": "Password"
           }
         },
@@ -3437,10 +3051,6 @@
     {
       "name": "Users",
       "description": "Пользователи и роли"
-    },
-    {
-      "name": "Deliveries",
-      "description": "Доставки и водители"
     }
   ]
 }

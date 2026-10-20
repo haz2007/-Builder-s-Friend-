@@ -3,6 +3,7 @@
 #   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
 #
 # Наружу открыты только 80/443 (Caddy). База и API доступны только внутри.
+# Лимиты памяти рассчитаны на сервер с 1 ГБ (+ swap, см. scripts/setup-server.sh).
 
 services:
   db:
@@ -12,8 +13,20 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-wood}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Задай POSTGRES_PASSWORD в .env.production}
       POSTGRES_DB: ${POSTGRES_DB:-wood_commerce}
+    # Настройки под маленький сервер: магазину хватает с запасом
+    command: >
+      postgres
+      -c shared_buffers=64MB
+      -c effective_cache_size=192MB
+      -c work_mem=4MB
+      -c maintenance_work_mem=32MB
+      -c max_connections=30
     volumes:
       - db_data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: 320M
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
@@ -30,8 +43,14 @@ services:
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-10080}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_PROXY: ${TELEGRAM_PROXY:-}
+      # Процессов API: на 1 ГБ памяти — 1, на 2 ГБ можно 2
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-1}
     volumes:
       - uploads:/app/uploads
+    deploy:
+      resources:
+        limits:
+          memory: 300M
     depends_on:
       db:
         condition: service_healthy
@@ -46,6 +65,10 @@ services:
     restart: unless-stopped
     command: ["python", "run_telegram_bot.py"]
     environment: *backend-env
+    deploy:
+      resources:
+        limits:
+          memory: 160M
     depends_on:
       backend:
         condition: service_healthy
@@ -62,6 +85,10 @@ services:
     volumes:
       - caddy_data:/data
       - caddy_config:/config
+    deploy:
+      resources:
+        limits:
+          memory: 100M
     depends_on:
       backend:
         condition: service_healthy

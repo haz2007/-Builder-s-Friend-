@@ -9,6 +9,15 @@
   сайт, админ-панель и Telegram-бот с уведомлениями о заказах.
 </p>
 
+<p align="center">
+  <a href="https://github.com/haz2007/wood-commerce/actions/workflows/ci.yml"><img src="https://github.com/haz2007/wood-commerce/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <img src="https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white" alt="Python 3.13" />
+  <img src="https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/PostgreSQL-15-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL" />
+  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" alt="React 19" />
+  <img src="https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white" alt="Docker Compose" />
+</p>
+
 ---
 
 ## Возможности
@@ -31,6 +40,12 @@
 - После доставки — просьба оставить отзыв на Яндекс Картах
 - Уведомления приходят только тем, кто вошёл в бота
 
+**Надёжность и безопасность**
+- Параллельные заказы не продают больше, чем есть: блокировка строк товаров в одном порядке, без deadlock
+- Ограничение частоты: вход, регистрация, заказы и вход в бота — защита от подбора пароля и спама
+- Пароль от 8 символов, CHECK-ограничения в базе: остаток не уйдёт в минус, статус и роль — только из списка
+- Ежедневные бэкапы базы и фото, восстановление одной командой
+
 ## Стек
 
 | | |
@@ -38,14 +53,15 @@
 | Backend | Python 3.13, FastAPI, SQLAlchemy 2, Alembic, PostgreSQL, JWT |
 | Frontend | React 19, TypeScript, Vite, React Router |
 | Бот | Telegram Bot API (long polling) |
-| Тесты | pytest — 127 тестов API, бизнес-логики и параллельных заказов |
+| Тесты | pytest — 131 тест API, бизнес-логики, параллельных заказов и защиты; CI на GitHub Actions |
+| Деплой | Docker Compose, Caddy (автоматический HTTPS), сервер от 1 ГБ памяти |
 
 ## Документация
 
 | Документ | Что внутри |
 |---|---|
 | [Бизнес-правила](docs/business-rules.md) | 30 пронумерованных правил: склад и кубы, заказы и статусы, уведомления, роли |
-| [Диаграммы](docs/diagrams.md) | архитектура, ER-модель, жизненный цикл заказа, последовательности, расчёт склада (Mermaid) |
+| [Диаграммы](docs/diagrams.md) | архитектура, ER-модель, жизненный цикл заказа, последовательности, расчёт склада, варианты использования, C4, защита (Mermaid) |
 | [Крайние случаи](docs/edge-cases.md) | параллельные заказы, округления, сбои Telegram, известные ограничения |
 | [OpenAPI](docs/api/openapi.json) | спецификация API; Swagger UI — `/docs` на запущенном backend |
 
@@ -56,16 +72,34 @@ stateDiagram-v2
     NEW --> CONFIRMED
     CONFIRMED --> PREPARING
     PREPARING --> READY_FOR_DELIVERY
-    READY_FOR_DELIVERY --> ASSIGNED_TO_DRIVER
-    ASSIGNED_TO_DRIVER --> ON_THE_WAY
+    READY_FOR_DELIVERY --> ON_THE_WAY
     ON_THE_WAY --> DELIVERED
     NEW --> CANCELLED
-    ASSIGNED_TO_DRIVER --> CANCELLED
+    READY_FOR_DELIVERY --> CANCELLED
     DELIVERED --> [*]
     CANCELLED --> [*]
 ```
 
 <sub>Жизненный цикл заказа (упрощённо; отмена возможна со всех этапов до «В пути» — см. диаграммы).</sub>
+
+### Связи таблиц
+
+```mermaid
+erDiagram
+    USERS ||--o{ ORDERS : "оформляет"
+    USERS ||--o| TELEGRAM_ACCOUNT_LINKS : "вошёл в бота"
+    USERS ||--o{ NOTIFICATIONS : "получает"
+    CATEGORIES ||--o{ CATEGORIES : "подкатегории"
+    CATEGORIES ||--o{ PRODUCTS : "основная"
+    PRODUCTS }o--o{ CATEGORIES : "дополнительные"
+    PRODUCTS ||--|{ PRODUCT_VARIANTS : "штука, куб, пачка"
+    ORDERS ||--|{ ORDER_ITEMS : "позиции"
+    PRODUCT_VARIANTS ||--o{ ORDER_ITEMS : "по какой цене"
+    ORDERS ||--o{ ORDER_STATUS_HISTORY : "история"
+    ORDERS ||--o{ NOTIFICATIONS : "о заказе"
+```
+
+<sub>Поля таблиц и ограничения — в [полной ER-диаграмме](docs/diagrams.md#2-модель-данных).</sub>
 
 ## Структура
 
@@ -79,7 +113,7 @@ backend/
   alembic/          # миграции БД
   run_telegram_bot.py
   seed_demo.py      # пробные товары с вариантами продажи
-  manage.py         # служебные команды (назначить владельца)
+  manage.py         # служебные команды (миграции, владелец, OpenAPI)
 frontend/src/
   pages/            # главная, каталог, страница товара
   components/       # карточка товара, выбор варианта, карта, логотип
@@ -87,6 +121,8 @@ frontend/src/
   Admin.tsx         # админ-панель
 tests/              # pytest
 docs/               # бизнес-правила, диаграммы, крайние случаи, OpenAPI
+scripts/            # настройка сервера, бэкап и восстановление
+.github/workflows/  # CI: тесты, линтер, сборка Docker
 ```
 
 ## Запуск локально
@@ -125,6 +161,7 @@ cd backend && python run_telegram_bot.py
 ## Деплой
 
 Сайт, API, бот и база запускаются одной командой через Docker Compose с автоматическим HTTPS (Caddy) — см. [DEPLOY.md](DEPLOY.md).
+Скрипт `scripts/setup-server.sh` готовит чистый Ubuntu-сервер: swap, Docker, файрвол и ежедневный бэкап.
 
 ## Тесты
 

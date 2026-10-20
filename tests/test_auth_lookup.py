@@ -42,7 +42,7 @@ def test_register_rejects_same_number_in_other_format(client: TestClient):
 
     response = client.post(
         "/api/v1/auth/register",
-        json={"phone": "89991234567", "password": "secret"},
+        json={"phone": "89991234567", "password": "secret-pass"},
     )
 
     assert response.status_code == 400

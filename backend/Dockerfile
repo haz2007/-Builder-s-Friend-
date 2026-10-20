@@ -21,4 +21,4 @@ USER app
 EXPOSE 8000
 
 # Перед стартом API приводим базу в актуальное состояние
-CMD ["sh", "-c", "python manage.py migrate && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2 --proxy-headers --forwarded-allow-ips='*'"]
+CMD ["sh", "-c", "python manage.py migrate && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers ${WEB_CONCURRENCY:-1} --proxy-headers --forwarded-allow-ips='*'"]

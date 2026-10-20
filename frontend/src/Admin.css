@@ -59,15 +59,54 @@
 .admin-page input[type="file"]::file-selector-button { margin-right: 8px; padding: 7px 10px; border: 0; border-radius: 6px; color: var(--admin-primary); background: #f4eee8; font: 700 12px "DM Sans", sans-serif; cursor: pointer; }
 .admin-full { grid-column: 1 / -1; }
 .admin-form-actions, .admin-row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-.admin-primary, .admin-secondary {
-  display: inline-flex; justify-content: center; align-items: center; gap: 8px; min-height: 42px; padding: 10px 16px;
-  border: 1px solid transparent; border-radius: 9px; font: 700 13px/1.3 "DM Sans", sans-serif; cursor: pointer;
-  transition: background .18s ease, border-color .18s ease, color .18s ease, transform .18s ease;
+/* ---------- Кнопки: одна система для всей админки ----------
+   primary — главное действие, outline — обычное, ghost — второстепенное,
+   danger — удаление и отмена (мягкая, ярко красится только при наведении) */
+.admin-btn {
+  display: inline-flex; justify-content: center; align-items: center; gap: 7px;
+  min-height: 40px; padding: 0 16px; border: 1px solid transparent; border-radius: 10px;
+  font: 700 13px/1 "DM Sans", sans-serif; white-space: nowrap; text-decoration: none; cursor: pointer;
+  transition: background .16s ease, border-color .16s ease, color .16s ease, box-shadow .16s ease, transform .16s ease;
 }
-.admin-primary { color: #ffffff; background: var(--admin-primary); }
-.admin-primary:hover:not(:disabled) { background: var(--admin-primary-dark); transform: translateY(-1px); }
-.admin-secondary { color: var(--admin-primary); background: #ffffff; border-color: #d9d3cd; }
-.admin-secondary:hover:not(:disabled) { background: #f5f2ef; border-color: var(--admin-primary); }
+.admin-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgb(184 121 47 / 35%); }
+.admin-btn:active:not(:disabled) { transform: translateY(1px); }
+.admin-btn .admin-icon { flex: 0 0 auto; }
+.admin-btn-sm { min-height: 34px; padding: 0 12px; border-radius: 9px; font-size: 12.5px; gap: 6px; }
+.admin-btn-icon { width: 40px; padding: 0; }
+.admin-btn-sm.admin-btn-icon { width: 34px; }
+
+.admin-btn-primary { color: #fff; background: var(--admin-primary); box-shadow: 0 1px 2px rgb(39 28 20 / 18%); }
+.admin-btn-primary:hover:not(:disabled) { background: var(--admin-primary-dark); box-shadow: 0 4px 12px rgb(39 28 20 / 18%); }
+
+.admin-btn-outline { color: var(--admin-primary-dark); background: #fff; border-color: #ddd3c8; }
+.admin-btn-outline:hover:not(:disabled) { border-color: #b9a796; background: #faf6f1; }
+
+.admin-btn-ghost { color: #6b5a4c; background: transparent; }
+.admin-btn-ghost:hover:not(:disabled) { color: var(--admin-primary-dark); background: #f3ece4; }
+
+.admin-btn-danger { color: #a63a2c; background: #fbf1ee; border-color: #f0d8d2; }
+.admin-btn-danger:hover:not(:disabled) { color: #fff; background: #b4402f; border-color: #b4402f; }
+
+.admin-btn-count {
+  display: inline-grid; place-items: center; min-width: 19px; height: 19px; padding: 0 5px;
+  border-radius: 999px; color: var(--admin-primary); background: #f1e7dc; font-size: 11px; font-weight: 800;
+}
+.admin-btn.is-busy { opacity: .6; pointer-events: none; }
+label.admin-btn { margin: 0; }
+
+/* Строка товара: фото и действия */
+.admin-product-photo { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-top: 10px; }
+.admin-product-photo img, .admin-product-photo-empty {
+  display: block; width: 96px; height: 72px; border-radius: 10px; object-fit: cover; border: 1px solid var(--admin-line);
+}
+.admin-product-photo-empty { display: grid; place-items: center; color: var(--admin-muted); background: #f5f0ea; font-size: 11px; }
+.admin-product-photo .admin-btn { margin-left: -6px; }
+.admin-product-actions { display: grid; gap: 6px; width: 172px; }
+.admin-product-actions > .admin-btn { justify-content: flex-start; }
+.admin-product-actions > .admin-btn .admin-btn-count { margin-left: auto; }
+.admin-product-actions-row { display: flex; gap: 6px; }
+.admin-product-actions-row .admin-btn-ghost { flex: 1; justify-content: flex-start; }
+.admin-category-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .admin-page button:disabled { opacity: .55; cursor: not-allowed; }
 .admin-search { max-width: 360px; }
 .admin-list-heading, .admin-order-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 22px; }
@@ -270,7 +309,7 @@
 .admin-status-new { color: #795a17; background: #fff2cb; }
 .admin-status-confirmed { color: #285b91; background: #e7f1ff; }
 .admin-status-preparing { color: #6c4292; background: #f0e8fb; }
-.admin-status-ready_for_delivery, .admin-status-assigned_to_driver, .admin-status-on_the_way { color: #92511c; background: #fff0df; }
+.admin-status-ready_for_delivery, .admin-status-on_the_way { color: #92511c; background: #fff0df; }
 .admin-status-delivered { color: #28643b; background: #e3f2e4; }
 .admin-status-cancelled { color: #a33333; background: #fae8e6; }
 @media (max-width: 760px) {
@@ -526,7 +565,6 @@
 .admin-variant-row.is-inactive { opacity: .6; }
 .admin-variant-row.is-new { border-style: dashed; background: transparent; }
 .admin-variant-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
-.admin-variant-actions .admin-primary, .admin-variant-actions .admin-secondary { padding: 9px 12px; font-size: 12px; }
 .admin-variant-badge { padding: 4px 8px; border-radius: 999px; color: var(--admin-primary); background: #f4eee8; font-size: 11px; font-weight: 800; }
 .admin-variant-badge.is-muted { color: var(--admin-muted); background: #f1efe9; }
 
@@ -577,7 +615,10 @@
 }
 
 .admin-variant-prices { display: grid; gap: 4px; font-size: 12px; white-space: nowrap; }
-.admin-variant-prices strong { color: var(--admin-ink); }
+.admin-variant-price { display: flex; justify-content: space-between; gap: 12px; min-width: 150px; }
+.admin-variant-price > span { color: var(--admin-muted); }
+.admin-variant-price b { color: var(--admin-ink); font-weight: 800; }
+.admin-variant-price b small { display: inline; color: var(--admin-muted); font-weight: 600; font-size: 11px; }
 .admin-variants-hint { margin: 18px 0 0; padding: 12px 14px; border-radius: 10px; background: #f3f0e8; }
 #product-variants { scroll-margin-top: 24px; }
 
@@ -585,15 +626,10 @@
 .admin-page .logo-mark { display: block; margin-bottom: 10px; }
 
 /* Смена статуса: только допустимые действия */
-.admin-order-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.admin-status-next, .admin-status-cancel {
-  min-height: 40px; padding: 0 16px; border-radius: 10px; font: 700 13px "DM Sans", sans-serif; cursor: pointer;
-  transition: background .18s ease, border-color .18s ease, transform .18s ease;
-}
-.admin-status-next { border: 1px solid var(--admin-primary); color: #fff; background: var(--admin-primary); }
-.admin-status-next:hover:not(:disabled) { background: var(--admin-primary-dark); transform: translateY(-1px); }
-.admin-status-cancel { border: 1px solid #e3c5bf; color: #a33333; background: #fff; }
-.admin-status-cancel:hover:not(:disabled) { border-color: #a33333; background: #fdf3f1; }
+.admin-order-actions { display: grid; gap: 8px; }
+.admin-order-actions .admin-btn-primary { justify-content: space-between; min-height: 44px; padding: 0 14px 0 16px; }
+.admin-order-actions .admin-btn-danger { min-height: 36px; color: #a63a2c; background: transparent; border-color: transparent; }
+.admin-order-actions .admin-btn-danger:hover:not(:disabled) { color: #fff; background: #b4402f; border-color: #b4402f; }
 .admin-order-final { color: var(--admin-muted); font-size: 13px; }
 
 /* ---------- Аналитика: графики ---------- */

@@ -208,14 +208,3 @@ def find_user_by_login(db: Session, login: str) -> User | None:
         return find_user_by_email(db, login)
     return find_user_by_phone(db, login)
 
-
-def require_driver(
-    current_user: User = Depends(get_current_user)
-):
-    if current_user.role != "DRIVER":
-        raise HTTPException(
-            status_code=403,
-            detail="Driver access required"
-        )
-
-    return current_user

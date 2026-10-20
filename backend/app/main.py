@@ -7,7 +7,6 @@ from .routers.products import router as products_router, UPLOAD_DIR
 from .routers.categories import router as categories_router
 from .routers.orders import router as orders_router
 from .routers.auth import router as auth_router
-from .routers.deliveries import router as deliveries_router
 from .routers.users import router as users_router
 from .routers.admin import router as admin_router
 from .routers.notifications import router as notifications_router
@@ -23,7 +22,6 @@ OPENAPI_TAGS = [
     {"name": "Admin", "description": "Аналитика и сводка для администраторов"},
     {"name": "Admins", "description": "Управление администраторами (только владелец)"},
     {"name": "Users", "description": "Пользователи и роли"},
-    {"name": "Deliveries", "description": "Доставки и водители"},
 ]
 
 app = FastAPI(
@@ -52,7 +50,6 @@ app.include_router(products_router)
 app.include_router(categories_router)
 app.include_router(orders_router)
 app.include_router(auth_router)
-app.include_router(deliveries_router)
 app.include_router(users_router)
 app.include_router(admin_router)
 app.include_router(notifications_router)

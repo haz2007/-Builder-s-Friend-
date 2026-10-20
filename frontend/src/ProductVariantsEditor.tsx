@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { Icon } from "./AdminIcons";
 
 import {
   createVariant,
@@ -269,27 +270,31 @@ export default function ProductVariantsEditor({
                 )}
                 <button
                   type="button"
-                  className="admin-secondary"
+                  className="admin-btn admin-btn-primary admin-btn-sm"
                   disabled={busy || !drafts[variant.id]}
                   onClick={() => saveVariant(variant)}
                 >
+                  <Icon name="save" size={15} />
                   Сохранить
                 </button>
                 <button
                   type="button"
-                  className="admin-secondary"
+                  className="admin-btn admin-btn-ghost admin-btn-sm"
                   disabled={busy}
                   onClick={() => toggleVariant(variant)}
                 >
+                  <Icon name={variant.is_active === 1 ? "eyeOff" : "eye"} size={15} />
                   {variant.is_active === 1 ? "Скрыть" : "Вернуть"}
                 </button>
                 <button
                   type="button"
-                  className="admin-secondary"
+                  className="admin-btn admin-btn-danger admin-btn-sm admin-btn-icon"
                   disabled={busy}
                   onClick={() => removeVariant(variant)}
+                  title="Удалить вариант"
+                  aria-label={`Удалить вариант «${variant.name}»`}
                 >
-                  Удалить
+                  <Icon name="trash" size={15} />
                 </button>
               </div>
             </div>
@@ -344,7 +349,7 @@ export default function ProductVariantsEditor({
           </small>
         </label>
         <div className="admin-variant-actions">
-          <button className="admin-primary" disabled={busyId === "new"}>
+          <button className="admin-btn admin-btn-primary" disabled={busyId === "new"}>
             {busyId === "new" ? "Добавляем..." : "Добавить вариант"}
           </button>
         </div>

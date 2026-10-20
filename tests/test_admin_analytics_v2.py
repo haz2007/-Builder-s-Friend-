@@ -51,7 +51,7 @@ def test_on_the_way_allows_only_delivered(client: TestClient):
     admin, customer, product_id = setup_shop()
     order_id = order(client, customer, product_id, 1)["id"]
 
-    for status in ["CONFIRMED", "PREPARING", "READY_FOR_DELIVERY", "ASSIGNED_TO_DRIVER"]:
+    for status in ["CONFIRMED", "PREPARING", "READY_FOR_DELIVERY"]:
         client.patch(f"/api/v1/orders/{order_id}/status", json={"status": status}, headers=admin)
     data = client.patch(
         f"/api/v1/orders/{order_id}/status", json={"status": "ON_THE_WAY"}, headers=admin

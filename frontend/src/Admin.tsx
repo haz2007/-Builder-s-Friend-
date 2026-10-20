@@ -45,6 +45,7 @@ import type { ApiCategory, ApiOrder, ApiProduct, AuthUser, AdminAnalytics, Admin
 import "./Admin.css";
 import { CategoryRevenue, PipelinePanel, RevenueChart } from "./AdminCharts";
 import AdminsSection from "./AdminsSection";
+import { Icon } from "./AdminIcons";
 import { LogoMark } from "./components/Logo";
 import ProductVariantsEditor from "./ProductVariantsEditor";
 import { showFallbackImage } from "./shop/images";
@@ -99,8 +100,6 @@ const orderStatuses = [
 
   { value: "READY_FOR_DELIVERY", label: "Готов к доставке" },
 
-  { value: "ASSIGNED_TO_DRIVER", label: "Назначен курьер" },
-
   { value: "ON_THE_WAY", label: "В пути" },
 
   { value: "DELIVERED", label: "Доставлен" },
@@ -111,17 +110,18 @@ const orderStatuses = [
 
 // Подписи кнопок: что произойдёт с заказом (как в Telegram-боте)
 const STATUS_ACTIONS: Record<string, string> = {
-  CONFIRMED: "✅ Подтвердить",
-  PREPARING: "🪚 Начать подготовку",
-  READY_FOR_DELIVERY: "📦 Готов к выдаче",
-  ASSIGNED_TO_DRIVER: "🚚 Назначить водителя",
-  ON_THE_WAY: "🛻 Отправить в путь",
-  DELIVERED: "🎉 Доставлен / выдан",
+  CONFIRMED: "Подтвердить заказ",
+  PREPARING: "Начать подготовку",
+  READY_FOR_DELIVERY: "Заказ собран",
+  ON_THE_WAY: "Отправить в путь",
+  DELIVERED: "Доставлен / выдан",
   CANCELLED: "Отменить заказ",
 };
 
 function orderStatusLabel(status: string) {
 
+  // «Назначен водитель» — этап, который был раньше; остался в истории старых заказов
+  if (status === "ASSIGNED_TO_DRIVER") return "Назначен водитель";
   return orderStatuses.find((item) => item.value === status)?.label ?? status;
 
 }
@@ -199,12 +199,6 @@ function Admin() {
     null,
 
   );
-
-  const [selectedFiles, setSelectedFiles] = useState<
-
-    Record<number, File | null>
-
-  >({});
 
   const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
 
@@ -684,23 +678,17 @@ function Admin() {
 
   }
 
-  async function handleUploadImage(productId: number) {
+  async function handleUploadImage(productId: number, file: File) {
 
     if (!token) return;
 
-    const file = selectedFiles[productId];
-
-    if (!file) {
-
-      setError("Сначала выбери фотографию.");
-
-      return;
-
-    }
+    const input = fileInputRefs.current[productId];
 
     if (file.size > 5 * 1024 * 1024) {
 
       setError("Размер фотографии не должен превышать 5 МБ.");
+
+      if (input) input.value = "";
 
       return;
 
@@ -715,18 +703,6 @@ function Admin() {
     try {
 
       await uploadProductImage(productId, file, token);
-
-      setSelectedFiles((previous) => ({
-
-        ...previous,
-
-        [productId]: null,
-
-      }));
-
-      const input = fileInputRefs.current[productId];
-
-      if (input) input.value = "";
 
       await loadData(token);
 
@@ -745,6 +721,8 @@ function Admin() {
       );
 
     } finally {
+
+      if (input) input.value = "";
 
       setUploadingProductId(null);
 
@@ -1081,7 +1059,7 @@ function Admin() {
 
           {error && <p className="admin-error">{error}</p>}
 
-          <button className="admin-primary" disabled={loading}>
+          <button className="admin-btn admin-btn-primary" disabled={loading}>
 
             {loading ? "Проверяем доступ..." : "Войти"}
 
@@ -1131,7 +1109,8 @@ function Admin() {
 
           </aside>
 
-          <button className="admin-secondary admin-logout" onClick={logout}>
+          <button className="admin-btn admin-btn-ghost admin-logout" onClick={logout}>
+            <Icon name="logout" />
 
             Выйти
 
@@ -1282,13 +1261,15 @@ function Admin() {
 
                 type="button"
 
-                className="admin-secondary"
+                className="admin-btn admin-btn-outline"
 
                 disabled={ordersLoading}
 
                 onClick={() => void loadOrders()}
 
               >
+
+                <Icon name="refresh" />
 
                 {ordersLoading ? "Обновляем..." : "Обновить"}
 
@@ -1447,7 +1428,11 @@ function Admin() {
                             <button
                               key={status}
                               type="button"
-                              className={isCancel ? "admin-status-cancel" : "admin-status-next"}
+                              className={
+                                isCancel
+                                  ? "admin-btn admin-btn-danger"
+                                  : "admin-btn admin-btn-primary"
+                              }
                               disabled={updatingOrderId === order.id}
                               onClick={() => {
                                 if (
@@ -1461,7 +1446,9 @@ function Admin() {
                                 void handleOrderStatusChange(order.id, status);
                               }}
                             >
+                              {isCancel && <Icon name="close" />}
                               {STATUS_ACTIONS[status] ?? orderStatusLabel(status)}
+                              {!isCancel && <Icon name="arrow" />}
                             </button>
                           );
                         })}
@@ -1583,7 +1570,7 @@ function Admin() {
 
             <div className="admin-form-actions admin-full">
 
-              <button className="admin-primary" disabled={loading}>
+              <button className="admin-btn admin-btn-primary" disabled={loading}>
 
                 {loading
 
@@ -1603,7 +1590,7 @@ function Admin() {
 
                   type="button"
 
-                  className="admin-secondary"
+                  className="admin-btn admin-btn-outline"
 
                   onClick={resetCategoryForm}
 
@@ -1644,27 +1631,25 @@ function Admin() {
                     </small>
                   </div>
 
-                  <div className="admin-category-actions" style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                  <div className="admin-category-actions">
                     <button
                       type="button"
-                      className="admin-secondary"
+                      className="admin-btn admin-btn-outline admin-btn-sm"
                       disabled={loading}
                       onClick={() => startEditingCategory(category)}
                     >
+                      <Icon name="edit" size={15} />
                       Изменить
                     </button>
                     <button
                       type="button"
-                      className="admin-secondary"
+                      className="admin-btn admin-btn-danger admin-btn-sm admin-btn-icon"
                       disabled={loading}
                       onClick={() => handleDeleteCategory(category)}
-                      style={{
-                        background: "#dc2626",
-                        borderColor: "#dc2626",
-                        color: "#ffffff",
-                      }}
+                      title="Удалить категорию"
+                      aria-label={`Удалить категорию «${category.name}»`}
                     >
-                      Удалить
+                      <Icon name="trash" size={15} />
                     </button>
                   </div>
 
@@ -1921,7 +1906,7 @@ function Admin() {
 
             <div className="admin-form-actions admin-full">
 
-              <button className="admin-primary" disabled={loading}>
+              <button className="admin-btn admin-btn-primary" disabled={loading}>
 
                 {loading
 
@@ -1941,7 +1926,7 @@ function Admin() {
 
                   type="button"
 
-                  className="admin-secondary"
+                  className="admin-btn admin-btn-outline"
 
                   onClick={resetForm}
 
@@ -2074,110 +2059,41 @@ function Admin() {
 
                         </small>
 
-                        {product.image_url && (
-
-                          <img
-
-                            src={getImageUrl(product.image_url) ?? undefined}
-
-                            onError={showFallbackImage}
-
-                            alt={product.name}
-
-                            style={{
-
-                              display: "block",
-
-                              width: 90,
-
-                              height: 70,
-
-                              objectFit: "cover",
-
-                              borderRadius: 8,
-
-                              marginTop: 8,
-
-                            }}
-
-                          />
-
-                        )}
-
-                        <div style={{ marginTop: 8 }}>
-
-                          <input
-
-                            ref={(element) => {
-
-                              fileInputRefs.current[product.id] = element;
-
-                            }}
-
-                            type="file"
-
-                            accept="image/jpeg,image/png,image/webp"
-
-                            onChange={(event) => {
-
-                              const file = event.target.files?.[0] ?? null;
-
-                              if (file && file.size > 5 * 1024 * 1024) {
-
-                                setError(
-
-                                  "Размер фотографии не должен превышать 5 МБ.",
-
-                                );
-
-                                event.target.value = "";
-
-                                return;
-
-                              }
-
-                              setError("");
-
-                              setSelectedFiles((previous) => ({
-
-                                ...previous,
-
-                                [product.id]: file,
-
-                              }));
-
-                            }}
-
-                          />
-
-                          <button
-
-                            type="button"
-
-                            className="admin-secondary"
-
-                            disabled={
-
-                              uploadingProductId === product.id ||
-
-                              !selectedFiles[product.id]
-
-                            }
-
-                            onClick={() => handleUploadImage(product.id)}
-
-                            style={{ marginTop: 6 }}
-
+                        <div className="admin-product-photo">
+                          {product.image_url ? (
+                            <img
+                              src={getImageUrl(product.image_url) ?? undefined}
+                              onError={showFallbackImage}
+                              alt={product.name}
+                            />
+                          ) : (
+                            <span className="admin-product-photo-empty">Нет фото</span>
+                          )}
+                          <label
+                            className={`admin-btn admin-btn-ghost admin-btn-sm ${
+                              uploadingProductId === product.id ? "is-busy" : ""
+                            }`}
                           >
-
+                            <Icon name="camera" size={15} />
                             {uploadingProductId === product.id
-
-                              ? "Загружаем..."
-
-                              : "Загрузить фото"}
-
-                          </button>
-
+                              ? "Загружаем…"
+                              : product.image_url
+                                ? "Сменить фото"
+                                : "Добавить фото"}
+                            <input
+                              ref={(element) => {
+                                fileInputRefs.current[product.id] = element;
+                              }}
+                              type="file"
+                              hidden
+                              accept="image/jpeg,image/png,image/webp"
+                              disabled={uploadingProductId === product.id}
+                              onChange={(event) => {
+                                const file = event.target.files?.[0];
+                                if (file) void handleUploadImage(product.id, file);
+                              }}
+                            />
+                          </label>
                         </div>
 
                       </td>
@@ -2187,13 +2103,13 @@ function Admin() {
                           {product.variants
                             .filter((variant) => variant.is_active === 1)
                             .map((variant) => (
-                              <span key={variant.id}>
-                                {variant.name}:{" "}
-                                <strong>
+                              <div className="admin-variant-price" key={variant.id}>
+                                <span>{variant.name}</span>
+                                <b>
                                   {variant.price.toLocaleString("ru-RU")} ₽
-                                </strong>{" "}
-                                / {variant.unit}
-                              </span>
+                                  <small> / {variant.unit}</small>
+                                </b>
+                              </div>
                             ))}
                         </div>
                       </td>
@@ -2232,54 +2148,51 @@ function Admin() {
 
                       <td>
 
-                        <div className="admin-row-actions">
-
+                        <div className="admin-product-actions">
                           <button
-                            className="admin-secondary"
-                            onClick={() => openVariants(product)}
-                            title="Штука, куб, пачка — как продаётся товар"
-                          >
-                            Варианты ({product.variants.length})
-                          </button>
-                          <button
-
-                            className="admin-secondary"
-
+                            type="button"
+                            className="admin-btn admin-btn-outline admin-btn-sm"
                             onClick={() => startEditing(product)}
-
                           >
-
+                            <Icon name="edit" size={15} />
                             Изменить
-
-                          </button>
-
-                          <button
-
-                            className="admin-secondary"
-
-                            disabled={loading}
-
-                            onClick={() => handleProductStatus(product)}
-
-                          >
-
-                            {product.is_active === 1 ? "Скрыть" : "Вернуть"}
-
                           </button>
                           <button
                             type="button"
-                            className="admin-secondary"
-                            disabled={loading}
-                            onClick={() => void handleDeleteProduct(product)}
-                            style={{
-                              backgroundColor: "#dc2626",
-                              borderColor: "#dc2626",
-                              color: "#ffffff",
-                            }}
+                            className="admin-btn admin-btn-outline admin-btn-sm"
+                            onClick={() => openVariants(product)}
+                            title="Штука, куб, пачка — как продаётся товар"
                           >
-                            Удалить
+                            <Icon name="layers" size={15} />
+                            Варианты
+                            <span className="admin-btn-count">{product.variants.length}</span>
                           </button>
-
+                          <div className="admin-product-actions-row">
+                            <button
+                              type="button"
+                              className="admin-btn admin-btn-ghost admin-btn-sm"
+                              disabled={loading}
+                              onClick={() => handleProductStatus(product)}
+                              title={
+                                product.is_active === 1
+                                  ? "Убрать из каталога, не удаляя"
+                                  : "Снова показать в каталоге"
+                              }
+                            >
+                              <Icon name={product.is_active === 1 ? "eyeOff" : "eye"} size={15} />
+                              {product.is_active === 1 ? "Скрыть" : "Вернуть"}
+                            </button>
+                            <button
+                              type="button"
+                              className="admin-btn admin-btn-danger admin-btn-sm admin-btn-icon"
+                              disabled={loading}
+                              onClick={() => void handleDeleteProduct(product)}
+                              title="Удалить товар"
+                              aria-label={`Удалить «${product.name}»`}
+                            >
+                              <Icon name="trash" size={15} />
+                            </button>
+                          </div>
                         </div>
 
                       </td>

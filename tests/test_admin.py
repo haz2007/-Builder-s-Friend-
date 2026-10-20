@@ -2,7 +2,7 @@ from fastapi.testclient import TestClient
 
 from app.auth import create_access_token, hash_password
 from app.database import SessionLocal
-from app.models import Category, Delivery, Order, Product, User
+from app.models import Category, Order, Product, User
 
 
 def create_user(email: str, role: str):
@@ -50,13 +50,11 @@ def test_admin_can_get_dashboard(client: TestClient):
     assert "revenue" in data
     assert "products" in data
     assert "users" in data
-    assert "deliveries" in data
 
     assert data["orders"]["total"] == 0
     assert data["products"]["total"] == 0
     assert data["users"]["customers"] == 0
-    assert data["users"]["drivers"] == 0
-    assert data["deliveries"]["total"] == 0
+    assert data["users"]["admins"] == 1
 
 
 def test_customer_cannot_get_admin_dashboard(client: TestClient):
@@ -85,11 +83,6 @@ def test_admin_dashboard_counts_data(client: TestClient):
     create_user(
         "customer_dashboard_counts@woodcommerce.local",
         "CUSTOMER"
-    )
-
-    create_user(
-        "driver_dashboard_counts@woodcommerce.local",
-        "DRIVER"
     )
 
     db = SessionLocal()
@@ -139,15 +132,6 @@ def test_admin_dashboard_counts_data(client: TestClient):
     db.refresh(order_new)
     db.refresh(order_delivered)
 
-    delivery = Delivery(
-        status="WAITING",
-        address="Москва, ул. Пушкина, 10",
-        order_id=order_delivered.id
-    )
-
-    db.add(delivery)
-    db.commit()
-
     db.close()
 
     response = client.get(
@@ -172,10 +156,7 @@ def test_admin_dashboard_counts_data(client: TestClient):
     assert data["products"]["low_stock"] == 1
 
     assert data["users"]["customers"] == 1
-    assert data["users"]["drivers"] == 1
-
-    assert data["deliveries"]["total"] == 1
-    assert data["deliveries"]["waiting"] == 1
+    assert data["users"]["admins"] == 1
 
 
 def test_admin_can_get_sales_statistics(client):

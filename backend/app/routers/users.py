@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from ..auth import hash_password, require_admin, require_owner
+from ..auth import require_admin, require_owner
 from ..database import get_db
 from ..models import User
-from ..schemas import UserCreate, UserResponse
+from ..schemas import UserResponse
 
 
 router = APIRouter(
@@ -19,37 +19,6 @@ def get_users(
     current_user: User = Depends(require_admin)
 ):
     return db.query(User).all()
-
-
-@router.post("/drivers", response_model=UserResponse)
-def create_driver(
-    user_data: UserCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin)
-):
-    existing_user = (
-        db.query(User)
-        .filter(User.email == user_data.email)
-        .first()
-    )
-
-    if existing_user:
-        raise HTTPException(
-            status_code=400,
-            detail="User with this email already exists"
-        )
-
-    driver = User(
-        email=user_data.email,
-        password_hash=hash_password(user_data.password),
-        role="DRIVER"
-    )
-
-    db.add(driver)
-    db.commit()
-    db.refresh(driver)
-
-    return driver
 
 
 @router.patch("/{user_id}/role", response_model=UserResponse)
@@ -74,7 +43,6 @@ def change_user_role(
 
     allowed_roles = {
         "CUSTOMER",
-        "DRIVER",
         "ADMIN"
     }
 

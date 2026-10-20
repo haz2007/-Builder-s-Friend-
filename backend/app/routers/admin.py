@@ -9,7 +9,6 @@ from ..auth import require_admin
 from ..database import get_db
 from ..models import (
     Category,
-    Delivery,
     Order,
     OrderItem,
     OrderStatusHistory,
@@ -26,7 +25,6 @@ PIPELINE_STATUSES = [
     "CONFIRMED",
     "PREPARING",
     "READY_FOR_DELIVERY",
-    "ASSIGNED_TO_DRIVER",
     "ON_THE_WAY",
 ]
 
@@ -152,7 +150,6 @@ def get_admin_dashboard(
         .filter(Product.is_active == 1, Product.stock_quantity <= 10)
         .count()
     )
-    total_deliveries = db.query(Delivery).count()
     return {
         "orders": {
             "total": total_orders,
@@ -170,13 +167,7 @@ def get_admin_dashboard(
         },
         "users": {
             "customers": db.query(User).filter(User.role == "CUSTOMER").count(),
-            "drivers": db.query(User).filter(User.role == "DRIVER").count(),
-        },
-        "deliveries": {
-            "total": total_deliveries,
-            "waiting": db.query(Delivery).filter(Delivery.status == "WAITING").count(),
-            "on_the_way": db.query(Delivery).filter(Delivery.status == "ON_THE_WAY").count(),
-            "delivered": db.query(Delivery).filter(Delivery.status == "DELIVERED").count(),
+            "admins": db.query(User).filter(User.role == "ADMIN").count(),
         },
     }
 

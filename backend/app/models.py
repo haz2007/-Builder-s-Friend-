@@ -10,12 +10,32 @@ from sqlalchemy import (
     ForeignKey,
     DateTime,
     BigInteger,
+    CheckConstraint,
     Table,
 )
 from sqlalchemy import event
 from sqlalchemy.orm import Session, relationship
 
 from .database import Base
+
+
+# Допустимые значения — их же проверяет база (CHECK), чтобы ошибка в коде
+# не записала неизвестный статус или роль
+USER_ROLES = ("CUSTOMER", "ADMIN")
+ORDER_STATUSES = (
+    "NEW",
+    "CONFIRMED",
+    "PREPARING",
+    "READY_FOR_DELIVERY",
+    "ON_THE_WAY",
+    "DELIVERED",
+    "CANCELLED",
+)
+DELIVERY_METHODS = ("DELIVERY", "PICKUP")
+
+
+def one_of(column: str, values: tuple[str, ...]) -> str:
+    return f"{column} IN ({', '.join(repr(value) for value in values)})"
 
 
 # Единицы, для которых количество в варианте считается по объёму доски
@@ -51,6 +71,9 @@ def pieces_in_cubic_meter(
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (
+        CheckConstraint(one_of("role", USER_ROLES), name="ck_users_role"),
+    )
 
     id = Column(Integer, primary_key=True)
     email = Column(String(255), nullable=True, unique=True)
@@ -61,7 +84,6 @@ class User(Base):
     is_owner = Column(Integer, nullable=False, default=0, server_default="0")
 
     orders = relationship("Order", back_populates="user")
-    deliveries = relationship("Delivery", back_populates="driver")
     notifications = relationship(
         "Notification",
         back_populates="user",
@@ -112,6 +134,10 @@ class Category(Base):
 
 class Product(Base):
     __tablename__ = "products"
+    __table_args__ = (
+        CheckConstraint("stock_quantity >= 0", name="ck_products_stock_not_negative"),
+        CheckConstraint("price >= 0", name="ck_products_price_not_negative"),
+    )
 
     id = Column(Integer, primary_key=True)
     name = Column(String(200), nullable=False)
@@ -171,6 +197,10 @@ class ProductVariant(Base):
     """
 
     __tablename__ = "product_variants"
+    __table_args__ = (
+        CheckConstraint("price >= 0", name="ck_product_variants_price_not_negative"),
+        CheckConstraint("base_quantity > 0", name="ck_product_variants_base_quantity_positive"),
+    )
 
     id = Column(Integer, primary_key=True)
     product_id = Column(
@@ -205,6 +235,11 @@ class ProductVariant(Base):
 
 class Order(Base):
     __tablename__ = "orders"
+    __table_args__ = (
+        CheckConstraint(one_of("status", ORDER_STATUSES), name="ck_orders_status"),
+        CheckConstraint(one_of("delivery_method", DELIVERY_METHODS), name="ck_orders_delivery_method"),
+        CheckConstraint("total_price >= 0", name="ck_orders_total_not_negative"),
+    )
 
     id = Column(Integer, primary_key=True)
     status = Column(String(50), nullable=False, default="NEW")
@@ -229,13 +264,6 @@ class Order(Base):
     items = relationship(
         "OrderItem",
         back_populates="order",
-        cascade="all, delete-orphan",
-    )
-
-    delivery = relationship(
-        "Delivery",
-        back_populates="order",
-        uselist=False,
         cascade="all, delete-orphan",
     )
 
@@ -275,6 +303,11 @@ def ensure_default_variant(session, flush_context, instances):
 
 class OrderItem(Base):
     __tablename__ = "order_items"
+    __table_args__ = (
+        CheckConstraint("quantity > 0", name="ck_order_items_quantity_positive"),
+        CheckConstraint("price >= 0", name="ck_order_items_price_not_negative"),
+        CheckConstraint("base_quantity > 0", name="ck_order_items_base_quantity_positive"),
+    )
 
     id = Column(Integer, primary_key=True)
     order_id = Column(
@@ -336,24 +369,6 @@ class OrderStatusHistory(Base):
     )
 
     order = relationship("Order", back_populates="status_history")
-
-
-class Delivery(Base):
-    __tablename__ = "deliveries"
-
-    id = Column(Integer, primary_key=True)
-    status = Column(String(50), nullable=False, default="WAITING")
-    address = Column(String(500), nullable=False)
-    order_id = Column(
-        Integer,
-        ForeignKey("orders.id"),
-        nullable=False,
-        unique=True,
-    )
-    driver_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-
-    order = relationship("Order", back_populates="delivery")
-    driver = relationship("User", back_populates="deliveries")
 
 
 class Notification(Base):

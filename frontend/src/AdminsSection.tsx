@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { Icon } from "./AdminIcons";
 
 import {
   addAdmin,
@@ -93,7 +94,7 @@ export default function AdminsSection({ token, user, onError, onNotice }: Props)
               maxLength={255}
             />
           </label>
-          <button className="admin-primary" disabled={busy || !login.trim()}>
+          <button className="admin-btn admin-btn-primary" disabled={busy || !login.trim()}>
             Сделать администратором
           </button>
           <p className="admin-hint">
@@ -123,10 +124,11 @@ export default function AdminsSection({ token, user, onError, onNotice }: Props)
             {isOwner && admin.is_owner !== 1 && admin.id !== user.id && (
               <button
                 type="button"
-                className="admin-secondary"
+                className="admin-btn admin-btn-danger admin-btn-sm"
                 disabled={busy}
                 onClick={() => handleRemove(admin)}
               >
+                <Icon name="userMinus" size={15} />
                 Снять права
               </button>
             )}

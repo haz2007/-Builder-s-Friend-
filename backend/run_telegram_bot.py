@@ -27,6 +27,7 @@ from sqlalchemy import func
 
 from app.auth import find_user_by_email, find_user_by_phone, verify_password
 from app.database import SessionLocal
+from app.rate_limit import telegram_login_limiter, wait_text
 from app import store_info
 from app.routers.categories import category_with_children_ids
 from app.models import (
@@ -89,7 +90,7 @@ ORDER_FILTERS = {
     "new": ("🆕 Новые", ["NEW"]),
     "work": (
         "🔄 В работе",
-        ["CONFIRMED", "PREPARING", "READY_FOR_DELIVERY", "ASSIGNED_TO_DRIVER", "ON_THE_WAY"],
+        ["CONFIRMED", "PREPARING", "READY_FOR_DELIVERY", "ON_THE_WAY"],
     ),
     "done": ("✅ Завершённые", ["DELIVERED", "CANCELLED"]),
     "all": ("📋 Все", None),
@@ -98,7 +99,6 @@ ORDER_FILTERS = {
 ROLE_NAMES = {
     "CUSTOMER": "покупатель",
     "ADMIN": "администратор",
-    "DRIVER": "водитель",
 }
 
 
@@ -239,8 +239,6 @@ def main_keyboard(user: User | None = None) -> dict:
             rows.append(["👥 Администраторы", "👤 Профиль"])
         else:
             rows.append(["📞 Контакты", "👤 Профиль"])
-    elif user.role == "DRIVER":
-        rows = [["🚚 Мои доставки"], ["👤 Профиль"]]
     else:
         rows = [["📦 Мои заказы", "🔔 Уведомления"], ["🛍 Каталог", "📞 Контакты"], ["👤 Профиль"]]
     return {
@@ -455,6 +453,16 @@ def handle_login_message(message: dict, state: dict) -> None:
     delete_message(chat_id, message["message_id"])
     user_states.pop(telegram_user_id, None)
     login = state.get("login", "")
+
+    retry_after = telegram_login_limiter.hit(str(telegram_user_id))
+    if retry_after is not None:
+        show_screen(
+            chat_id,
+            telegram_user_id,
+            f"⏳ <b>Слишком много попыток входа</b>\n\nПопробуй через {wait_text(retry_after)}.",
+            inline(HOME_ROW),
+        )
+        return
 
     with session() as db:
         try:
@@ -1046,10 +1054,6 @@ def handle_message(message: dict) -> None:
     if action is not None:
         delete_message(chat_id, message["message_id"])
         action(chat_id, telegram_user_id)
-        return
-
-    if text == "🚚 Мои доставки":
-        show_screen(chat_id, telegram_user_id, "🚚 Раздел доставок скоро появится.", inline(HOME_ROW))
         return
 
     # Посторонний текст удаляем, чтобы чат не засорялся

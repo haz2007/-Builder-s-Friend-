@@ -10,6 +10,7 @@ from ..models import (
     Product,
     User,
 )
+from ..rate_limit import order_limiter
 from ..schemas import (
     OrderCreate,
     OrderResponse,
@@ -38,7 +39,11 @@ router = APIRouter(
 )
 
 
-@router.post("/", response_model=OrderResponse)
+@router.post(
+    "/",
+    response_model=OrderResponse,
+    dependencies=[Depends(order_limiter)],
+)
 def create_order(
     order_data: OrderCreate,
     background_tasks: BackgroundTasks,

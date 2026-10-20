@@ -168,7 +168,6 @@ const PIPELINE_LABELS: Record<string, string> = {
   CONFIRMED: "Подтверждены",
   PREPARING: "Готовятся",
   READY_FOR_DELIVERY: "Готовы к выдаче",
-  ASSIGNED_TO_DRIVER: "Назначен водитель",
   ON_THE_WAY: "В пути",
 };
 

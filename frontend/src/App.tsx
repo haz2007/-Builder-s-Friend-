@@ -60,6 +60,8 @@ type Customer = {
 };
 
 const TOKEN_KEY = "wood_commerce_token";
+// Как на сервере (schemas.PASSWORD_MIN_LENGTH); для входа старых аккаунтов не проверяется
+const PASSWORD_MIN_LENGTH = 8;
 
 const productImages = [
   "https://images.unsplash.com/photo-1513467655676-561b7d489a88?auto=format&fit=crop&w=900&q=85",
@@ -677,6 +679,11 @@ function App() {
       return;
     }
 
+    if (!storedToken && authMode === "register" && password.length < PASSWORD_MIN_LENGTH) {
+      setCheckoutError(`Пароль — не короче ${PASSWORD_MIN_LENGTH} символов.`);
+      return;
+    }
+
     setCheckoutLoading(true);
 
     try {
@@ -1181,13 +1188,17 @@ function App() {
                         type="password"
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
-                        placeholder="Введите пароль"
+                        placeholder={
+                          authMode === "register"
+                            ? `Не короче ${PASSWORD_MIN_LENGTH} символов`
+                            : "Введите пароль"
+                        }
                         autoComplete={
                           authMode === "register"
                             ? "new-password"
                             : "current-password"
                         }
-                        minLength={1}
+                        minLength={authMode === "register" ? PASSWORD_MIN_LENGTH : 1}
                         required
                       />
                     </label>

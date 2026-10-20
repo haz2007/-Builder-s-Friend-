@@ -1,4 +1,4 @@
-# SITE_ADDRESS — домен (например drug-stroitelya.ru): Caddy сам получит
+# SITE_ADDRESS — домен (например builders-friend.ru): Caddy сам получит
 # сертификат Let's Encrypt. Для проверки без домена — ":80".
 {$SITE_ADDRESS::80} {
 	encode zstd gzip

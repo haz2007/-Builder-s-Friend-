@@ -14,6 +14,15 @@ from fastapi.testclient import TestClient
 
 from app.database import Base, engine
 from app.main import app
+from app.rate_limit import reset_all as reset_rate_limits
+
+
+@pytest.fixture(autouse=True)
+def clean_rate_limits():
+    # Все запросы TestClient идут с одного «IP» — каждый тест начинает с нуля
+    reset_rate_limits()
+    yield
+    reset_rate_limits()
 
 
 @pytest.fixture

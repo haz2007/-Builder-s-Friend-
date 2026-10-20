@@ -40,20 +40,19 @@ def test_preparing_to_ready_for_delivery():
     assert order.status == "READY_FOR_DELIVERY"
 
 
-def test_ready_for_delivery_to_assigned():
+def test_ready_for_delivery_to_on_the_way():
     order = create_order("READY_FOR_DELIVERY")
-
-    change_order_status(order, "ASSIGNED_TO_DRIVER", MagicMock(), 1)
-
-    assert order.status == "ASSIGNED_TO_DRIVER"
-
-
-def test_assigned_to_on_the_way():
-    order = create_order("ASSIGNED_TO_DRIVER")
 
     change_order_status(order, "ON_THE_WAY", MagicMock(), 1)
 
     assert order.status == "ON_THE_WAY"
+
+
+def test_driver_step_is_removed():
+    order = create_order("READY_FOR_DELIVERY")
+
+    with pytest.raises(HTTPException):
+        change_order_status(order, "ASSIGNED_TO_DRIVER", MagicMock(), 1)
 
 
 def test_on_the_way_to_delivered():

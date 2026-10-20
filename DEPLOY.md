@@ -18,27 +18,43 @@
 
 ## 1. Сервер
 
-Подойдёт любой VPS с Ubuntu 22.04/24.04: **1 vCPU, 2 ГБ RAM, 20 ГБ диска** — этого хватит
-магазину с запасом. Подходящие варианты:
+Подойдёт любой VPS на **KVM** с Ubuntu 22.04/24.04: **1 vCPU, 1 ГБ RAM, 10–15 ГБ диска**.
+В работе проект занимает около 150–250 МБ памяти; лимиты контейнеров в
+`docker-compose.prod.yml` рассчитаны на 1 ГБ, а сборке сайта помогает swap.
 
-- **Timeweb Cloud / Selectel / REG.RU** — серверы в России, оплата картой РФ, быстрый сайт
-  для покупателей. Если `api.telegram.org` с сервера недоступен — задайте `TELEGRAM_PROXY`.
-- Сервер за границей — Telegram работает без прокси, но сложнее с оплатой.
+| Сервис | Лимит памяти |
+|---|---|
+| `db` (PostgreSQL, настроен под маленький сервер) | 320 МБ |
+| `backend` (1 процесс API, `WEB_CONCURRENCY=1`) | 300 МБ |
+| `bot` | 160 МБ |
+| `web` (Caddy) | 100 МБ |
 
-Домен (`.ru`) — у любого регистратора, например REG.RU или Timeweb. В DNS добавьте
+- Серверы в России (Beget, VDSina, FirstVDS, Timeweb Cloud) — оплата картой РФ. Если
+  `api.telegram.org` с сервера недоступен — задайте `TELEGRAM_PROXY`.
+- OpenVZ-тарифы не подходят: на них не работает Docker. Обычный хостинг для сайтов
+  («сайты, FTP, CP») — тоже: нужен VPS с root-доступом.
+- На 2 ГБ и больше можно поставить `WEB_CONCURRENCY=2`.
+
+Домен (`.ru`) — у любого регистратора, например REG.RU. В DNS добавьте
 A-запись `@` (и при желании `www`) на IP сервера.
 
-## 2. Установка Docker на сервер
-
-```bash
-curl -fsSL https://get.docker.com | sh
-```
-
-## 3. Запуск
+## 2. Подготовка сервера
 
 ```bash
 git clone https://github.com/haz2007/wood-commerce.git
 cd wood-commerce
+sudo bash scripts/setup-server.sh
+```
+
+Скрипт один раз настраивает чистый сервер:
+- swap 2 ГБ (`SWAP_SIZE=4G` — чтобы изменить);
+- Docker и Docker Compose;
+- файрвол: открыты только SSH, 80 и 443;
+- ежедневный бэкап в 03:30 (`scripts/backup.sh`, лог — `/var/log/wood-backup.log`).
+
+## 3. Запуск
+
+```bash
 cp .env.production.example .env.production
 nano .env.production        # домен, пароль базы, SECRET_KEY, токен бота
 ```
@@ -75,14 +91,23 @@ docker compose -f docker-compose.prod.yml --env-file .env.production --profile b
 
 Миграции базы применяются автоматически при старте backend.
 
-## 5. Бэкапы
+## 5. Бэкапы и восстановление
 
-Ежедневный дамп базы (cron, `crontab -e`):
 ```bash
-0 3 * * * cd ~/wood-commerce && docker compose -f docker-compose.prod.yml --env-file .env.production exec -T db pg_dump -U wood -Fc wood_commerce > ~/backups/wood_$(date +\%F).dump
+scripts/backup.sh                     # вручную; по расписанию — каждую ночь
+ls backups/                           # db_<дата>.dump и uploads_<дата>.tar.gz
 ```
 
-Фото товаров лежат в томе `uploads`, база — в томе `db_data`.
+Хранятся последние 14 дней (`BACKUP_KEEP_DAYS`). Копируйте бэкапы и к себе — сервер
+может сломаться вместе с ними:
+```bash
+scp -r root@IP-сервера:~/wood-commerce/backups ./wood-backups
+```
+
+Восстановление (перед заменой скрипт сам сделает свежий бэкап текущей базы):
+```bash
+scripts/restore.sh backups/db_2026-10-20_033000.dump backups/uploads_2026-10-20_033000.tar.gz
+```
 
 ## Полезное
 
