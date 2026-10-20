@@ -46,7 +46,7 @@
 |---|---|---|
 | Telegram недоступен при запуске бота | Бот не падает: повторяет попытки с паузой 3 → 6 → … → 60 с | `run_telegram_bot.main` |
 | Telegram недоступен во время заказа | Заказ сохраняется; уведомления уходят после ответа покупателю, ошибка только в логе (BR-24) | `order_notifications.notify_order_event` |
-| Сервер в России не достаёт до `api.telegram.org` | Переменная `TELEGRAM_PROXY` (socks5/https) — все запросы к Telegram идут через неё | `telegram_service.telegram_proxies` |
+| Сервер в России не достаёт до `api.telegram.org` | `TELEGRAM_API_URL` — бесплатный посредник на Cloudflare Workers (`deploy/telegram-relay-worker.js`), или `TELEGRAM_PROXY` (socks5/https). Сайт работает напрямую | `test_api_url_can_point_to_relay` |
 | Покупатель вышел из бота | Сообщения о заказах больше не приходят (BR-23) | `test_logged_out_customer_gets_nothing` |
 | Админ сам сменил статус | Остальным админам — уведомление, ему — нет | `test_admin_who_changed_status_is_not_notified` |
 | Тесты запускаются на машине с настоящим токеном | `conftest.py` обнуляет токен: тесты никогда не пишут в настоящий Telegram | `tests/conftest.py`, `test_telegram.py` |

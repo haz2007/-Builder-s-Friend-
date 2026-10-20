@@ -43,6 +43,7 @@ services:
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-10080}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_PROXY: ${TELEGRAM_PROXY:-}
+      TELEGRAM_API_URL: ${TELEGRAM_API_URL:-}
       # Процессов API: на 1 ГБ памяти — 1, на 2 ГБ можно 2
       WEB_CONCURRENCY: ${WEB_CONCURRENCY:-1}
     volumes:

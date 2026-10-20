@@ -109,6 +109,28 @@ scp -r root@IP-сервера:~/builders-friend/backups ./builders-friend-backup
 scripts/restore.sh backups/db_2026-10-20_033000.dump backups/uploads_2026-10-20_033000.tar.gz
 ```
 
+## 6. Если Telegram недоступен с сервера
+
+С российского сервера `api.telegram.org` может быть закрыт — тогда сайт работает,
+а бот не получает сообщений. Проверка (на сервере):
+```bash
+curl -s -m 10 -o /dev/null -w "%{http_code}\n" https://api.telegram.org   # 302 — доступен
+```
+
+Бесплатный обход — посредник на Cloudflare Workers (100 000 запросов в сутки бесплатно):
+1. [dash.cloudflare.com](https://dash.cloudflare.com) → **Workers & Pages** → **Create** → **Worker**,
+   имя `telegram-relay` → **Deploy** → **Edit code**.
+2. Вставить код из `deploy/telegram-relay-worker.js` → **Deploy**.
+3. **Settings → Variables**: `BOT_ID` = число до двоеточия в токене бота
+   (Worker пропускает только этого бота).
+4. В `.env.production`:
+   ```
+   TELEGRAM_API_URL=https://telegram-relay.<ваше-имя>.workers.dev
+   ```
+5. Перезапустить: `docker compose -f docker-compose.prod.yml --env-file .env.production --profile bot up -d`
+
+Второй вариант — свой прокси: `TELEGRAM_PROXY=socks5://user:pass@host:port`.
+
 ## Полезное
 
 ```bash

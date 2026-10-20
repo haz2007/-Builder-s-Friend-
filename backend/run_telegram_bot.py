@@ -57,7 +57,7 @@ from app.services.order_notifications import (
     notify_order_status_changed,
     status_name,
 )
-from app.services.telegram_service import telegram_proxies
+from app.services.telegram_service import telegram_api_url, telegram_proxies
 from app.services.order_service import (
     ALLOWED_TRANSITIONS,
     change_order_status,
@@ -76,7 +76,7 @@ logging.getLogger("urllib3").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-API_URL = f"https://api.telegram.org/bot{TOKEN}" if TOKEN else ""
+API_URL = telegram_api_url(TOKEN) if TOKEN else ""
 
 PAGE_SIZE = 5
 LOW_STOCK_LIMIT = 10

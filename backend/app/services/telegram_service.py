@@ -9,6 +9,13 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 
+def telegram_api_url(token: str) -> str:
+    """Адрес Bot API. TELEGRAM_API_URL — посредник, если api.telegram.org закрыт
+    с сервера (например, Cloudflare Worker из deploy/telegram-relay-worker.js)."""
+    base = os.getenv("TELEGRAM_API_URL", "").strip() or "https://api.telegram.org"
+    return f"{base.rstrip('/')}/bot{token}"
+
+
 def telegram_proxies() -> dict | None:
     """TELEGRAM_PROXY=socks5://user:pass@host:port — если Telegram недоступен напрямую."""
     proxy = os.getenv("TELEGRAM_PROXY")
@@ -41,7 +48,7 @@ def send_telegram_message(
 
     try:
         response = requests.post(
-            f"https://api.telegram.org/bot{token}/sendMessage",
+            f"{telegram_api_url(token)}/sendMessage",
             json=payload,
             timeout=10,
             proxies=telegram_proxies(),

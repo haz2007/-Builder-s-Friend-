@@ -122,6 +122,7 @@ frontend/src/
 tests/              # pytest
 docs/               # бизнес-правила, диаграммы, крайние случаи, OpenAPI
 scripts/            # настройка сервера, бэкап и восстановление
+deploy/             # посредник Telegram на Cloudflare Workers (если Telegram закрыт)
 .github/workflows/  # CI: тесты, линтер, сборка Docker
 ```
 
