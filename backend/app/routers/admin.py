@@ -3,10 +3,11 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from ..auth import require_admin
 from ..database import get_db
+from ..schemas import as_utc
 from ..models import (
     Category,
     Order,
@@ -129,6 +130,37 @@ def _order_first_status_subquery(db: Session):
         .group_by(OrderStatusHistory.order_id)
         .subquery()
     )
+
+
+@router.get("/activity")
+def get_activity(
+    limit: int = Query(default=50, ge=1, le=200),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Журнал: кто и когда менял статусы заказов (новые сверху)."""
+    from ..services.order_notifications import status_name
+
+    entries = (
+        db.query(OrderStatusHistory)
+        .options(joinedload(OrderStatusHistory.order), joinedload(OrderStatusHistory.changed_by))
+        .order_by(OrderStatusHistory.created_at.desc(), OrderStatusHistory.id.desc())
+        .limit(limit)
+        .all()
+    )
+    return [
+        {
+            "id": entry.id,
+            "order_id": entry.order_id,
+            "status": entry.status,
+            "status_name": status_name(entry.status, entry.order.delivery_method),
+            "created_at": as_utc(entry.created_at),
+            "changed_by": entry.changed_by_label,
+            "customer_name": entry.order.customer_name,
+            "total_price": entry.order.total_price,
+        }
+        for entry in entries
+    ]
 
 
 @router.get("/dashboard")

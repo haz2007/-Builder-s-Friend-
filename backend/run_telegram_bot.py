@@ -59,7 +59,7 @@ from app.services.order_notifications import (
 )
 from app.services.telegram_service import telegram_api_url, telegram_proxies
 from app.services.order_service import (
-    ALLOWED_TRANSITIONS,
+    allowed_transitions,
     change_order_status,
     get_status_value,
 )
@@ -609,7 +609,7 @@ def customer_orders_screen(chat_id, telegram_user_id, page=0, message_id=None):
         orders = query.order_by(Order.id.desc()).offset(page * PAGE_SIZE).limit(PAGE_SIZE).all()
         rows = [
             [button(
-                f"№{order.id} · {status_name(order.status)} · {format_money(order.total_price)}",
+                f"№{order.id} · {status_name(order.status, order.delivery_method)} · {format_money(order.total_price)}",
                 f"c:order:{order.id}:{page}",
             )]
             for order in orders
@@ -627,19 +627,23 @@ def customer_orders_screen(chat_id, telegram_user_id, page=0, message_id=None):
     )
 
 
-def status_history_lines(db, order_id: int) -> list[str]:
+def status_history_lines(db, order: Order, show_actor: bool = False) -> list[str]:
+    """История статусов; администратору — ещё и кто менял статус."""
     history = (
         db.query(OrderStatusHistory)
-        .filter(OrderStatusHistory.order_id == order_id)
+        .filter(OrderStatusHistory.order_id == order.id)
         .order_by(OrderStatusHistory.id)
         .all()
     )
     if not history:
         return []
-    return ["", "🕓 <b>История:</b>"] + [
-        f"  {format_date(entry.created_at)} — {status_name(entry.status)}"
-        for entry in history
-    ]
+    lines = []
+    for entry in history:
+        line = f"  {format_date(entry.created_at)} — {status_name(entry.status, order.delivery_method)}"
+        if show_actor and entry.changed_by_label:
+            line += f" · {html.escape(entry.changed_by_label)}"
+        lines.append(line)
+    return ["", "🕓 <b>История:</b>"] + lines
 
 
 def customer_order_screen(chat_id, telegram_user_id, order_id, back_page=0, message_id=None):
@@ -653,7 +657,7 @@ def customer_order_screen(chat_id, telegram_user_id, order_id, back_page=0, mess
             return
         text = "\n".join(
             [build_customer_message(order, f"📦 Заказ №{order.id}")]
-            + status_history_lines(db, order.id)
+            + status_history_lines(db, order)
         )
         can_cancel = get_status_value(order.status) == "NEW"
         delivered = get_status_value(order.status) == "DELIVERED"
@@ -760,7 +764,7 @@ def admin_orders_screen(chat_id, telegram_user_id, filter_key="new", page=0, mes
         orders = query.order_by(Order.id.desc()).offset(page * PAGE_SIZE).limit(PAGE_SIZE).all()
         rows = [
             [button(
-                f"№{order.id} · {status_name(order.status)} · {format_money(order.total_price)}",
+                f"№{order.id} · {status_name(order.status, order.delivery_method)} · {format_money(order.total_price)}",
                 f"a:order:{order.id}:{filter_key}",
             )]
             for order in orders
@@ -791,9 +795,9 @@ def admin_order_screen(chat_id, telegram_user_id, order_id, filter_key="new", me
             return
         text = "\n".join(
             [build_order_message(order, title or f"📦 Заказ №{order.id}")]
-            + status_history_lines(db, order.id)
+            + status_history_lines(db, order, show_actor=True)
         )
-        keyboard = build_order_keyboard(order.id, order.status) or {"inline_keyboard": []}
+        keyboard = build_order_keyboard(order.id, order.status, order.delivery_method) or {"inline_keyboard": []}
     rows = keyboard["inline_keyboard"]
     rows.append([button("◀️ К заказам", f"a:orders:{filter_key}:0")])
     rows.append(HOME_ROW)
@@ -810,7 +814,8 @@ def admin_change_status(chat_id, telegram_user_id, order_id, new_status, message
         if order is None:
             return "Заказ не найден."
         previous_status = get_status_value(order.status)
-        if new_status not in ALLOWED_TRANSITIONS.get(previous_status, set()):
+        delivery_method = order.delivery_method
+        if new_status not in allowed_transitions(previous_status, delivery_method):
             return "Статус уже изменён — обнови карточку заказа."
         try:
             change_order_status(order, new_status, db, user.id)
@@ -825,9 +830,9 @@ def admin_change_status(chat_id, telegram_user_id, order_id, new_status, message
     notify_order_status_changed(order_id, previous_status, new_status, actor_id)
     admin_order_screen(
         chat_id, telegram_user_id, order_id, "all", message_id,
-        title=f"✅ Заказ №{order_id}: {status_name(new_status)}",
+        title=f"✅ Заказ №{order_id}: {status_name(new_status, delivery_method)}",
     )
-    return f"Заказ №{order_id}: {status_name(new_status)}"
+    return f"Заказ №{order_id}: {status_name(new_status, delivery_method)}"
 
 
 def admin_summary_screen(chat_id, telegram_user_id, message_id=None):

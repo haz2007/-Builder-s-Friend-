@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from ..auth import get_current_user
 from ..database import get_db
 from ..models import Notification, User
+from ..schemas import NotificationResponse
 
 
 router = APIRouter(
@@ -12,7 +13,7 @@ router = APIRouter(
 )
 
 
-@router.get("/")
+@router.get("/", response_model=list[NotificationResponse])
 def get_notifications(
     unread_only: bool = False,
     limit: int = Query(default=20, ge=1, le=100),
@@ -56,7 +57,7 @@ def get_unread_notifications_count(
     }
 
 
-@router.patch("/{notification_id}/read")
+@router.patch("/{notification_id}/read", response_model=NotificationResponse)
 def mark_notification_as_read(
     notification_id: int,
     db: Session = Depends(get_db),

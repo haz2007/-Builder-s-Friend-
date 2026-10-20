@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from ..models import Order, OrderStatusHistory, Notification
 
 
+# Доставка: собранный заказ везут покупателю
 ALLOWED_TRANSITIONS = {
     "NEW": {"CONFIRMED", "CANCELLED"},
     "CONFIRMED": {"PREPARING", "CANCELLED"},
@@ -12,6 +13,13 @@ ALLOWED_TRANSITIONS = {
     "ON_THE_WAY": {"DELIVERED"},
     "DELIVERED": set(),
     "CANCELLED": set(),
+}
+
+# Самовывоз: покупатель сам забирает собранный заказ — этапа «В пути» нет,
+# «Готов к выдаче» → «Выдан»
+PICKUP_TRANSITIONS = {
+    **ALLOWED_TRANSITIONS,
+    "READY_FOR_DELIVERY": {"DELIVERED", "CANCELLED"},
 }
 
 STATUS_MESSAGES = {
@@ -23,6 +31,18 @@ STATUS_MESSAGES = {
     "DELIVERED": "Ваш заказ доставлен.",
     "CANCELLED": "Ваш заказ отменён.",
 }
+
+PICKUP_STATUS_MESSAGES = {
+    **STATUS_MESSAGES,
+    "READY_FOR_DELIVERY": "Ваш заказ собран — можно забирать со склада.",
+    "DELIVERED": "Заказ выдан. Спасибо за покупку!",
+}
+
+
+def allowed_transitions(status, delivery_method: str | None = None) -> set[str]:
+    """Куда можно перевести заказ из статуса status с учётом способа получения."""
+    table = PICKUP_TRANSITIONS if delivery_method == "PICKUP" else ALLOWED_TRANSITIONS
+    return table.get(get_status_value(status), set())
 
 
 def get_status_value(status) -> str:
@@ -41,15 +61,13 @@ def change_order_status(
     current_status = get_status_value(order.status)
     new_status = get_status_value(new_status)
 
-    allowed_statuses = ALLOWED_TRANSITIONS.get(current_status)
-
-    if allowed_statuses is None:
+    if current_status not in ALLOWED_TRANSITIONS:
         raise HTTPException(
             status_code=400,
             detail=f"Unknown current order status: {current_status}",
         )
 
-    if new_status not in allowed_statuses:
+    if new_status not in allowed_transitions(current_status, order.delivery_method):
         raise HTTPException(
             status_code=400,
             detail=(
@@ -64,10 +82,12 @@ def change_order_status(
         OrderStatusHistory(
             order_id=order.id,
             status=new_status,
+            changed_by_id=user_id,
         )
     )
 
-    message = STATUS_MESSAGES.get(
+    messages = PICKUP_STATUS_MESSAGES if order.delivery_method == "PICKUP" else STATUS_MESSAGES
+    message = messages.get(
         new_status,
         "Статус вашего заказа обновлён.",
     )

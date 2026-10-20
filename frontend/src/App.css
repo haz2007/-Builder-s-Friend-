@@ -5123,3 +5123,18 @@ a.category-tab {
 .search-box input[type="search"]::-webkit-search-cancel-button {
   appearance: none;
 }
+
+/* ---------- Политика конфиденциальности ---------- */
+.legal-page { max-width: 780px; padding-top: 28px; padding-bottom: 64px; color: #3b332c; line-height: 1.65; }
+.legal-page h1 { margin: 18px 0 6px; color: #241b14; font: 800 clamp(26px, 4vw, 36px)/1.15 "Manrope", sans-serif; letter-spacing: -0.03em; }
+.legal-page h2 { margin: 30px 0 8px; color: #241b14; font: 800 18px/1.3 "Manrope", sans-serif; }
+.legal-page p, .legal-page li { font-size: 15px; }
+.legal-page ul { margin: 8px 0; padding-left: 20px; }
+.legal-updated { margin: 0; color: #8a7f75; font-size: 13px; }
+
+/* Согласие при регистрации */
+.checkout-consent { display: flex; align-items: flex-start; gap: 10px; margin: 2px 0 6px; color: #5a5048; font-size: 13px; line-height: 1.45; cursor: pointer; }
+.checkout-consent input { flex: 0 0 auto; width: 18px; height: 18px; margin-top: 1px; accent-color: #3a2a1f; }
+.checkout-consent a { color: #8a5a22; }
+
+.footer-privacy { color: inherit; text-decoration: underline; text-underline-offset: 3px; }

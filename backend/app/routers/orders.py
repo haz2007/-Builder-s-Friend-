@@ -165,6 +165,7 @@ def create_order(
             OrderStatusHistory(
                 order_id=order.id,
                 status="NEW",
+                changed_by_id=current_user.id,
             )
         )
 

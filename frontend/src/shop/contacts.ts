@@ -6,6 +6,15 @@ export const PHONES = [
 
 export const YEARS_ON_MARKET = 30;
 
+export const STORE_NAME = "Друг Строителя";
+
+/**
+ * Оператор персональных данных для политики конфиденциальности:
+ * «ИП Фамилия Имя Отчество, ИНН 000000000000». Заполнить перед запуском —
+ * пока пусто, в политике указан магазин и его контакты.
+ */
+export const LEGAL_OPERATOR: string | null = null;
+
 export const TELEGRAM_BOT_URL = "https://t.me/builders_friend_bot";
 
 export const WORKING_HOURS = "Ежедневно с 9:00 до 19:00";

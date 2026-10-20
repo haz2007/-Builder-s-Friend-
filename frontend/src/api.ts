@@ -48,7 +48,8 @@ export type ApiProduct = {
   variants: ApiProductVariant[];
 };
 
-export type RegisterData = { phone: string; password: string };
+/** privacy_accepted — согласие с политикой конфиденциальности, без него регистрации нет */
+export type RegisterData = { phone: string; password: string; privacy_accepted: true };
 export type CustomerLoginData = { phone: string; password: string };
 export type AdminLoginData = { email: string; password: string } | { phone: string; password: string };
 export type LoginData = CustomerLoginData | AdminLoginData;
@@ -94,6 +95,8 @@ export type ApiOrderStatusHistory = {
   order_id: number;
   status: string;
   created_at: string;
+  /** «Админ admin@…» / «Покупатель +7999…»; пусто у старых записей */
+  changed_by?: string | null;
 };
 
 export type ApiOrder = {
@@ -563,6 +566,25 @@ export function deleteVariant(
       headers: adminHeaders(token),
     },
   );
+}
+
+/** Запись журнала: кто и когда сменил статус заказа. */
+export type ApiActivityEntry = {
+  id: number;
+  order_id: number;
+  status: string;
+  /** Подпись статуса с учётом самовывоза: «Выдан», «Готов к выдаче» */
+  status_name: string;
+  created_at: string;
+  changed_by: string | null;
+  customer_name: string;
+  total_price: number;
+};
+
+export function getActivity(token: string, limit = 100): Promise<ApiActivityEntry[]> {
+  return request<ApiActivityEntry[]>(`/api/v1/admin/activity?limit=${limit}`, {
+    headers: adminHeaders(token),
+  });
 }
 
 export function getAdmins(token: string): Promise<ApiAdmin[]> {

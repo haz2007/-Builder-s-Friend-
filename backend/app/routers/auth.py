@@ -1,5 +1,6 @@
 
 import re
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -65,6 +66,7 @@ def register(
         phone=phone,
         password_hash=hash_password(user_data.password),
         role="CUSTOMER",
+        privacy_accepted_at=datetime.now(timezone.utc),
     )
 
     db.add(user)

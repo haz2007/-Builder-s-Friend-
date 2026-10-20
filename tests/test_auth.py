@@ -8,7 +8,7 @@ def test_register(client):
         "/api/v1/auth/register",
         json={
             "phone": "+79991110001",
-            "password": "12345678",
+            "password": "12345678", "privacy_accepted": True,
         },
     )
 
@@ -27,7 +27,7 @@ def test_login(client):
         "/api/v1/auth/register",
         json={
             "phone": "+79991110002",
-            "password": "12345678",
+            "password": "12345678", "privacy_accepted": True,
         },
     )
 
@@ -52,7 +52,7 @@ def test_login_with_wrong_password(client):
         "/api/v1/auth/register",
         json={
             "phone": "+79991110003",
-            "password": "12345678",
+            "password": "12345678", "privacy_accepted": True,
         },
     )
 

@@ -145,8 +145,9 @@ stateDiagram-v2
     NEW --> CONFIRMED: админ подтвердил
     CONFIRMED --> PREPARING: начали подготовку
     PREPARING --> READY_FOR_DELIVERY: заказ собран
-    READY_FOR_DELIVERY --> ON_THE_WAY: машина выехала
-    ON_THE_WAY --> DELIVERED: доставлен или выдан
+    READY_FOR_DELIVERY --> ON_THE_WAY: доставка — машина выехала
+    ON_THE_WAY --> DELIVERED: доставлен
+    READY_FOR_DELIVERY --> DELIVERED: самовывоз — выдан на складе
 
     NEW --> CANCELLED: покупатель или админ
     CONFIRMED --> CANCELLED: админ

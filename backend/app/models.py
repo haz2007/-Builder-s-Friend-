@@ -82,6 +82,9 @@ class User(Base):
     role = Column(String(20), nullable=False, default="CUSTOMER")
     # Владелец магазина: администратор, который управляет другими админами
     is_owner = Column(Integer, nullable=False, default=0, server_default="0")
+    # Когда покупатель согласился с политикой конфиденциальности (152-ФЗ).
+    # Пусто — у аккаунтов, созданных до появления согласия, и у админов
+    privacy_accepted_at = Column(DateTime, nullable=True)
 
     orders = relationship("Order", back_populates="user")
     notifications = relationship(
@@ -367,8 +370,26 @@ class OrderStatusHistory(Base):
         nullable=False,
         default=lambda: datetime.now(timezone.utc),
     )
+    # Кто сменил статус: покупатель (оформил, отменил) или администратор.
+    # Пусто — у записей, сделанных до появления журнала
+    changed_by_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     order = relationship("Order", back_populates="status_history")
+    changed_by = relationship("User")
+
+    @property
+    def changed_by_label(self) -> str | None:
+        """«Админ admin@…» или «Покупатель +7999…» — для журнала."""
+        user = self.changed_by
+        if user is None:
+            return None
+        role = "Админ" if user.role == "ADMIN" else "Покупатель"
+        return f"{role} {user.email or user.phone or f'№{user.id}'}"
 
 
 class Notification(Base):

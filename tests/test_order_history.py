@@ -41,7 +41,7 @@ def register_and_login(client, email):
         "/api/v1/auth/register",
         json={
             "phone": phone,
-            "password": "password123"
+            "password": "password123", "privacy_accepted": True
         }
     )
 

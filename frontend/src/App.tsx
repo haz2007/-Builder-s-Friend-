@@ -41,6 +41,7 @@ import "./App.css";
 import Logo from "./components/Logo";
 import CatalogPage from "./pages/CatalogPage";
 import HomePage from "./pages/HomePage";
+import PrivacyPage from "./pages/PrivacyPage";
 import ProductPage from "./pages/ProductPage";
 import { PHONES, WORKING_HOURS, YANDEX_REVIEW_URL, YEARS_ON_MARKET } from "./shop/contacts";
 import { formatPrice, pluralize } from "./shop/format";
@@ -52,6 +53,7 @@ import type {
   ShopContextValue,
 } from "./shop/types";
 import { showFallbackImage } from "./shop/images";
+import { orderStatusLabel } from "./shop/orderStatus";
 
 type Customer = {
   id: number;
@@ -70,17 +72,6 @@ const productImages = [
   "https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=900&q=85",
 ];
 
-const orderStatusLabels: Record<string, string> = {
-  NEW: "Новый",
-  CONFIRMED: "Подтверждён",
-  PREPARING: "Готовится к выдаче",
-  READY_FOR_DELIVERY: "Готов к доставке",
-  ASSIGNED_TO_DRIVER: "Назначен водитель",
-  ON_THE_WAY: "В пути",
-  DELIVERED: "Доставлен",
-  CANCELLED: "Отменён",
-};
-
 function formatDate(date: string) {
   const parsedDate = new Date(date);
 
@@ -94,9 +85,6 @@ function formatDate(date: string) {
   }).format(parsedDate);
 }
 
-function getStatusLabel(status: string) {
-  return orderStatusLabels[status] ?? status;
-}
 
 function mapProducts(
   apiProducts: ApiProduct[],
@@ -217,7 +205,7 @@ function usePinnedHeader() {
 }
 
 function App() {
-  const pinnedHeader = usePinnedHeader();
+  const { slotRef: headerSlotRef, headerRef, pinned: headerPinned } = usePinnedHeader();
   const [products, setProducts] = useState<Product[]>([]);
   const [apiCategories, setApiCategories] = useState<ApiCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -239,6 +227,7 @@ function App() {
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [deliveryMethod, setDeliveryMethod] = useState<"DELIVERY" | "PICKUP">(
     "DELIVERY",
@@ -731,6 +720,11 @@ function App() {
       return;
     }
 
+    if (!storedToken && authMode === "register" && !privacyAccepted) {
+      setCheckoutError("Чтобы зарегистрироваться, подтвердите согласие на обработку данных.");
+      return;
+    }
+
     setCheckoutLoading(true);
 
     try {
@@ -743,6 +737,7 @@ function App() {
           await registerUser({
             phone: phone.trim(),
             password,
+            privacy_accepted: true,
           });
         }
 
@@ -865,10 +860,10 @@ function App() {
         </div>
       </div>
 
-      <div className="header-slot" ref={pinnedHeader.slotRef}>
+      <div className="header-slot" ref={headerSlotRef}>
       <header
-        className={`header ${pinnedHeader.pinned ? "is-pinned" : ""}`}
-        ref={pinnedHeader.headerRef}
+        className={`header ${headerPinned ? "is-pinned" : ""}`}
+        ref={headerRef}
       >
         <div className="container header-inner">
           <Link to="/" className="brand" aria-label="Друг Строителя — на главную">
@@ -964,6 +959,7 @@ function App() {
           <Route path="/catalog" element={<CatalogPage />} />
           <Route path="/catalog/:categoryId" element={<CatalogPage />} />
           <Route path="/product/:productId" element={<ProductPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="*" element={<CatalogPage />} />
         </Routes>
       </main>
@@ -981,6 +977,9 @@ function App() {
               </a>
             ))}
           </span>
+          <Link to="/privacy" className="footer-note footer-privacy">
+            Политика конфиденциальности
+          </Link>
           <span className="copyright">© 2026 Друг Строителя</span>
         </div>
       </footer>
@@ -1254,6 +1253,23 @@ function App() {
                         required
                       />
                     </label>
+
+                    {authMode === "register" && (
+                      <label className="checkout-consent">
+                        <input
+                          type="checkbox"
+                          checked={privacyAccepted}
+                          onChange={(event) => setPrivacyAccepted(event.target.checked)}
+                          required
+                        />
+                        <span>
+                          Соглашаюсь на обработку персональных данных по{" "}
+                          <Link to="/privacy" target="_blank" rel="noopener">
+                            политике конфиденциальности
+                          </Link>
+                        </span>
+                      </label>
+                    )}
                   </>
                 )}
 
@@ -1530,7 +1546,7 @@ function App() {
                             <span
                               className={`order-status status-${order.status.toLowerCase()}`}
                             >
-                              {getStatusLabel(order.status)}
+                              {orderStatusLabel(order.status, order.delivery_method)}
                             </span>
                           </div>
                           <strong>{formatPrice(order.total_price)}</strong>
@@ -1587,7 +1603,7 @@ function App() {
                                   <span className="history-dot" />
                                   <div>
                                     <strong>
-                                      {getStatusLabel(history.status)}
+                                      {orderStatusLabel(history.status, order.delivery_method)}
                                     </strong>
                                     <small>
                                       {formatDate(history.created_at)}

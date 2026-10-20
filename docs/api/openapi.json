@@ -1463,6 +1463,55 @@
         }
       }
     },
+    "/api/v1/admin/activity": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get Activity",
+        "description": "Журнал: кто и когда менял статусы заказов (новые сверху).",
+        "operationId": "get_activity_api_v1_admin_activity_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/dashboard": {
       "get": {
         "tags": [
@@ -1668,7 +1717,13 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NotificationResponse"
+                  },
+                  "title": "Response Get Notifications Api V1 Notifications  Get"
+                }
               }
             }
           },
@@ -1737,7 +1792,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationResponse"
+                }
               }
             }
           },
@@ -2103,6 +2160,62 @@
         ],
         "title": "LoginRequest"
       },
+      "NotificationResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "user_id": {
+            "type": "integer",
+            "title": "User Id"
+          },
+          "order_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Order Id"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "is_read": {
+            "type": "integer",
+            "title": "Is Read"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "message",
+          "is_read",
+          "created_at"
+        ],
+        "title": "NotificationResponse"
+      },
       "OrderCreate": {
         "properties": {
           "customer_name": {
@@ -2341,6 +2454,28 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "changed_by_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Changed By Id"
+          },
+          "changed_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Changed By"
           }
         },
         "type": "object",
@@ -2917,12 +3052,18 @@
             "maxLength": 128,
             "minLength": 8,
             "title": "Password"
+          },
+          "privacy_accepted": {
+            "type": "boolean",
+            "const": true,
+            "title": "Privacy Accepted"
           }
         },
         "type": "object",
         "required": [
           "phone",
-          "password"
+          "password",
+          "privacy_accepted"
         ],
         "title": "UserRegister"
       },

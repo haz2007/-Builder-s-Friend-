@@ -2,11 +2,30 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Друг Строителя — пиломатериалы и крепёж</title>
-    <meta name="description" content="Обрезная доска, брус, вагонка, крепёж и листовые материалы. Продажа поштучно и кубами, доставка на объект." />
+    <title>Друг Строителя — пиломатериалы и крепёж в Химках</title>
+    <meta name="description" content="Обрезная доска, брус, вагонка, крепёж и листовые материалы. Поштучно и кубами, доставка на объект или самовывоз. 30 лет на рынке." />
     <meta name="theme-color" content="#3a2a1f" />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/brand/logo-telegram.png" />
+
+    <!--
+      Превью ссылки в Telegram, WhatsApp, VK. Адрес сайта подставляет Caddy
+      (директива templates в frontend/Caddyfile): при смене домена ничего
+      не нужно пересобирать. При `npm run dev` здесь остаются шаблоны — это нормально.
+    -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Друг Строителя" />
+    <meta property="og:locale" content="ru_RU" />
+    <meta property="og:title" content="Друг Строителя — пиломатериалы и крепёж" />
+    <meta property="og:description" content="Доска и брус поштучно и кубами, вагонка, крепёж. Доставка или самовывоз в Химках. 30 лет на рынке." />
+    <meta property="og:url" content="{{if .Req.TLS}}https{{else}}http{{end}}://{{.Req.Host}}/" />
+    <meta property="og:image" content="{{if .Req.TLS}}https{{else}}http{{end}}://{{.Req.Host}}/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Штабеля обрезной доски и логотип магазина «Друг Строителя»" />
+    <meta name="twitter:card" content="summary_large_image" />
   </head>
   <body>
     <div id="root"></div>

@@ -110,7 +110,8 @@ def test_pickup_order_says_issued(client: TestClient, monkeypatch):
     admin = create_user("ADMIN", email="admin@woodcommerce.local")
     link(customer, 1001)
     order_id = make_order(client, customer, method="PICKUP")
-    for status in FLOW:
+    # У самовывоза нет этапа «В пути»: из «Готов к выдаче» сразу «Выдан»
+    for status in FLOW[:-1]:
         set_status(client, admin, order_id, status)
     sent = capture(monkeypatch)
 

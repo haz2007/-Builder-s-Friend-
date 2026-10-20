@@ -44,8 +44,10 @@ import type { ApiCategory, ApiOrder, ApiProduct, AuthUser, AdminAnalytics, Admin
 
 import "./Admin.css";
 import { CategoryRevenue, PipelinePanel, RevenueChart } from "./AdminCharts";
+import ActivitySection from "./ActivitySection";
 import AdminsSection from "./AdminsSection";
 import { Icon } from "./AdminIcons";
+import { FILTER_STATUSES, orderStages, orderStatusLabel } from "./shop/orderStatus";
 import { matchScore, searchTokens } from "./shop/search";
 import { LogoMark } from "./components/Logo";
 import ProductVariantsEditor from "./ProductVariantsEditor";
@@ -91,49 +93,26 @@ const emptyForm: ProductForm = {
 
 };
 
-const orderStatuses = [
-
-  { value: "NEW", label: "Новый" },
-
-  { value: "CONFIRMED", label: "Подтверждён" },
-
-  { value: "PREPARING", label: "Готовится" },
-
-  { value: "READY_FOR_DELIVERY", label: "Готов к доставке" },
-
-  { value: "ON_THE_WAY", label: "В пути" },
-
-  { value: "DELIVERED", label: "Доставлен" },
-
-  { value: "CANCELLED", label: "Отменён" },
-
-];
-
 // Подписи кнопок: что произойдёт с заказом (как в Telegram-боте)
 const STATUS_ACTIONS: Record<string, string> = {
   CONFIRMED: "Подтвердить заказ",
   PREPARING: "Начать подготовку",
   READY_FOR_DELIVERY: "Заказ собран",
   ON_THE_WAY: "Отправить в путь",
-  DELIVERED: "Доставлен / выдан",
+  DELIVERED: "Отметить доставленным",
   CANCELLED: "Отменить заказ",
 };
 
-// Этапы на шкале заказа (без «Отменён» — у отменённых своя плашка)
-const PROGRESS_STEPS = orderStatuses.filter((item) => item.value !== "CANCELLED");
+const PICKUP_STATUS_ACTIONS: Record<string, string> = {
+  ...STATUS_ACTIONS,
+  READY_FOR_DELIVERY: "Собран — ждёт покупателя",
+  DELIVERED: "Выдан покупателю",
+};
 
 /** Заливка шкалы ровно до центра точки текущего этапа. */
-function progressPercent(status: string) {
-  const index = Math.max(0, PROGRESS_STEPS.findIndex((item) => item.value === status));
-  return (index / (PROGRESS_STEPS.length - 1)) * 100;
-}
-
-function orderStatusLabel(status: string) {
-
-  // «Назначен водитель» — этап, который был раньше; остался в истории старых заказов
-  if (status === "ASSIGNED_TO_DRIVER") return "Назначен водитель";
-  return orderStatuses.find((item) => item.value === status)?.label ?? status;
-
+function progressPercent(stages: { value: string }[], status: string) {
+  const index = Math.max(0, stages.findIndex((item) => item.value === status));
+  return (index / (stages.length - 1)) * 100;
 }
 
 
@@ -142,6 +121,7 @@ const ADMIN_SECTIONS = [
   { key: "orders", label: "Заказы", icon: "📦" },
   { key: "products", label: "Товары", icon: "🪵" },
   { key: "categories", label: "Категории", icon: "🗂" },
+  { key: "activity", label: "Журнал", icon: "🕓" },
   { key: "admins", label: "Администраторы", icon: "👥" },
 ];
 
@@ -1261,7 +1241,7 @@ function Admin() {
 
                 <option value="ALL">Все заказы</option>
 
-                {orderStatuses.map((status) => (
+                {FILTER_STATUSES.map((status) => (
 
                   <option key={status.value} value={status.value}>
 
@@ -1319,9 +1299,12 @@ function Admin() {
 
                       <span className={`admin-status admin-status-${order.status.toLowerCase()}`}>
 
-                        {orderStatusLabel(order.status)}
+                        {orderStatusLabel(order.status, order.delivery_method)}
 
                       </span>
+                      {order.delivery_method === "PICKUP" && (
+                        <span className="admin-status admin-status-pickup">Самовывоз</span>
+                      )}
 
                       {order.status === "CANCELLED" ? (
                         <div className="admin-order-cancelled-track">
@@ -1331,16 +1314,18 @@ function Admin() {
                       ) : (
                         <div
                           className="admin-order-progress"
-                          aria-label={`Этап заказа: ${orderStatusLabel(order.status)}`}
-                          style={{ "--steps": PROGRESS_STEPS.length } as CSSProperties}
+                          aria-label={`Этап заказа: ${orderStatusLabel(order.status, order.delivery_method)}`}
+                          style={{ "--steps": orderStages(order.delivery_method).length } as CSSProperties}
                         >
                           <div className="admin-order-progress-line">
                             <span
                               className="admin-order-progress-line-fill"
-                              style={{ width: `${progressPercent(order.status)}%` }}
+                              style={{
+                                width: `${progressPercent(orderStages(order.delivery_method), order.status)}%`,
+                              }}
                             />
                           </div>
-                          {PROGRESS_STEPS.map((status, index, stages) => {
+                          {orderStages(order.delivery_method).map((status, index, stages) => {
                               const currentIndex = stages.findIndex((item) => item.value === order.status);
                               const state = index < currentIndex ? "done" : index === currentIndex ? "current" : "upcoming";
                               return (
@@ -1463,7 +1448,8 @@ function Admin() {
                               }}
                             >
                               {isCancel && <Icon name="close" />}
-                              {STATUS_ACTIONS[status] ?? orderStatusLabel(status)}
+                              {(order.delivery_method === "PICKUP" ? PICKUP_STATUS_ACTIONS : STATUS_ACTIONS)[status] ??
+                                orderStatusLabel(status, order.delivery_method)}
                               {!isCancel && <Icon name="arrow" />}
                             </button>
                           );
@@ -1487,9 +1473,13 @@ function Admin() {
 
                             <strong>
 
-                              {orderStatusLabel(history.status)}
+                              {orderStatusLabel(history.status, order.delivery_method)}
 
                             </strong>
+
+                            {history.changed_by && (
+                              <em className="admin-history-actor">{history.changed_by}</em>
+                            )}
 
                             <span>
 
@@ -2228,6 +2218,8 @@ function Admin() {
         </section>
         </>
         )}
+
+        {section === "activity" && <ActivitySection token={token} onError={setError} />}
 
         {section === "admins" && (
           <AdminsSection

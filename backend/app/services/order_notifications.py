@@ -11,13 +11,14 @@
 
 import html
 import logging
+from collections.abc import Callable
 
 from sqlalchemy.orm import Session, joinedload
 
 from .. import store_info
 from ..database import SessionLocal
 from ..models import Order, OrderItem, TelegramAccountLink, User
-from .order_service import ALLOWED_TRANSITIONS, get_status_value
+from .order_service import allowed_transitions, get_status_value
 from .telegram_service import send_telegram_message
 
 logger = logging.getLogger(__name__)
@@ -34,13 +35,26 @@ STATUS_NAMES = {
     "CANCELLED": "Отменён",
 }
 
+# Самовывоз: заказ не везут, а выдают на складе
+PICKUP_STATUS_NAMES = {
+    **STATUS_NAMES,
+    "READY_FOR_DELIVERY": "Готов к выдаче",
+    "DELIVERED": "Выдан",
+}
+
 ACTION_LABELS = {
     "CONFIRMED": "✅ Подтвердить заказ",
     "PREPARING": "🪚 Начать подготовку",
-    "READY_FOR_DELIVERY": "📦 Отметить готовым к выдаче",
+    "READY_FOR_DELIVERY": "📦 Заказ собран",
     "ON_THE_WAY": "🛻 Заказ в пути",
     "DELIVERED": "🎉 Отметить доставленным",
     "CANCELLED": "❌ Отменить заказ",
+}
+
+PICKUP_ACTION_LABELS = {
+    **ACTION_LABELS,
+    "READY_FOR_DELIVERY": "📦 Собран — ждёт покупателя",
+    "DELIVERED": "🤝 Выдан покупателю",
 }
 
 STATUS_ORDER = [
@@ -53,9 +67,10 @@ STATUS_ORDER = [
 ]
 
 
-def status_name(status) -> str:
+def status_name(status, delivery_method: str | None = None) -> str:
     value = get_status_value(status)
-    return STATUS_NAMES.get(value, value)
+    names = PICKUP_STATUS_NAMES if delivery_method == "PICKUP" else STATUS_NAMES
+    return names.get(value, value)
 
 
 def format_money(value: float) -> str:
@@ -66,13 +81,16 @@ def format_quantity(value: float) -> str:
     return f"{value:g}"
 
 
-def build_order_keyboard(order_id: int, status) -> dict | None:
+def build_order_keyboard(
+    order_id: int, status, delivery_method: str | None = None
+) -> dict | None:
     """Кнопки только для допустимых следующих статусов."""
-    next_statuses = ALLOWED_TRANSITIONS.get(get_status_value(status), set())
+    next_statuses = allowed_transitions(status, delivery_method)
+    labels = PICKUP_ACTION_LABELS if delivery_method == "PICKUP" else ACTION_LABELS
 
     rows = [
         [{
-            "text": ACTION_LABELS[next_status],
+            "text": labels[next_status],
             "callback_data": f"order:{order_id}:{next_status}",
         }]
         for next_status in STATUS_ORDER
@@ -123,7 +141,7 @@ def build_order_message(order: Order, title: str) -> str:
         "",
         f"💰 Итого: <b>{format_money(order.total_price)}</b>",
         delivery_line(order),
-        f"📌 Статус: <b>{status_name(order.status)}</b>",
+        f"📌 Статус: <b>{status_name(order.status, order.delivery_method)}</b>",
     ]
 
     return "\n".join(lines)
@@ -138,7 +156,7 @@ def build_customer_message(order: Order, title: str) -> str:
         "",
         f"💰 Сумма: <b>{format_money(order.total_price)}</b>",
         delivery_line(order),
-        f"📌 Статус: <b>{status_name(order.status)}</b>",
+        f"📌 Статус: <b>{status_name(order.status, order.delivery_method)}</b>",
     ]
 
     return "\n".join(lines)
@@ -176,8 +194,8 @@ def customer_link(db: Session, order: Order) -> TelegramAccountLink | None:
 
 def notify_order_event(
     order_id: int,
-    admin_title: str,
-    customer_title: str | None,
+    admin_title: str | Callable[[Order], str],
+    customer_title: str | Callable[[Order], str] | None,
     actor_user_id: int | None = None,
 ) -> None:
     """Рассылает уведомление о заказе. Ошибки Telegram заказ не ломают.
@@ -190,6 +208,12 @@ def notify_order_event(
         if order is None:
             return
 
+        # Заголовок может зависеть от заказа: «Выдан» у самовывоза, «Доставлен» у доставки
+        if callable(admin_title):
+            admin_title = admin_title(order)
+        if callable(customer_title):
+            customer_title = customer_title(order)
+
         if customer_title:
             link = customer_link(db, order)
             # Если покупатель сам админ, он и так получит сообщение как админ
@@ -200,7 +224,7 @@ def notify_order_event(
                 )
 
         admin_text = build_order_message(order, admin_title)
-        keyboard = build_order_keyboard(order.id, order.status)
+        keyboard = build_order_keyboard(order.id, order.status, order.delivery_method)
 
         for link in admin_links(db):
             if link.user_id == actor_user_id:
@@ -228,11 +252,13 @@ def notify_order_status_changed(
 ) -> None:
     notify_order_event(
         order_id,
-        admin_title=(
-            f"🔔 Заказ №{order_id}: {status_name(previous_status)} → "
-            f"{status_name(new_status)}"
+        admin_title=lambda order: (
+            f"🔔 Заказ №{order_id}: {status_name(previous_status, order.delivery_method)} → "
+            f"{status_name(new_status, order.delivery_method)}"
         ),
-        customer_title=f"🔔 Заказ №{order_id}: {status_name(new_status)}",
+        customer_title=lambda order: (
+            f"🔔 Заказ №{order_id}: {status_name(new_status, order.delivery_method)}"
+        ),
         actor_user_id=actor_user_id,
     )
 

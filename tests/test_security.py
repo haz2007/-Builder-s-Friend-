@@ -10,7 +10,7 @@ from app.rate_limit import RateLimiter, telegram_login_limiter
 def test_short_password_is_rejected_on_register(client):
     response = client.post(
         "/api/v1/auth/register",
-        json={"phone": "+79991110010", "password": "1234567"},
+        json={"phone": "+79991110010", "password": "1234567", "privacy_accepted": True},
     )
 
     assert response.status_code == 422
@@ -53,13 +53,13 @@ def test_registrations_are_limited(client):
     for index in range(5):
         response = client.post(
             "/api/v1/auth/register",
-            json={"phone": f"+7999111002{index}", "password": "12345678"},
+            json={"phone": f"+7999111002{index}", "password": "12345678", "privacy_accepted": True},
         )
         assert response.status_code == 200
 
     response = client.post(
         "/api/v1/auth/register",
-        json={"phone": "+79991110029", "password": "12345678"},
+        json={"phone": "+79991110029", "password": "12345678", "privacy_accepted": True},
     )
 
     assert response.status_code == 429

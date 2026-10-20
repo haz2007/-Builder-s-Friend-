@@ -27,12 +27,14 @@ def setup_shop():
     return result
 
 
-def order(client, headers, product_id, quantity):
+def order(client, headers, product_id, quantity, method="PICKUP"):
+    body = {"delivery_address": "Химки, ул. Строителей, 1"} if method == "DELIVERY" else {}
     return client.post(
         "/api/v1/orders/",
         json={
+            **body,
             "customer_name": "Покупатель",
-            "delivery_method": "PICKUP",
+            "delivery_method": method,
             "items": [{"product_id": product_id, "quantity": quantity}],
         },
         headers=headers,
@@ -49,7 +51,7 @@ def test_new_order_allows_only_confirm_or_cancel(client: TestClient):
 
 def test_on_the_way_allows_only_delivered(client: TestClient):
     admin, customer, product_id = setup_shop()
-    order_id = order(client, customer, product_id, 1)["id"]
+    order_id = order(client, customer, product_id, 1, method="DELIVERY")["id"]
 
     for status in ["CONFIRMED", "PREPARING", "READY_FOR_DELIVERY"]:
         client.patch(f"/api/v1/orders/{order_id}/status", json={"status": status}, headers=admin)

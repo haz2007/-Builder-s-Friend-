@@ -164,7 +164,7 @@ def test_admin_can_get_sales_statistics(client):
         "/api/v1/auth/register",
         json={
             "phone": "+79995550001",
-            "password": "password123"
+            "password": "password123", "privacy_accepted": True
         }
     )
 

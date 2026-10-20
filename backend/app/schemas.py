@@ -1,13 +1,22 @@
 
 from enum import Enum
-from datetime import datetime
+from datetime import datetime, timezone
 
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, PlainSerializer, computed_field, model_validator
 
 PICKUP_ADDRESS = "Самовывоз со склада"
 
+
+
+def as_utc(value: datetime) -> datetime:
+    """В базе время хранится в UTC без пометки — помечаем, чтобы браузер
+    показал его в часовом поясе покупателя, а не сдвинутым на 3 часа."""
+    return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
+
+
+UtcDatetime = Annotated[datetime, PlainSerializer(lambda value: as_utc(value).isoformat())]
 
 class CategoryBase(BaseModel):
     name: str = Field(min_length=1, max_length=100)
@@ -153,11 +162,26 @@ class OrderStatusUpdate(BaseModel):
     status: OrderStatus
 
 
+class NotificationResponse(BaseModel):
+    id: int
+    user_id: int
+    order_id: int | None = None
+    status: str | None = None
+    message: str
+    is_read: int
+    created_at: UtcDatetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class OrderStatusHistoryResponse(BaseModel):
     id: int
     order_id: int
     status: str
-    created_at: datetime
+    created_at: UtcDatetime
+    changed_by_id: int | None = None
+    # «Админ admin@…» / «Покупатель +7999…»; пусто у старых записей
+    changed_by: str | None = Field(default=None, validation_alias="changed_by_label")
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -179,11 +203,11 @@ class OrderResponse(BaseModel):
     @property
     def allowed_statuses(self) -> list[str]:
         """Куда можно перевести заказ: следующий этап и/или отмена."""
-        from .services.order_service import ALLOWED_TRANSITIONS
+        from .services.order_service import allowed_transitions
 
         order = ["CONFIRMED", "PREPARING", "READY_FOR_DELIVERY",
                  "ON_THE_WAY", "DELIVERED", "CANCELLED"]
-        allowed = ALLOWED_TRANSITIONS.get(self.status.upper(), set())
+        allowed = allowed_transitions(self.status, self.delivery_method)
         return [status for status in order if status in allowed]
 
 
@@ -194,6 +218,8 @@ PASSWORD_MIN_LENGTH = 8
 class UserRegister(BaseModel):
     phone: str = Field(min_length=10, max_length=30)
     password: str = Field(min_length=PASSWORD_MIN_LENGTH, max_length=128)
+    # Согласие с политикой конфиденциальности — без него регистрации нет (152-ФЗ)
+    privacy_accepted: Literal[True]
 
 
 class UserResponse(BaseModel):

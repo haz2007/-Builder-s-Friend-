@@ -21,6 +21,10 @@
 	handle {
 		root * /srv
 		try_files {path} /index.html
+
+		# В index.html подставляется адрес сайта для превью ссылки (og:image)
+		@page path / /index.html
+		templates @page
 		file_server
 
 		@assets path /assets/*

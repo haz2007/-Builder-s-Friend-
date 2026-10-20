@@ -82,6 +82,10 @@ docker compose -f docker-compose.prod.yml --env-file .env.production exec backen
 
 Сайт откроется на `https://ваш-домен`, админка — `/admin`.
 
+Перед запуском для покупателей впишите оператора персональных данных
+(«ИП Фамилия Имя Отчество, ИНН …») в `LEGAL_OPERATOR` в `frontend/src/shop/contacts.ts` —
+он показывается в политике конфиденциальности (`/privacy`).
+
 ## 4. Обновление после изменений в коде
 
 ```bash
