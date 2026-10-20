@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/haz2007/wood-commerce/actions/workflows/ci.yml"><img src="https://github.com/haz2007/wood-commerce/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="https://github.com/haz2007/-Builder-s-Friend-/actions/workflows/ci.yml"><img src="https://github.com/haz2007/-Builder-s-Friend-/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <img src="https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white" alt="Python 3.13" />
   <img src="https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white" alt="FastAPI" />
   <img src="https://img.shields.io/badge/PostgreSQL-15-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL" />

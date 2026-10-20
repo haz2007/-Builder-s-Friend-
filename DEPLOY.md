@@ -41,8 +41,8 @@ A-запись `@` (и при желании `www`) на IP сервера.
 ## 2. Подготовка сервера
 
 ```bash
-git clone https://github.com/haz2007/wood-commerce.git
-cd wood-commerce
+git clone https://github.com/haz2007/-Builder-s-Friend-.git builders-friend
+cd builders-friend
 sudo bash scripts/setup-server.sh
 ```
 
@@ -101,7 +101,7 @@ ls backups/                           # db_<дата>.dump и uploads_<дата>
 Хранятся последние 14 дней (`BACKUP_KEEP_DAYS`). Копируйте бэкапы и к себе — сервер
 может сломаться вместе с ними:
 ```bash
-scp -r root@IP-сервера:~/wood-commerce/backups ./wood-backups
+scp -r root@IP-сервера:~/builders-friend/backups ./builders-friend-backups
 ```
 
 Восстановление (перед заменой скрипт сам сделает свежий бэкап текущей базы):
