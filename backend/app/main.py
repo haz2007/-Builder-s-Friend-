@@ -14,10 +14,26 @@ from .routers.notifications import router as notifications_router
 from .routers.admins import router as admins_router
 
 
+OPENAPI_TAGS = [
+    {"name": "Authentication", "description": "Регистрация по телефону и вход (JWT, 7 дней)"},
+    {"name": "Products", "description": "Каталог, варианты продажи (штука, куб, пачка), размеры досок, фото"},
+    {"name": "Categories", "description": "Разделы и подкатегории (два уровня)"},
+    {"name": "orders", "description": "Заказы: оформление, отмена, смена статуса, история"},
+    {"name": "Notifications", "description": "Уведомления покупателя в личном кабинете"},
+    {"name": "Admin", "description": "Аналитика и сводка для администраторов"},
+    {"name": "Admins", "description": "Управление администраторами (только владелец)"},
+    {"name": "Users", "description": "Пользователи и роли"},
+    {"name": "Deliveries", "description": "Доставки и водители"},
+]
+
 app = FastAPI(
-    title="Wood Commerce API",
-    description="API for construction materials and lumber commerce platform",
+    title="Друг Строителя API",
+    description=(
+        "API интернет-магазина пиломатериалов и крепежа. "
+        "Бизнес-правила — docs/business-rules.md, диаграммы — docs/diagrams.md."
+    ),
     version="1.0.0",
+    openapi_tags=OPENAPI_TAGS,
 )
 
 # Создаём папку для фотографий товаров

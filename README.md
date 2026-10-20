@@ -38,7 +38,34 @@
 | Backend | Python 3.13, FastAPI, SQLAlchemy 2, Alembic, PostgreSQL, JWT |
 | Frontend | React 19, TypeScript, Vite, React Router |
 | Бот | Telegram Bot API (long polling) |
-| Тесты | pytest — 125 тестов API и бизнес-логики |
+| Тесты | pytest — 127 тестов API, бизнес-логики и параллельных заказов |
+
+## Документация
+
+| Документ | Что внутри |
+|---|---|
+| [Бизнес-правила](docs/business-rules.md) | 30 пронумерованных правил: склад и кубы, заказы и статусы, уведомления, роли |
+| [Диаграммы](docs/diagrams.md) | архитектура, ER-модель, жизненный цикл заказа, последовательности, расчёт склада (Mermaid) |
+| [Крайние случаи](docs/edge-cases.md) | параллельные заказы, округления, сбои Telegram, известные ограничения |
+| [OpenAPI](docs/api/openapi.json) | спецификация API; Swagger UI — `/docs` на запущенном backend |
+
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> NEW
+    NEW --> CONFIRMED
+    CONFIRMED --> PREPARING
+    PREPARING --> READY_FOR_DELIVERY
+    READY_FOR_DELIVERY --> ASSIGNED_TO_DRIVER
+    ASSIGNED_TO_DRIVER --> ON_THE_WAY
+    ON_THE_WAY --> DELIVERED
+    NEW --> CANCELLED
+    ASSIGNED_TO_DRIVER --> CANCELLED
+    DELIVERED --> [*]
+    CANCELLED --> [*]
+```
+
+<sub>Жизненный цикл заказа (упрощённо; отмена возможна со всех этапов до «В пути» — см. диаграммы).</sub>
 
 ## Структура
 
@@ -59,6 +86,7 @@ frontend/src/
   shop/             # общий контекст магазина, контакты, форматирование
   Admin.tsx         # админ-панель
 tests/              # pytest
+docs/               # бизнес-правила, диаграммы, крайние случаи, OpenAPI
 ```
 
 ## Запуск локально

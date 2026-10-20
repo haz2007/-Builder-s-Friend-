@@ -54,6 +54,20 @@ def create_order(
     try:
         variants = {}
 
+        # Блокируем все товары заказа одним запросом в порядке id:
+        # при одинаковом порядке параллельные заказы не ловят deadlock
+        product_ids = sorted({item.product_id for item in order_data.items})
+        locked_products = {
+            product.id: product
+            for product in (
+                db.query(Product)
+                .filter(Product.id.in_(product_ids), Product.is_active == 1)
+                .order_by(Product.id)
+                .with_for_update()
+                .all()
+            )
+        }
+
         # Validate products/variants and combine duplicate variants.
         for item in order_data.items:
             if item.quantity <= 0:
@@ -62,15 +76,7 @@ def create_order(
                     detail="Quantity must be greater than 0",
                 )
 
-            product = (
-                db.query(Product)
-                .filter(
-                    Product.id == item.product_id,
-                    Product.is_active == 1,
-                )
-                .with_for_update()
-                .first()
-            )
+            product = locked_products.get(item.product_id)
 
             if product is None:
                 raise HTTPException(

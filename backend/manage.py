@@ -8,6 +8,9 @@
 существующая — alembic upgrade head):
     .venv/bin/python manage.py migrate
 
+Выгрузить спецификацию API в docs/api/openapi.json:
+    .venv/bin/python manage.py export-openapi
+
 Назначить владельца магазина (он сможет добавлять других админов):
     .venv/bin/python manage.py set-owner owner@example.com
     .venv/bin/python manage.py set-owner +79991234567
@@ -41,6 +44,23 @@ def migrate() -> None:
     print("Готово: миграции применены")
 
 
+OPENAPI_PATH = Path(__file__).resolve().parent.parent / "docs" / "api" / "openapi.json"
+
+
+def openapi_json() -> str:
+    import json
+
+    from app.main import app
+
+    return json.dumps(app.openapi(), ensure_ascii=False, indent=2) + "\n"
+
+
+def export_openapi() -> None:
+    OPENAPI_PATH.parent.mkdir(parents=True, exist_ok=True)
+    OPENAPI_PATH.write_text(openapi_json(), encoding="utf-8")
+    print(f"Готово: {OPENAPI_PATH}")
+
+
 def set_owner(login: str) -> None:
     db = SessionLocal()
     try:
@@ -61,6 +81,8 @@ if __name__ == "__main__":
         init_db()
     elif sys.argv[1:] == ["migrate"]:
         migrate()
+    elif sys.argv[1:] == ["export-openapi"]:
+        export_openapi()
     elif len(sys.argv) == 3 and sys.argv[1] == "set-owner":
         set_owner(sys.argv[2])
     else:
