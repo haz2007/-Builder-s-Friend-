@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
 import { NavLink, useNavigate, useParams } from "react-router-dom";
 
 import {
@@ -117,6 +117,15 @@ const STATUS_ACTIONS: Record<string, string> = {
   DELIVERED: "Доставлен / выдан",
   CANCELLED: "Отменить заказ",
 };
+
+// Этапы на шкале заказа (без «Отменён» — у отменённых своя плашка)
+const PROGRESS_STEPS = orderStatuses.filter((item) => item.value !== "CANCELLED");
+
+/** Заливка шкалы ровно до центра точки текущего этапа. */
+function progressPercent(status: string) {
+  const index = Math.max(0, PROGRESS_STEPS.findIndex((item) => item.value === status));
+  return (index / (PROGRESS_STEPS.length - 1)) * 100;
+}
 
 function orderStatusLabel(status: string) {
 
@@ -1313,18 +1322,18 @@ function Admin() {
                           <span>Заказ отменён</span>
                         </div>
                       ) : (
-                        <div className="admin-order-progress" aria-label={`Этап заказа: ${orderStatusLabel(order.status)}`}>
+                        <div
+                          className="admin-order-progress"
+                          aria-label={`Этап заказа: ${orderStatusLabel(order.status)}`}
+                          style={{ "--steps": PROGRESS_STEPS.length } as CSSProperties}
+                        >
                           <div className="admin-order-progress-line">
                             <span
                               className="admin-order-progress-line-fill"
-                              style={{
-                                width: `${(Math.max(0, orderStatuses.filter((item) => item.value !== "CANCELLED").findIndex((item) => item.value === order.status)) / (orderStatuses.filter((item) => item.value !== "CANCELLED").length - 1)) * 100}%`,
-                              }}
+                              style={{ width: `${progressPercent(order.status)}%` }}
                             />
                           </div>
-                          {orderStatuses
-                            .filter((item) => item.value !== "CANCELLED")
-                            .map((status, index, stages) => {
+                          {PROGRESS_STEPS.map((status, index, stages) => {
                               const currentIndex = stages.findIndex((item) => item.value === order.status);
                               const state = index < currentIndex ? "done" : index === currentIndex ? "current" : "upcoming";
                               return (

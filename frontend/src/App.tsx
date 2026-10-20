@@ -154,18 +154,27 @@ function mapProducts(
 
 /** При переходе между страницами — наверх; ссылки вида /#delivery — к блоку. */
 function ScrollManager() {
-  const { pathname, hash } = useLocation();
+  const { pathname, hash, key } = useLocation();
+  // Повторный клик по той же ссылке /#delivery — тоже прокрутка к блоку
+  const hashVisit = hash ? key : "";
+
+  useEffect(() => {
+    // Обновление страницы открывает её сверху, а не там, где её листали
+    window.history.scrollRestoration = "manual";
+  }, []);
 
   useEffect(() => {
     if (hash) {
       // Ждём, пока страница отрисует нужный блок
       const timer = window.setTimeout(() => {
         document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: "smooth" });
+        // Убираем #блок из адреса, чтобы при следующем заходе сайт не листался вниз
+        window.history.replaceState(window.history.state, "", pathname + window.location.search);
       }, 50);
       return () => window.clearTimeout(timer);
     }
     window.scrollTo({ top: 0 });
-  }, [pathname, hash]);
+  }, [pathname, hash, hashVisit]);
 
   return null;
 }
