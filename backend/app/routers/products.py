@@ -1,5 +1,5 @@
-
 import io
+import re
 import uuid
 from pathlib import Path
 
@@ -122,6 +122,18 @@ def get_variant_or_404(
     return variant
 
 
+def search_words(search: str) -> list[str]:
+    """«доски 50х150» → ["доск", "50", "150"]: слова без окончаний, размеры по числам."""
+    text = search.lower().replace("ё", "е")
+    text = re.sub(r"(\d)\s*[xх×*]\s*(?=\d)", r"\1 ", text)
+    words = re.findall(r"[a-zа-я]+|\d+(?:[.,]\d+)?", text)
+    # Окончание отбрасываем, чтобы «доски» нашли «Доска»
+    return [
+        word[:-1] if len(word) > 4 and word[-1] in "аяыиуюеоь" else word
+        for word in words
+    ]
+
+
 @router.get("/", response_model=list[ProductResponse])
 def get_products(
     search: str | None = Query(default=None, min_length=1, max_length=200),
@@ -136,11 +148,13 @@ def get_products(
     query = db.query(Product)
 
     if search is not None:
-        pattern = f"%{search}%"
-        query = query.filter(
-            Product.name.ilike(pattern)
-            | Product.description.ilike(pattern)
-        )
+        # Каждое слово запроса — в названии или описании, в любом порядке
+        for word in search_words(search):
+            pattern = f"%{word}%"
+            query = query.filter(
+                Product.name.ilike(pattern)
+                | Product.description.ilike(pattern)
+            )
 
     if category_id is not None:
         # Категория вместе с подкатегориями: «Пиломатериалы» = доска + брус + …

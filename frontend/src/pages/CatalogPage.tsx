@@ -19,6 +19,7 @@ import {
 import { pluralize } from "../shop/format";
 import { useShop } from "../shop/ShopContext";
 import type { Product } from "../shop/types";
+import { matchScore, searchTokens } from "../shop/search";
 
 const PAGE_SIZE = 12;
 const CUBIC_UNITS = ["м3", "м³", "куб"];
@@ -94,10 +95,22 @@ export default function CatalogPage() {
   };
   const hasCubeProducts = inCategory.some(sellsByCube);
 
-  const query = search.trim().toLowerCase();
+  const tokens = searchTokens(search);
+  const scores = new Map(
+    inCategory.map((product) => [
+      product.id,
+      matchScore(tokens, {
+        title: product.name,
+        extra: [
+          product.description,
+          ...product.categoryNames,
+          ...product.variants.map((variant) => variant.name),
+        ],
+      }),
+    ]),
+  );
   let filtered = inCategory.filter((product) => {
-    const text = `${product.name} ${product.description} ${product.categoryNames.join(" ")}`;
-    if (query && !text.toLowerCase().includes(query)) return false;
+    if (!scores.get(product.id)) return false;
     if (minPrice && product.price < minPrice) return false;
     if (maxPrice && product.price > maxPrice) return false;
     if (onlyInStock && product.stockQuantity <= 0) return false;
@@ -108,6 +121,10 @@ export default function CatalogPage() {
     return true;
   });
 
+  // По запросу сначала то, что совпало в названии
+  if (tokens.length > 0 && sort === "popular") {
+    filtered = [...filtered].sort((a, b) => (scores.get(b.id) ?? 0) - (scores.get(a.id) ?? 0));
+  }
   if (sort === "cheap") filtered = [...filtered].sort((a, b) => a.price - b.price);
   if (sort === "expensive") filtered = [...filtered].sort((a, b) => b.price - a.price);
   if (sort === "name") {

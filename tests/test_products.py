@@ -399,3 +399,25 @@ def test_admin_can_restore_product(client, reset_database):
     assert response.json()["name"] == "Доска"
 
     db.close()
+
+
+
+def test_search_by_keywords_in_any_order(client, reset_database):
+    from app.database import SessionLocal
+
+    db = SessionLocal()
+    category = create_category(db)
+    for name in ["Доска обрезная 50×150×6000", "Брус 100×100×6000"]:
+        db.add(Product(name=name, price=100, stock_quantity=10, unit="шт",
+                       category_id=category.id, is_active=1))
+    db.commit()
+    db.close()
+
+    def names(search):
+        response = client.get("/api/v1/products/", params={"search": search})
+        return [product["name"] for product in response.json()]
+
+    assert names("обрезная доска") == ["Доска обрезная 50×150×6000"]
+    assert names("доски 50х150") == ["Доска обрезная 50×150×6000"]
+    assert names("брус 100x100") == ["Брус 100×100×6000"]
+    assert names("доска кирпич") == []

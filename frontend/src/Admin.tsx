@@ -46,6 +46,7 @@ import "./Admin.css";
 import { CategoryRevenue, PipelinePanel, RevenueChart } from "./AdminCharts";
 import AdminsSection from "./AdminsSection";
 import { Icon } from "./AdminIcons";
+import { matchScore, searchTokens } from "./shop/search";
 import { LogoMark } from "./components/Logo";
 import ProductVariantsEditor from "./ProductVariantsEditor";
 import { showFallbackImage } from "./shop/images";
@@ -988,9 +989,15 @@ function Admin() {
   );
 
   const visibleProducts = products.filter((product) => {
-    const matchesSearch = `${product.name} ${product.description ?? ""}`
-      .toLowerCase()
-      .includes(search.toLowerCase().trim());
+    const matchesSearch =
+      matchScore(searchTokens(search), {
+        title: product.name,
+        extra: [
+          product.description ?? "",
+          categories.find((category) => category.id === product.category_id)?.name ?? "",
+          ...product.variants.map((variant) => variant.name),
+        ],
+      }) > 0;
     const matchesCategory =
       productCategoryFilter === "ALL" ||
       String(product.category_id) === productCategoryFilter;
@@ -1987,7 +1994,7 @@ function Admin() {
             <div className="admin-row-actions admin-product-filters">
               <input
                 className="admin-search"
-                placeholder="Поиск по названию..."
+                placeholder="Поиск: доска 50х150, саморезы…"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 aria-label="Поиск товаров по названию и описанию"
