@@ -1,12 +1,11 @@
 """Самовывоз («Готов к выдаче» → «Выдан»), журнал действий и согласие с политикой."""
 
 from fastapi.testclient import TestClient
+from test_admin_analytics_v2 import order, setup_shop
 
 from app.database import SessionLocal
 from app.models import User
 from app.services.order_notifications import build_order_keyboard, status_name
-
-from test_admin_analytics_v2 import order, setup_shop
 
 
 def set_status(client, admin, order_id, status):

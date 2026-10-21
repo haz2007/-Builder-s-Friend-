@@ -25,7 +25,7 @@ def _plain(value):
     """NUMERIC → float, даты → ISO-строки: результат сразу готов для JSON."""
     if isinstance(value, Decimal):
         return float(value)
-    if isinstance(value, (date, datetime)):
+    if isinstance(value, date | datetime):
         return value.isoformat()
     return value
 

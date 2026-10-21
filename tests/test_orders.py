@@ -1,9 +1,9 @@
 
 import hashlib
 
-from app.models import Category, Product, User
 from app.auth import hash_password
 from app.database import SessionLocal
+from app.models import Category, Product, User
 
 
 def create_customer(
@@ -350,12 +350,12 @@ def test_customer_cannot_get_another_customer_order(
 ):
     db = SessionLocal()
 
-    first_customer = create_customer(
+    create_customer(
         db,
         "customer1@woodcommerce.local"
     )
 
-    second_customer = create_customer(
+    create_customer(
         db,
         "customer2@woodcommerce.local"
     )

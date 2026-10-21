@@ -128,7 +128,10 @@ def delete_category(
     if products_count:
         raise HTTPException(
             status_code=409,
-            detail=f"Нельзя удалить категорию: в ней осталось товаров: {products_count}. Сначала переместите товары в другую категорию.",
+            detail=(
+                f"Нельзя удалить категорию: в ней осталось товаров: {products_count}. "
+                "Сначала переместите товары в другую категорию."
+            ),
         )
 
     db.delete(category)

@@ -2,7 +2,7 @@ from fastapi.testclient import TestClient
 
 from app.auth import create_access_token, hash_password
 from app.database import SessionLocal
-from app.models import Category, Order, Product, User
+from app.models import Order, User
 
 
 def create_admin():

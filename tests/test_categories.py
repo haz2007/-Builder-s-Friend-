@@ -1,5 +1,5 @@
-from app.models import Category, User
 from app.auth import hash_password
+from app.models import Category, User
 
 
 def create_admin(db):

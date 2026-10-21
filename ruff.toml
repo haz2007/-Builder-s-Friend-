@@ -1,0 +1,13 @@
+# Линтер Python: ruff check .   (CI запускает его на каждый push)
+target-version = "py313"
+line-length = 120
+extend-exclude = ["frontend", "backend/alembic/versions"]
+
+[lint]
+# pyflakes, pycodestyle, isort, bugbear, pyupgrade
+select = ["E", "F", "W", "I", "B", "UP"]
+# Depends() и Query() в значениях по умолчанию — штатный способ FastAPI
+ignore = ["B008"]
+
+[lint.isort]
+known-first-party = ["app", "bot"]

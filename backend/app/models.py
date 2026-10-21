@@ -1,25 +1,23 @@
-
 import math
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import (
-    Column,
-    Index,
-    Numeric,
-    Integer,
-    String,
-    Float,
-    ForeignKey,
-    DateTime,
     BigInteger,
     CheckConstraint,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    String,
     Table,
+    event,
 )
-from sqlalchemy import event
-from sqlalchemy.orm import Session, relationship
+from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
 from .database import Base
-
 
 # Допустимые значения — их же проверяет база (CHECK), чтобы ошибка в коде
 # не записала неизвестный статус или роль
@@ -83,21 +81,23 @@ class User(Base):
     __tablename__ = "users"
     __table_args__ = (
         CheckConstraint(one_of("role", USER_ROLES), name="ck_users_role"),
+        # Один телефон — один аккаунт (вход и регистрация по телефону)
+        Index("ix_users_phone_unique", "phone", unique=True),
     )
 
-    id = Column(Integer, primary_key=True)
-    email = Column(String(255), nullable=True, unique=True)
-    phone = Column(String(30), nullable=True, unique=True)
-    password_hash = Column(String(255), nullable=False)
-    role = Column(String(20), nullable=False, default="CUSTOMER")
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str | None] = mapped_column(String(255), unique=True)
+    phone: Mapped[str | None] = mapped_column(String(30))
+    password_hash: Mapped[str] = mapped_column(String(255))
+    role: Mapped[str] = mapped_column(String(20), default="CUSTOMER")
     # Владелец магазина: администратор, который управляет другими админами
-    is_owner = Column(Integer, nullable=False, default=0, server_default="0")
+    is_owner: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     # Когда покупатель согласился с политикой конфиденциальности (152-ФЗ).
     # Пусто — у аккаунтов, созданных до появления согласия, и у админов
-    privacy_accepted_at = Column(DateTime, nullable=True)
+    privacy_accepted_at: Mapped[datetime | None] = mapped_column(DateTime)
 
-    orders = relationship("Order", back_populates="user")
-    notifications = relationship(
+    orders: Mapped[list["Order"]] = relationship(back_populates="user")
+    notifications: Mapped[list["Notification"]] = relationship(
         "Notification",
         back_populates="user",
         cascade="all, delete-orphan",
@@ -128,23 +128,22 @@ product_categories = Table(
 class Category(Base):
     __tablename__ = "categories"
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String(100), nullable=False, unique=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), unique=True)
     # Подкатегория указывает на родителя: «Доска» → «Пиломатериалы»
-    parent_id = Column(
+    parent_id: Mapped[int | None] = mapped_column(
         Integer,
         ForeignKey(
             "categories.id",
             ondelete="SET NULL",
             name="fk_categories_parent_id_categories",
         ),
-        nullable=True,
         index=True,
     )
 
-    products = relationship("Product", back_populates="category")
-    parent = relationship("Category", remote_side=[id], back_populates="children")
-    children = relationship("Category", back_populates="parent", order_by="Category.name")
+    products: Mapped[list["Product"]] = relationship(back_populates="category")
+    parent: Mapped["Category | None"] = relationship(remote_side=[id], back_populates="children")
+    children: Mapped[list["Category"]] = relationship(back_populates="parent", order_by="Category.name")
 
 
 class Product(Base):
@@ -154,41 +153,35 @@ class Product(Base):
         CheckConstraint("price >= 0", name="ck_products_price_not_negative"),
     )
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String(200), nullable=False)
-    description = Column(String(1000))
-    price = Column(Money, nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(200))
+    description: Mapped[str | None] = mapped_column(String(1000))
+    price: Mapped[float] = mapped_column(Money)
     # Общий остаток товара в базовой единице unit (для досок — в штуках)
-    stock_quantity = Column(Quantity, nullable=False, default=0)
-    unit = Column(String(20), nullable=False)
+    stock_quantity: Mapped[float] = mapped_column(Quantity, default=0)
+    unit: Mapped[str] = mapped_column(String(20))
 
     # Размеры доски в мм; если заданы, остаток ведётся в штуках
-    thickness_mm = Column(Float, nullable=True)
-    width_mm = Column(Float, nullable=True)
-    length_mm = Column(Float, nullable=True)
+    thickness_mm: Mapped[float | None] = mapped_column(Float)
+    width_mm: Mapped[float | None] = mapped_column(Float)
+    length_mm: Mapped[float | None] = mapped_column(Float)
 
-    category_id = Column(
-        Integer,
-        ForeignKey("categories.id"),
-        nullable=False,
-        index=True,
-    )
+    category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"), index=True)
 
-    is_active = Column(Integer, nullable=False, default=1)
-    image_url = Column(String(500), nullable=True)
+    is_active: Mapped[int] = mapped_column(Integer, default=1)
+    image_url: Mapped[str | None] = mapped_column(String(500))
 
-    category = relationship("Category", back_populates="products")
-    categories = relationship("Category", secondary=product_categories)
-    order_items = relationship("OrderItem", back_populates="product")
-    variants = relationship(
-        "ProductVariant",
+    category: Mapped["Category"] = relationship(back_populates="products")
+    categories: Mapped[list["Category"]] = relationship(secondary=product_categories)
+    order_items: Mapped[list["OrderItem"]] = relationship(back_populates="product")
+    variants: Mapped[list["ProductVariant"]] = relationship(
         back_populates="product",
         cascade="all, delete-orphan",
         order_by="ProductVariant.id",
     )
 
     @property
-    def category_ids(self):
+    def category_ids(self) -> list[int]:
         # Основная категория входит всегда, даже если связь не записана
         ids = {category.id for category in self.categories}
         if self.category_id:
@@ -218,25 +211,15 @@ class ProductVariant(Base):
         CheckConstraint("base_quantity > 0", name="ck_product_variants_base_quantity_positive"),
     )
 
-    id = Column(Integer, primary_key=True)
-    product_id = Column(
-        Integer,
-        ForeignKey("products.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-    name = Column(String(100), nullable=False)
-    unit = Column(String(20), nullable=False)
-    price = Column(Money, nullable=False)
-    base_quantity = Column(
-        Quantity,
-        nullable=False,
-        default=1,
-        server_default="1",
-    )
-    is_active = Column(Integer, nullable=False, default=1, server_default="1")
+    id: Mapped[int] = mapped_column(primary_key=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey("products.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(100))
+    unit: Mapped[str] = mapped_column(String(20))
+    price: Mapped[float] = mapped_column(Money)
+    base_quantity: Mapped[float] = mapped_column(Quantity, default=1, server_default="1")
+    is_active: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
 
-    product = relationship("Product", back_populates="variants")
+    product: Mapped["Product"] = relationship(back_populates="variants")
 
     @property
     def stock_quantity(self) -> float:
@@ -262,54 +245,31 @@ class Order(Base):
         Index("ix_orders_status_created_at", "status", "created_at"),
     )
 
-    id = Column(Integer, primary_key=True)
-    status = Column(String(50), nullable=False, default="NEW")
-    total_price = Column(Money, nullable=False, default=0)
-    delivery_address = Column(String(500), nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    status: Mapped[str] = mapped_column(String(50), default="NEW")
+    total_price: Mapped[float] = mapped_column(Money, default=0)
+    delivery_address: Mapped[str] = mapped_column(String(500))
     # DELIVERY — привозит магазин, PICKUP — самовывоз со склада
-    delivery_method = Column(
-        String(20),
-        nullable=False,
-        default="DELIVERY",
-        server_default="DELIVERY",
-    )
-    customer_name = Column(
-        String(100),
-        nullable=False,
-        default="Покупатель",
-    )
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    delivery_method: Mapped[str] = mapped_column(String(20), default="DELIVERY", server_default="DELIVERY")
+    customer_name: Mapped[str] = mapped_column(String(255), default="Покупатель")
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     # Когда оформлен заказ — для отчётов и сортировки (раньше брали из истории статусов)
-    created_at = Column(
-        DateTime,
-        nullable=False,
-        default=lambda: datetime.now(timezone.utc),
-        index=True,
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), index=True)
 
-    user = relationship("User", back_populates="orders")
-
-    items = relationship(
-        "OrderItem",
-        back_populates="order",
-        cascade="all, delete-orphan",
-    )
-
-    status_history = relationship(
-        "OrderStatusHistory",
+    user: Mapped["User"] = relationship(back_populates="orders")
+    items: Mapped[list["OrderItem"]] = relationship(back_populates="order", cascade="all, delete-orphan")
+    status_history: Mapped[list["OrderStatusHistory"]] = relationship(
         back_populates="order",
         cascade="all, delete-orphan",
         order_by="OrderStatusHistory.id",
     )
-
-    notifications = relationship(
-        "Notification",
+    notifications: Mapped[list["Notification"]] = relationship(
         back_populates="order",
         cascade="all, delete-orphan",
     )
 
     @property
-    def customer_phone(self):
+    def customer_phone(self) -> str | None:
         return self.user.phone if self.user else None
 
 
@@ -337,78 +297,44 @@ class OrderItem(Base):
         CheckConstraint("base_quantity > 0", name="ck_order_items_base_quantity_positive"),
     )
 
-    id = Column(Integer, primary_key=True)
-    order_id = Column(
-        Integer,
-        ForeignKey("orders.id"),
-        nullable=False,
-        index=True,
+    id: Mapped[int] = mapped_column(primary_key=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id"), index=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey("products.id"), index=True)
+    variant_id: Mapped[int] = mapped_column(
+        ForeignKey("product_variants.id", name="fk_order_items_variant_id_product_variants"),
     )
-    product_id = Column(
-        Integer,
-        ForeignKey("products.id"),
-        nullable=False,
-        index=True,
-    )
-    variant_id = Column(
-        Integer,
-        ForeignKey(
-            "product_variants.id",
-            name="fk_order_items_variant_id_product_variants",
-        ),
-        nullable=False,
-    )
-    quantity = Column(Quantity, nullable=False)
-    price = Column(Money, nullable=False)
-    unit = Column(String(20), nullable=False)
+    quantity: Mapped[float] = mapped_column(Quantity)
+    price: Mapped[float] = mapped_column(Money)
+    unit: Mapped[str] = mapped_column(String(20))
     # Сколько базовых единиц списано за 1 единицу (снимок на момент заказа)
-    base_quantity = Column(
-        Quantity,
-        nullable=False,
-        default=1,
-        server_default="1",
-    )
+    base_quantity: Mapped[float] = mapped_column(Quantity, default=1, server_default="1")
 
-    order = relationship("Order", back_populates="items")
-    product = relationship("Product", back_populates="order_items")
-    variant = relationship("ProductVariant")
+    order: Mapped["Order"] = relationship(back_populates="items")
+    product: Mapped["Product"] = relationship(back_populates="order_items")
+    variant: Mapped["ProductVariant"] = relationship()
 
     @property
-    def product_name(self):
+    def product_name(self) -> str | None:
         return self.product.name if self.product else None
 
     @property
-    def variant_name(self):
+    def variant_name(self) -> str | None:
         return self.variant.name if self.variant else None
 
 
 class OrderStatusHistory(Base):
     __tablename__ = "order_status_history"
 
-    id = Column(Integer, primary_key=True)
-    order_id = Column(
-        Integer,
-        ForeignKey("orders.id"),
-        nullable=False,
-        index=True,
-    )
-    status = Column(String(50), nullable=False)
-    created_at = Column(
-        DateTime,
-        nullable=False,
-        default=lambda: datetime.now(timezone.utc),
-    )
+    id: Mapped[int] = mapped_column(primary_key=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id"), index=True)
+    status: Mapped[str] = mapped_column(String(50))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
     # Кто сменил статус: покупатель (оформил, отменил) или администратор.
     # Пусто — у записей, сделанных до появления журнала
-    changed_by_id = Column(
-        Integer,
-        ForeignKey("users.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True,
-    )
+    changed_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), index=True)
 
-    order = relationship("Order", back_populates="status_history")
-    changed_by = relationship("User")
+    order: Mapped["Order"] = relationship(back_populates="status_history")
+    changed_by: Mapped["User | None"] = relationship()
 
     @property
     def changed_by_label(self) -> str | None:
@@ -425,57 +351,25 @@ class Notification(Base):
     # Колокольчик: непрочитанные уведомления покупателя
     __table_args__ = (Index("ix_notifications_user_id_is_read", "user_id", "is_read"),)
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(
-        Integer,
-        ForeignKey("users.id"),
-        nullable=False,
-    )
-    order_id = Column(
-        Integer,
-        ForeignKey("orders.id"),
-        nullable=False,
-    )
-    status = Column(String(50), nullable=False)
-    message = Column(String(500), nullable=False)
-    is_read = Column(Integer, nullable=False, default=0)
-    created_at = Column(
-        DateTime,
-        nullable=False,
-        default=lambda: datetime.now(timezone.utc),
-    )
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id"))
+    status: Mapped[str] = mapped_column(String(50))
+    message: Mapped[str] = mapped_column(String(500))
+    is_read: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
 
-    user = relationship("User", back_populates="notifications")
-    order = relationship("Order", back_populates="notifications")
+    user: Mapped["User"] = relationship(back_populates="notifications")
+    order: Mapped["Order"] = relationship(back_populates="notifications")
 
 
 class TelegramAccountLink(Base):
     __tablename__ = "telegram_account_links"
 
-    id = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True)
+    telegram_user_id: Mapped[int] = mapped_column(BigInteger, unique=True)
+    telegram_chat_id: Mapped[int] = mapped_column(BigInteger)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
-    user_id = Column(
-        Integer,
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
-        unique=True,
-    )
-
-    telegram_user_id = Column(
-        BigInteger,
-        nullable=False,
-        unique=True,
-    )
-
-    telegram_chat_id = Column(
-        BigInteger,
-        nullable=False,
-    )
-
-    created_at = Column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=lambda: datetime.now(timezone.utc),
-    )
-
-    user = relationship("User")
+    user: Mapped["User"] = relationship()

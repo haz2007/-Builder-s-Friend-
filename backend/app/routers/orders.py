@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
@@ -8,6 +10,7 @@ from ..models import (
     OrderItem,
     OrderStatusHistory,
     Product,
+    ProductVariant,
     User,
 )
 from ..rate_limit import order_limiter
@@ -32,12 +35,25 @@ from ..services.variant_service import (
     restore_order_stock,
 )
 
-
 router = APIRouter(
     prefix="/api/v1/orders",
     tags=["orders"],
 )
 
+
+
+@dataclass
+class OrderLine:
+    """Позиция будущего заказа: строки с одним вариантом складываются."""
+
+    product: Product
+    variant: ProductVariant
+    quantity: float = 0
+
+    @property
+    def base_quantity_needed(self) -> float:
+        """Сколько базовых единиц списать со склада: 2 м³ × 27 шт = 54 шт."""
+        return self.quantity * self.variant.base_quantity
 
 @router.post(
     "/",
@@ -57,7 +73,7 @@ def create_order(
         )
 
     try:
-        variants = {}
+        variants: dict[int, OrderLine] = {}
 
         # Блокируем все товары заказа одним запросом в порядке id:
         # при одинаковом порядке параллельные заказы не ловят deadlock
@@ -118,32 +134,21 @@ def create_order(
                     ),
                 )
 
-            if variant.id not in variants:
-                variants[variant.id] = {
-                    "product": product,
-                    "variant": variant,
-                    "quantity": 0,
-                }
-
-            variants[variant.id]["quantity"] += item.quantity
+            line = variants.setdefault(variant.id, OrderLine(product, variant))
+            line.quantity += item.quantity
 
         # Склад общий для всех вариантов товара: 4 м³ по 27 шт = 108 шт.
-        needed_by_product = {}
-        for data in variants.values():
-            product = data["product"]
-            needed = data["quantity"] * data["variant"].base_quantity
-            needed_by_product[product.id] = (
-                needed_by_product.get(product.id, 0) + needed
+        needed_by_product: dict[int, float] = {}
+        products_by_id: dict[int, Product] = {}
+        for line in variants.values():
+            products_by_id[line.product.id] = line.product
+            needed_by_product[line.product.id] = (
+                needed_by_product.get(line.product.id, 0) + line.base_quantity_needed
             )
 
         # Check all stock levels before deducting anything.
         for product_id, needed in needed_by_product.items():
-            product = next(
-                data["product"]
-                for data in variants.values()
-                if data["product"].id == product_id
-            )
-            if product.stock_quantity < needed:
+            if products_by_id[product_id].stock_quantity < needed:
                 raise HTTPException(
                     status_code=400,
                     detail=f"Not enough stock for product {product_id}",
@@ -169,25 +174,22 @@ def create_order(
             )
         )
 
-        total_price = 0
+        total_price = 0.0
 
-        for data in variants.values():
-            product = data["product"]
-            variant = data["variant"]
-            quantity = data["quantity"]
-
-            total_price += variant.price * quantity
-            product.stock_quantity -= quantity * variant.base_quantity
+        for line in variants.values():
+            total_price += line.variant.price * line.quantity
+            line.product.stock_quantity -= line.base_quantity_needed
 
             db.add(
                 OrderItem(
                     order=order,
-                    product=product,
-                    variant=variant,
-                    quantity=quantity,
-                    price=variant.price,
-                    unit=variant.unit,
-                    base_quantity=variant.base_quantity,
+                    product=line.product,
+                    variant=line.variant,
+                    quantity=line.quantity,
+                    # Снимок цены, единицы и коэффициента на момент заказа
+                    price=line.variant.price,
+                    unit=line.variant.unit,
+                    base_quantity=line.variant.base_quantity,
                 )
             )
 

@@ -9,10 +9,10 @@
 """
 
 import json
-from datetime import timedelta
 import os
 import statistics
 import sys
+from datetime import timedelta
 from pathlib import Path
 
 from sqlalchemy import create_engine, text

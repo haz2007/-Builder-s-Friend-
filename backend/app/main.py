@@ -1,17 +1,16 @@
-from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from .routers.products import router as products_router, UPLOAD_DIR
-from .routers.categories import router as categories_router
-from .routers.orders import router as orders_router
-from .routers.auth import router as auth_router
-from .routers.users import router as users_router
 from .routers.admin import router as admin_router
-from .routers.notifications import router as notifications_router
 from .routers.admins import router as admins_router
-
+from .routers.auth import router as auth_router
+from .routers.categories import router as categories_router
+from .routers.notifications import router as notifications_router
+from .routers.orders import router as orders_router
+from .routers.products import UPLOAD_DIR
+from .routers.products import router as products_router
+from .routers.users import router as users_router
 
 OPENAPI_TAGS = [
     {"name": "Authentication", "description": "Регистрация по телефону и вход (JWT, 7 дней)"},

@@ -72,10 +72,10 @@
 
 | | |
 |---|---|
-| Backend | Python 3.13, FastAPI, SQLAlchemy 2, Alembic, PostgreSQL, JWT |
+| Backend | Python 3.13, FastAPI, SQLAlchemy 2 (типизированные модели), Alembic, PostgreSQL, JWT |
 | Frontend | React 19, TypeScript, Vite, React Router |
 | Бот | Telegram Bot API (long polling) |
-| Тесты | pytest — 150 тестов API, бизнес-логики, SQL-отчётов, параллельных заказов и защиты; CI на GitHub Actions |
+| Качество | pytest — 155 тестов (API, бизнес-логика, SQL-отчёты, бот, параллельные заказы, защита); ruff и mypy; CI на GitHub Actions |
 | Деплой | Docker Compose, Caddy (автоматический HTTPS), сервер от 1 ГБ памяти |
 
 ## Документация
@@ -136,7 +136,8 @@ backend/
     sql/            # отчёты на чистом SQL: CTE, оконные функции
     store_info.py   # контакты магазина для бота
   alembic/          # миграции БД
-  run_telegram_bot.py
+  bot/              # Telegram-бот по модулям: вход, каталог, покупатель, админ, владелец
+  run_telegram_bot.py  # точка входа бота
   seed_demo.py      # пробные товары с вариантами продажи
   manage.py         # служебные команды (миграции, владелец, OpenAPI)
   benchmarks/       # замер индексов на 200 000 заказов
@@ -190,10 +191,17 @@ cd backend && python run_telegram_bot.py
 Сайт, API, бот и база запускаются одной командой через Docker Compose с автоматическим HTTPS (Caddy) — см. [DEPLOY.md](DEPLOY.md).
 Скрипт `scripts/setup-server.sh` готовит чистый Ubuntu-сервер: swap, Docker, файрвол и ежедневный бэкап.
 
-## Тесты
+## Тесты и проверки
 
 Тесты используют отдельную базу `wood_commerce_test` и никогда не пишут в настоящий Telegram.
 ```bash
 docker exec wood_commerce_db createdb -U postgres wood_commerce_test   # один раз
 backend/.venv/bin/python -m pytest
+```
+
+Линтер и проверка типов (их же запускает CI):
+```bash
+backend/.venv/bin/pip install -r backend/requirements-dev.txt
+backend/.venv/bin/ruff check .
+cd backend && .venv/bin/mypy
 ```

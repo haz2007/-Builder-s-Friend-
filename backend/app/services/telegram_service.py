@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import Any
 
 import requests
 from dotenv import load_dotenv
@@ -37,7 +38,7 @@ def send_telegram_message(
         logger.debug("Telegram не настроен: нет TELEGRAM_BOT_TOKEN.")
         return False
 
-    payload = {
+    payload: dict[str, Any] = {
         "chat_id": chat_id,
         "text": message,
         "parse_mode": "HTML",

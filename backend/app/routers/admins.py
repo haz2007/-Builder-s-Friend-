@@ -13,7 +13,6 @@ from ..services.admin_service import (
     remove_admin,
 )
 
-
 router = APIRouter(prefix="/api/v1/admins", tags=["Admins"])
 
 
@@ -46,7 +45,7 @@ def create_admin(
     try:
         user = add_admin(db, data.login)
     except AdminServiceError as error:
-        raise HTTPException(status_code=400, detail=str(error))
+        raise HTTPException(status_code=400, detail=str(error)) from error
 
     return to_response(db, user)
 
@@ -60,6 +59,6 @@ def delete_admin(
     try:
         user = remove_admin(db, user_id, current_user)
     except AdminServiceError as error:
-        raise HTTPException(status_code=400, detail=str(error))
+        raise HTTPException(status_code=400, detail=str(error)) from error
 
     return to_response(db, user)

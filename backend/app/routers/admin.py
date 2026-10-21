@@ -1,5 +1,4 @@
 from datetime import date, datetime, time, timedelta
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func
@@ -7,8 +6,6 @@ from sqlalchemy.orm import Session, joinedload
 
 from ..auth import require_admin
 from ..database import get_db
-from ..schemas import as_utc
-from ..services import reports
 from ..models import (
     Order,
     OrderItem,
@@ -16,6 +13,8 @@ from ..models import (
     Product,
     User,
 )
+from ..schemas import as_utc
+from ..services import reports
 
 router = APIRouter(prefix="/api/v1/admin", tags=["Admin"])
 
@@ -30,7 +29,7 @@ PIPELINE_STATUSES = [
 ]
 
 
-def _granularity(start: Optional[datetime], end: Optional[datetime]) -> str:
+def _granularity(start: datetime | None, end: datetime | None) -> str:
     """День для короткого периода, неделя для месяца-квартала, месяц для долгого."""
     if start is None or end is None:
         return "month"
@@ -42,7 +41,7 @@ def _granularity(start: Optional[datetime], end: Optional[datetime]) -> str:
     return "month"
 
 
-def _date_range(period: str, date_from: Optional[date], date_to: Optional[date]):
+def _date_range(period: str, date_from: date | None, date_to: date | None):
     today = date.today()
     if period == "custom":
         if not date_from or not date_to:
@@ -110,7 +109,8 @@ def get_admin_dashboard(
     current_user: User = Depends(require_admin),
 ):
     total_orders = db.query(Order).count()
-    count = lambda status: db.query(Order).filter(Order.status == status).count()
+    def count(status):
+        return db.query(Order).filter(Order.status == status).count()
     delivered_revenue = (
         db.query(func.coalesce(func.sum(Order.total_price), 0))
         .filter(Order.status == "DELIVERED")
@@ -189,8 +189,8 @@ def get_sales_statistics(
 @router.get("/analytics")
 def get_admin_analytics(
     period: str = Query("30d", pattern="^(7d|30d|90d|all|custom)$"),
-    date_from: Optional[date] = Query(None),
-    date_to: Optional[date] = Query(None),
+    date_from: date | None = Query(None),
+    date_to: date | None = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
@@ -300,8 +300,8 @@ def get_admin_analytics(
 @router.get("/reports")
 def get_admin_reports(
     period: str = Query("30d", pattern="^(7d|30d|90d|all|custom)$"),
-    date_from: Optional[date] = Query(None),
-    date_to: Optional[date] = Query(None),
+    date_from: date | None = Query(None),
+    date_to: date | None = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):

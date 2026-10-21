@@ -1,6 +1,6 @@
 
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -9,9 +9,9 @@ from ..auth import (
     create_access_token,
     find_user_by_email,
     find_user_by_phone,
+    get_current_user,
     hash_password,
     verify_password,
-    get_current_user,
 )
 from ..database import get_db
 from ..models import User
@@ -22,7 +22,6 @@ from ..schemas import (
     UserRegister,
     UserResponse,
 )
-
 
 router = APIRouter(
     prefix="/api/v1/auth",
@@ -66,7 +65,7 @@ def register(
         phone=phone,
         password_hash=hash_password(user_data.password),
         role="CUSTOMER",
-        privacy_accepted_at=datetime.now(timezone.utc),
+        privacy_accepted_at=datetime.now(UTC),
     )
 
     db.add(user)
@@ -100,7 +99,8 @@ def login(
         error_message = "Invalid phone number or password"
 
     else:
-        user = find_user_by_email(db, login_data.email)
+        # Выше проверено: указан ровно один идентификатор — здесь это email
+        user = find_user_by_email(db, login_data.email or "")
 
         error_message = "Invalid email or password"
 

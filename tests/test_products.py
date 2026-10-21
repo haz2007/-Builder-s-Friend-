@@ -1,13 +1,13 @@
 import hashlib
 
-from app.models import Category, Product, User
 from app.auth import hash_password
+from app.models import Category, Product, User
 
 
 def create_admin(db):
     admin = User(
         email="admin@woodcommerce.local",
-        phone="+7999" + str(int(hashlib.sha256("admin@woodcommerce.local".encode("utf-8")).hexdigest(), 16) % 10_000_000).zfill(7),
+        phone="+7999" + str(int(hashlib.sha256(b"admin@woodcommerce.local").hexdigest(), 16) % 10_000_000).zfill(7),
         password_hash=hash_password("123456"),
         role="ADMIN"
     )
@@ -20,7 +20,7 @@ def create_admin(db):
 def create_customer(db):
     customer = User(
         email="customer@woodcommerce.local",
-        phone="+7999" + str(int(hashlib.sha256("customer@woodcommerce.local".encode("utf-8")).hexdigest(), 16) % 10_000_000).zfill(7),
+        phone="+7999" + str(int(hashlib.sha256(b"customer@woodcommerce.local").hexdigest(), 16) % 10_000_000).zfill(7),
         password_hash=hash_password("123456"),
         role="CUSTOMER"
     )

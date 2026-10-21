@@ -2,6 +2,7 @@ import io
 import re
 import uuid
 from pathlib import Path
+from typing import Any
 
 from fastapi import (
     APIRouter,
@@ -11,9 +12,8 @@ from fastapi import (
     Query,
     UploadFile,
 )
-from fastapi.responses import JSONResponse
 from PIL import Image, UnidentifiedImageError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import InstrumentedAttribute, Session
 
 from ..auth import require_admin
 from ..database import get_db
@@ -25,7 +25,6 @@ from ..models import (
     User,
     is_piece_unit,
 )
-from .categories import category_with_children_ids
 from ..schemas import (
     ProductCreate,
     ProductResponse,
@@ -40,6 +39,7 @@ from ..services.variant_service import (
     recalc_cubic_variants,
     sync_product_from_primary,
 )
+from .categories import category_with_children_ids
 
 DIMENSION_FIELDS = ("thickness_mm", "width_mm", "length_mm")
 
@@ -167,6 +167,7 @@ def get_products(
     if is_active is not None:
         query = query.filter(Product.is_active == is_active)
 
+    column: InstrumentedAttribute[Any]
     if sort_by == "price":
         column = Product.price
     elif sort_by == "name":
@@ -498,7 +499,7 @@ async def upload_product_image(
         raise HTTPException(
             status_code=400,
             detail="Загрузите корректное изображение JPG, PNG или WebP",
-        )
+        ) from None
 
     if image_format not in ALLOWED_FORMATS:
         raise HTTPException(

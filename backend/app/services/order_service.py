@@ -1,8 +1,7 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from ..models import Order, OrderStatusHistory, Notification
-
+from ..models import Notification, Order, OrderStatusHistory
 
 # Доставка: собранный заказ везут покупателю
 ALLOWED_TRANSITIONS = {

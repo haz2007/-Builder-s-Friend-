@@ -161,4 +161,4 @@ def test_product_statistics_with_empty_database(client: TestClient):
     assert statistics["out_of_stock"] == 0
 
 
-    
+

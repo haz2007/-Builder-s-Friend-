@@ -6,7 +6,6 @@ from ..database import get_db
 from ..models import Notification, User
 from ..schemas import NotificationResponse
 
-
 router = APIRouter(
     prefix="/api/v1/notifications",
     tags=["Notifications"]

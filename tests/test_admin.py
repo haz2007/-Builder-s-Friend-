@@ -86,7 +86,7 @@ def test_admin_dashboard_counts_data(client: TestClient):
     )
 
     db = SessionLocal()
-    
+
     category = Category(
         name="Строительные материалы"
     )

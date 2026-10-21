@@ -1,7 +1,6 @@
 
+from datetime import UTC, datetime
 from enum import Enum
-from datetime import datetime, timezone
-
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, PlainSerializer, computed_field, model_validator
@@ -13,7 +12,7 @@ PICKUP_ADDRESS = "Самовывоз со склада"
 def as_utc(value: datetime) -> datetime:
     """В базе время хранится в UTC без пометки — помечаем, чтобы браузер
     показал его в часовом поясе покупателя, а не сдвинутым на 3 часа."""
-    return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
+    return value.replace(tzinfo=UTC) if value.tzinfo is None else value
 
 
 UtcDatetime = Annotated[datetime, PlainSerializer(lambda value: as_utc(value).isoformat())]
@@ -199,7 +198,7 @@ class OrderResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]  # так в документации pydantic
     @property
     def allowed_statuses(self) -> list[str]:
         """Куда можно перевести заказ: следующий этап и/или отмена."""

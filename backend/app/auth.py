@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta, timezone 
+from datetime import UTC, datetime, timedelta
 
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -10,7 +10,6 @@ from sqlalchemy.orm import Session
 
 from .database import get_db
 from .models import User
-
 
 SECRET_KEY = os.getenv("SECRET_KEY") or ""
 
@@ -93,9 +92,9 @@ def create_access_token(
     }
 
     if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
+        expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(
+        expire = datetime.now(UTC) + timedelta(
             minutes=ACCESS_TOKEN_EXPIRE_MINUTES
         )
 
@@ -133,7 +132,7 @@ def get_current_user(
         raise HTTPException(
             status_code=401,
             detail="Invalid token"
-        )
+        ) from None
 
     user = (
         db.query(User)
