@@ -362,7 +362,8 @@ def contacts_screen(chat_id: int, telegram_user_id: int, message_id=None):
         lines.append(f"📍 {html.escape(store_info.ADDRESS)}")
     lines += [
         "",
-        "🚚 Привезём на объект своим транспортом или отгрузим на вашу машину.",
+        "🚚 Привезём на объект своим транспортом или отгрузим на вашу машину. "
+        "Стоимость доставки обсудим по телефону.",
     ]
     rows = []
     if store_info.YANDEX_MAPS_URL:

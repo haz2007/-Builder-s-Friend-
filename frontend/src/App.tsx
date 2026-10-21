@@ -1310,7 +1310,7 @@ function App() {
                   <div className="delivery-options" role="radiogroup">
                     {(
                       [
-                        ["DELIVERY", "Доставка", "Привезём на объект своим транспортом"],
+                        ["DELIVERY", "Доставка", "Привезём на объект, стоимость обсудим по телефону"],
                         ["PICKUP", "Самовывоз", "Заберёте сами — на своей или нанятой машине"],
                       ] as const
                     ).map(([value, title, hint]) => (
