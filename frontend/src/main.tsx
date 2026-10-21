@@ -15,6 +15,8 @@ import "@fontsource/manrope/800.css";
 import "./index.css";
 import App from "./App.tsx";
 // Админка — отдельным файлом: покупателям не нужно скачивать её код и стили
+// Точка входа, а не модуль компонентов: Fast Refresh здесь не нужен
+// oxlint-disable-next-line react/only-export-components
 const Admin = lazy(() => import("./Admin.tsx"));
 
 createRoot(document.getElementById("root")!).render(

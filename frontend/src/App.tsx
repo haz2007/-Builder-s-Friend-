@@ -60,6 +60,7 @@ import type {
   ShopContextValue,
 } from "./shop/types";
 import { showFallbackImage } from "./shop/images";
+import { startMetrika, trackPageView } from "./shop/metrika";
 import { orderStatusLabel } from "./shop/orderStatus";
 import CallbackForm from "./components/CallbackForm";
 import DeleteAccount from "./components/DeleteAccount";
@@ -277,6 +278,17 @@ function App() {
   const [headerSearch, setHeaderSearch] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Метрика: запуск один раз и просмотр на каждом переходе
+  const previousUrl = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    startMetrika();
+    const url = location.pathname + location.search;
+    // title обновляется в эффекте страницы — даём ему примениться
+    const timer = window.setTimeout(() => trackPageView(url, previousUrl.current), 0);
+    previousUrl.current = window.location.href;
+    return () => window.clearTimeout(timer);
+  }, [location.pathname, location.search]);
 
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
@@ -1022,7 +1034,7 @@ function App() {
   const accountPage = customer?.role === "ADMIN" ? (
     <Navigate to="/admin" replace />
   ) : customer ? (
-    <section className="page-section account-page">
+    <section className="page-section account-page ym-hide-content">
       <div className="container">
         <h1>Личный кабинет</h1>
         <div className="account-orders">
@@ -1658,7 +1670,7 @@ function App() {
           }}
         >
           <section
-            className="checkout-panel"
+            className="checkout-panel ym-hide-content"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="cart-header">
@@ -1954,7 +1966,7 @@ function App() {
           }}
         >
           <section
-            className="checkout-panel account-panel"
+            className="checkout-panel account-panel ym-hide-content"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="cart-header">
@@ -2132,7 +2144,7 @@ function App() {
 
                   <div className="notifications-modal-backdrop" onClick={() => setNotificationsOpen(false)}>
                     <section
-                      className="notifications-modal"
+                      className="notifications-modal ym-hide-content"
                       role="dialog"
                       aria-modal="true"
                       aria-label="Уведомления"

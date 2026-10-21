@@ -12,6 +12,8 @@ export default function PhoneInput({ value, onChange, ...rest }: Props) {
   return (
     <input
       {...rest}
+      // Вебвизор Метрики не записывает нажатия в этом поле
+      className={`${rest.className ?? ""} ym-disable-keys`.trim()}
       type="tel"
       inputMode="tel"
       autoComplete="tel"
