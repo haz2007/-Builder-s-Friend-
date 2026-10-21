@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { Link, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   Check,
@@ -76,6 +76,20 @@ type Customer = {
 
 const TOKEN_KEY = "wood_commerce_token";
 const CART_KEY = "wood_commerce_cart";
+
+/**
+ * В панель — полной загрузкой страницы, а не переходом внутри сайта: иначе
+ * Метрика с Вебвизором, уже работающие на витрине, записали бы и админку
+ * с данными покупателей. На отдельно загруженной /admin счётчика нет.
+ */
+function openAdminPanel() {
+  window.location.assign("/admin");
+}
+
+function AdminRedirect() {
+  useEffect(() => openAdminPanel(), []);
+  return null;
+}
 const FAVORITES_KEY = "wood_commerce_favorites";
 
 function loadFavorites(): number[] {
@@ -733,7 +747,7 @@ function App() {
         setCustomer({ id: user.id, phone: user.phone ?? accountPhone.trim(), role: user.role });
         setAccountPassword("");
         setAccountOpen(false);
-        navigate("/admin");
+        openAdminPanel();
         return;
       }
 
@@ -807,7 +821,7 @@ function App() {
     const token = localStorage.getItem(TOKEN_KEY);
 
     if (token && customer?.role === "ADMIN") {
-      navigate("/admin");
+      openAdminPanel();
       return;
     }
 
@@ -1032,7 +1046,7 @@ function App() {
   ] as const;
 
   const accountPage = customer?.role === "ADMIN" ? (
-    <Navigate to="/admin" replace />
+    <AdminRedirect />
   ) : customer ? (
     <section className="page-section account-page ym-hide-content">
       <div className="container">

@@ -160,7 +160,7 @@ function Admin() {
   if (!user) {
     return (
       // Пока проверяем вход — только спокойный экран загрузки, без формы
-      <main className="admin-page admin-page-loading" aria-busy="true">
+      <main className="admin-page admin-page-loading ym-hide-content" aria-busy="true">
         <LogoMark size={44} />
         <p>Открываем панель управления…</p>
       </main>
@@ -168,7 +168,8 @@ function Admin() {
   }
 
   return (
-    <main className="admin-page">
+    // ym-hide-content — на случай, если Метрика всё же есть на странице
+    <main className="admin-page ym-hide-content">
       <div className="admin-container">
         <header className="admin-header">
           <div className="admin-header-main">
