@@ -243,6 +243,9 @@ function App() {
   const [accountMode, setAccountMode] = useState<"login" | "orders">("login");
   const [accountPhone, setAccountPhone] = useState("");
   const [accountPassword, setAccountPassword] = useState("");
+  // «Войти» в шапке: вход или регистрация нового покупателя
+  const [accountAuthMode, setAccountAuthMode] = useState<"login" | "register">("login");
+  const [accountPrivacyAccepted, setAccountPrivacyAccepted] = useState(false);
   const [accountLoading, setAccountLoading] = useState(false);
   const [accountError, setAccountError] = useState("");
   const [orders, setOrders] = useState<ApiOrder[]>([]);
@@ -585,9 +588,27 @@ function App() {
     event.preventDefault();
     setAccountError("");
     setAccountNotice("");
+    const registering = accountAuthMode === "register";
+    if (registering && accountPassword.length < PASSWORD_MIN_LENGTH) {
+      setAccountError(`Пароль — не короче ${PASSWORD_MIN_LENGTH} символов.`);
+      return;
+    }
+    if (registering && !accountPrivacyAccepted) {
+      setAccountError("Чтобы зарегистрироваться, подтвердите согласие на обработку данных.");
+      return;
+    }
+
     setAccountLoading(true);
 
     try {
+      if (registering) {
+        await registerUser({
+          phone: accountPhone.trim(),
+          password: accountPassword,
+          privacy_accepted: true,
+        });
+      }
+
       const auth = await loginUser({
         phone: accountPhone.trim(),
         password: accountPassword,
@@ -1405,8 +1426,33 @@ function App() {
             {accountMode === "login" ? (
               <form className="checkout-form" onSubmit={handleAccountLogin}>
                 <p className="checkout-description">
-                  Войди, чтобы смотреть историю заказов и отслеживать их статус.
+                  {accountAuthMode === "login"
+                    ? "Войди, чтобы смотреть историю заказов и отслеживать их статус."
+                    : "Создай аккаунт по номеру телефона — заказы и их статусы будут здесь и в Telegram-боте."}
                 </p>
+
+                <div className="auth-tabs">
+                  <button
+                    type="button"
+                    className={accountAuthMode === "login" ? "auth-tab active" : "auth-tab"}
+                    onClick={() => {
+                      setAccountAuthMode("login");
+                      setAccountError("");
+                    }}
+                  >
+                    Войти
+                  </button>
+                  <button
+                    type="button"
+                    className={accountAuthMode === "register" ? "auth-tab active" : "auth-tab"}
+                    onClick={() => {
+                      setAccountAuthMode("register");
+                      setAccountError("");
+                    }}
+                  >
+                    Регистрация
+                  </button>
+                </div>
 
                 <label className="checkout-field">
                   <span>Номер телефона</span>
@@ -1427,11 +1473,33 @@ function App() {
                     type="password"
                     value={accountPassword}
                     onChange={(event) => setAccountPassword(event.target.value)}
-                    placeholder="Введите пароль"
-                    autoComplete="current-password"
+                    placeholder={
+                      accountAuthMode === "register"
+                        ? `Не короче ${PASSWORD_MIN_LENGTH} символов`
+                        : "Введите пароль"
+                    }
+                    autoComplete={accountAuthMode === "register" ? "new-password" : "current-password"}
+                    minLength={accountAuthMode === "register" ? PASSWORD_MIN_LENGTH : 1}
                     required
                   />
                 </label>
+
+                {accountAuthMode === "register" && (
+                  <label className="checkout-consent">
+                    <input
+                      type="checkbox"
+                      checked={accountPrivacyAccepted}
+                      onChange={(event) => setAccountPrivacyAccepted(event.target.checked)}
+                      required
+                    />
+                    <span>
+                      Соглашаюсь на обработку персональных данных по{" "}
+                      <Link to="/privacy" target="_blank" rel="noopener">
+                        политике конфиденциальности
+                      </Link>
+                    </span>
+                  </label>
+                )}
 
                 {accountError && (
                   <p className="checkout-error" role="alert">
@@ -1448,13 +1516,27 @@ function App() {
                   type="submit"
                   disabled={accountLoading}
                 >
-                  {accountLoading ? "Входим..." : "Войти в аккаунт"}
+                  {accountLoading
+                    ? accountAuthMode === "register" ? "Создаём аккаунт..." : "Входим..."
+                    : accountAuthMode === "register" ? "Зарегистрироваться" : "Войти в аккаунт"}
                   {!accountLoading && <ArrowRight size={18} />}
                 </button>
 
-                <p className="checkout-footnote">
-                  Ещё нет аккаунта? Создай его при оформлении первого заказа.
-                </p>
+                {accountAuthMode === "login" && (
+                  <p className="checkout-footnote">
+                    Ещё нет аккаунта?{" "}
+                    <button
+                      type="button"
+                      className="link-button"
+                      onClick={() => {
+                        setAccountAuthMode("register");
+                        setAccountError("");
+                      }}
+                    >
+                      Зарегистрируйся
+                    </button>
+                  </p>
+                )}
               </form>
             ) : (
               <div className="account-orders">

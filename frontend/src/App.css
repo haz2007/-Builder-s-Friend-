@@ -5138,3 +5138,5 @@ a.category-tab {
 .checkout-consent a { color: #8a5a22; }
 
 .footer-privacy { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+
+.link-button { padding: 0; border: 0; color: #8a5a22; background: none; font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
