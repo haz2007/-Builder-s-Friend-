@@ -19,6 +19,6 @@ describe("часы работы", () => {
   it("подсказывает, открыто ли и когда откроемся", () => {
     expect(storeStatus(atMoscow(12)).text).toBe("Открыто, без выходных");
     expect(storeStatus(atMoscow(7)).text).toBe("Откроемся в 9:00");
-    expect(storeStatus(atMoscow(22)).text).toBe("Откроемся завтра в 9:00");
+    expect(storeStatus(atMoscow(22)).text).toBe("Откроемся в 9:00");
   });
 });

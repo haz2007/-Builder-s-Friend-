@@ -16,5 +16,6 @@ export function storeStatus(now: Date = new Date()): { open: boolean; text: stri
   if (hour >= OPEN_HOUR && hour < CLOSE_HOUR) {
     return { open: true, text: "Открыто, без выходных" };
   }
-  return { open: false, text: hour < OPEN_HOUR ? `Откроемся в ${OPEN_HOUR}:00` : `Откроемся завтра в ${OPEN_HOUR}:00` };
+  // Коротко, чтобы влезало в одну строку под часами и утром, и вечером
+  return { open: false, text: `Откроемся в ${OPEN_HOUR}:00` };
 }
