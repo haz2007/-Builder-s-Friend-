@@ -18,6 +18,16 @@
   <img src="https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white" alt="Docker Compose" />
 </p>
 
+<p align="center">
+  <a href="https://builders-friend.duckdns.org"><b>🌐 Открыть сайт</b></a>
+  &nbsp;·&nbsp;
+  <a href="docs/diagrams.md">Диаграммы</a>
+  &nbsp;·&nbsp;
+  <a href="docs/business-rules.md">Бизнес-правила</a>
+  &nbsp;·&nbsp;
+  <a href="DEPLOY.md">Деплой</a>
+</p>
+
 ---
 
 <p align="center">
