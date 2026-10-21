@@ -5,6 +5,7 @@ from ..auth import require_admin
 from ..database import get_db
 from ..models import Category, Product, User
 from ..schemas import CategoryBase, CategoryResponse
+from ..services import audit
 
 router = APIRouter(prefix="/api/v1/categories", tags=["Categories"])
 
@@ -72,6 +73,9 @@ def create_category(
 
     new_category = Category(name=category.name, parent_id=category.parent_id)
     db.add(new_category)
+    db.flush()
+    audit.record(db, current_user, "category.created", "category", new_category.id,
+                 f"Добавлена категория «{new_category.name}»")
     db.commit()
     db.refresh(new_category)
     return new_category
@@ -95,12 +99,19 @@ def update_category(
     if existing_category:
         raise HTTPException(status_code=400, detail="Category already exists")
 
+    old_name, old_parent = category.name, category.parent_id
     category.name = category_data.name
 
     # Родителя меняем, только если его прислали явно (переименование не трогает)
     if "parent_id" in category_data.model_fields_set:
         validate_parent(db, category_data.parent_id, category_id)
         category.parent_id = category_data.parent_id
+
+    if (old_name, old_parent) != (category.name, category.parent_id):
+        detail = f"«{old_name}» → «{category.name}»" if old_name != category.name else f"«{category.name}»"
+        if old_parent != category.parent_id:
+            detail += ", перенесена в другой раздел"
+        audit.record(db, current_user, "category.updated", "category", category.id, f"Категория {detail}")
 
     db.commit()
     db.refresh(category)
@@ -134,6 +145,8 @@ def delete_category(
             ),
         )
 
+    audit.record(db, current_user, "category.deleted", "category", category.id,
+                 f"Удалена категория «{category.name}»")
     db.delete(category)
     db.commit()
     return {"message": "Category deleted successfully"}

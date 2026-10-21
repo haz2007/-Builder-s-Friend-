@@ -65,6 +65,9 @@ erDiagram
     PRODUCT_VARIANTS ||--o{ ORDER_ITEMS : ""
     ORDERS ||--o{ ORDER_STATUS_HISTORY : "история"
     ORDERS ||--o{ NOTIFICATIONS : ""
+    USERS ||--o{ ORDER_STATUS_HISTORY : "сменил статус"
+    USERS ||--o| PASSWORD_RESET_CODES : "код сброса"
+    USERS ||--o{ AUDIT_LOG : "действия в админке"
 
     USERS {
         int id PK
@@ -122,6 +125,7 @@ erDiagram
         int order_id FK
         string status
         datetime created_at
+        int changed_by_id FK
     }
     NOTIFICATIONS {
         int id PK
@@ -135,6 +139,29 @@ erDiagram
         int user_id FK
         bigint telegram_user_id UK
         bigint telegram_chat_id
+    }
+    PASSWORD_RESET_CODES {
+        int id PK
+        int user_id FK, UK
+        string code_hash "только хеш"
+        datetime expires_at
+        int attempts
+    }
+    AUDIT_LOG {
+        int id PK
+        int actor_id FK
+        string action "product.updated, admin.added…"
+        string summary "цена 600 → 650"
+        json changes "было / стало"
+        datetime created_at
+    }
+    TELEGRAM_OUTBOX {
+        int id PK
+        bigint chat_id
+        text text
+        string status "pending, sent, failed"
+        int attempts
+        datetime next_attempt_at
     }
 ```
 

@@ -34,6 +34,7 @@ from ..schemas import (
     ProductVariantResponse,
     ProductVariantUpdate,
 )
+from ..services import audit
 from ..services.variant_service import (
     apply_product_fields_to_primary,
     recalc_cubic_variants,
@@ -245,6 +246,12 @@ def create_product(
     )
 
     db.add(new_product)
+    db.flush()
+    audit.record(
+        db, current_user, "product.created", "product", new_product.id,
+        f"Добавлен товар {audit.product_title(new_product)}: {new_product.price:g} ₽ за "
+        f"{new_product.unit}, остаток {new_product.stock_quantity:g}",
+    )
     db.commit()
     db.refresh(new_product)
 
@@ -272,6 +279,7 @@ def update_product(
             raise HTTPException(status_code=404, detail="Category not found")
 
     old_category_id = product.category_id
+    before = audit.snapshot(product, audit.PRODUCT_FIELDS)
 
     for field in ("name", "description", "category_id", "stock_quantity"):
         value = getattr(product_data, field)
@@ -303,6 +311,11 @@ def update_product(
 
     set_product_categories(db, product, product.category_id, extra_ids)
 
+    summary, changes = audit.diff(product, before, audit.PRODUCT_FIELDS)
+    if changes:
+        audit.record(db, current_user, "product.updated", "product", product.id,
+                     f"{audit.product_title(product)}: {summary}", changes)
+
     db.commit()
     db.refresh(product)
 
@@ -324,6 +337,8 @@ def delete_product(
         raise HTTPException(status_code=404, detail="Product not found")
 
     product.is_active = 0
+    audit.record(db, current_user, "product.hidden", "product", product.id,
+                 f"{audit.product_title(product)} скрыт из каталога")
     db.commit()
 
     return {"message": "Product deleted successfully"}
@@ -344,6 +359,8 @@ def restore_product(
         raise HTTPException(status_code=400, detail="Product is already active")
 
     product.is_active = 1
+    audit.record(db, current_user, "product.restored", "product", product.id,
+                 f"{audit.product_title(product)} снова в каталоге")
     db.commit()
     db.refresh(product)
 
@@ -362,7 +379,11 @@ def update_product_stock(
     if product is None:
         raise HTTPException(status_code=404, detail="Product not found")
 
+    old_stock = product.stock_quantity
     product.stock_quantity = stock_data.stock_quantity
+    audit.record(db, current_user, "product.stock", "product", product.id,
+                 f"{audit.product_title(product)}: остаток {old_stock:g} → {product.stock_quantity:g}",
+                 {"stock_quantity": [old_stock, product.stock_quantity]})
     db.commit()
     db.refresh(product)
 
@@ -385,6 +406,9 @@ def create_variant(
     product.variants.append(variant)
     recalc_cubic_variants(product)
     sync_product_from_primary(product)
+    db.flush()
+    audit.record(db, current_user, "variant.created", "variant", variant.id,
+                 f"Новый вариант {audit.variant_title(product, variant)}: {variant.price:g} ₽ за {variant.unit}")
 
     db.commit()
     db.refresh(variant)
@@ -414,11 +438,17 @@ def update_variant(
                 detail="Product must have at least one active variant",
             )
 
+    before = audit.snapshot(variant, audit.VARIANT_FIELDS)
     for field, value in variant_data.model_dump(exclude_none=True).items():
         setattr(variant, field, value)
 
     recalc_cubic_variants(product)
     sync_product_from_primary(product)
+
+    summary, changes = audit.diff(variant, before, audit.VARIANT_FIELDS)
+    if changes:
+        audit.record(db, current_user, "variant.updated", "variant", variant.id,
+                     f"{audit.variant_title(product, variant)}: {summary}", changes)
 
     db.commit()
     db.refresh(variant)
@@ -451,6 +481,11 @@ def delete_variant(
         .filter(OrderItem.variant_id == variant.id)
         .first()
         is not None
+    )
+
+    audit.record(
+        db, current_user, "variant.hidden" if used_in_orders else "variant.deleted", "variant", variant.id,
+        f"{audit.variant_title(product, variant)} " + ("скрыт (есть в заказах)" if used_in_orders else "удалён"),
     )
 
     # Вариант из старых заказов не удаляем, а скрываем
@@ -517,6 +552,8 @@ async def upload_product_image(
 
     old_image_url = product.image_url
     product.image_url = f"/uploads/products/{filename}"
+    audit.record(db, current_user, "product.photo", "product", product.id,
+                 f"{audit.product_title(product)}: новое фото")
 
     try:
         db.commit()

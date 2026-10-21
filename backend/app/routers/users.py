@@ -4,7 +4,8 @@ from sqlalchemy.orm import Session
 from ..auth import require_admin, require_owner
 from ..database import get_db
 from ..models import User
-from ..schemas import UserResponse
+from ..schemas import TemporaryPasswordResponse, UserResponse
+from ..services import audit, password_reset
 
 router = APIRouter(
     prefix="/api/v1/users",
@@ -57,9 +58,29 @@ def change_user_role(
             detail="Владельца нельзя лишить прав администратора"
         )
 
+    old_role = user.role
     user.role = role
+    if old_role != role:
+        audit.record(db, current_user, "user.role", "user", user.id,
+                     f"{user.phone or user.email or f'№{user.id}'}: роль {old_role} → {role}")
 
     db.commit()
     db.refresh(user)
 
     return user
+
+
+@router.post("/{user_id}/reset-password", response_model=TemporaryPasswordResponse)
+def reset_user_password(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Временный пароль покупателю, у которого не подключён Telegram-бот:
+    админ диктует его по телефону, покупатель потом меняет."""
+    try:
+        user, password = password_reset.reset_by_admin(db, user_id, current_user)
+    except password_reset.PasswordResetError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    return {"user_id": user.id, "phone": user.phone, "temporary_password": password}
+

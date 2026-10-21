@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from 
 import { NavLink, useNavigate, useParams } from "react-router-dom";
 
 import {
+  resetUserPassword,
 
   loginUser,
 
@@ -914,6 +915,25 @@ function Admin() {
 
   }
 
+  async function handleResetPassword(order: ApiOrder) {
+    if (!token || !order.user_id) return;
+    const who = order.customer_phone ?? order.customer_name;
+    if (!window.confirm(`Выдать временный пароль покупателю ${who}? Старый пароль перестанет работать.`)) {
+      return;
+    }
+    setError("");
+    try {
+      const result = await resetUserPassword(order.user_id, token);
+      setNotice(
+        `Временный пароль для ${result.phone ?? who}: ${result.temporary_password}. ` +
+          "Продиктуйте его покупателю — войти можно сразу, потом пароль лучше сменить.",
+      );
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось сбросить пароль.");
+    }
+  }
+
   async function handleOrderStatusChange(
 
     orderId: number,
@@ -1355,6 +1375,17 @@ function Admin() {
                     {order.customer_name || "Имя не указано"}
                     {" · "}
                     {order.customer_phone || "Телефон не указан"}
+                    {order.user_id && (
+                      <button
+                        type="button"
+                        className="admin-btn admin-btn-ghost admin-btn-sm admin-reset-password"
+                        onClick={() => void handleResetPassword(order)}
+                        title="Временный пароль, если покупатель забыл свой и не подключил Telegram-бота"
+                      >
+                        <Icon name="key" size={14} />
+                        Сбросить пароль
+                      </button>
+                    )}
                   </p>
 
                   <p>

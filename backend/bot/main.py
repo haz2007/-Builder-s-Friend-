@@ -1,11 +1,27 @@
 """Запуск: long polling с повторными попытками, если Telegram недоступен."""
 
+import threading
 import time
+
+from app.services.order_notifications import deliver_pending
 
 from .config import TOKEN, logger
 from .handlers import handle_callback, handle_message
 from .screens import setup_bot_profile
 from .telegram import telegram_request
+
+OUTBOX_INTERVAL = 3  # секунды между проходами по очереди сообщений
+
+
+def outbox_worker() -> None:
+    """Досылает сообщения из outbox: если API упал после сохранения заказа
+    или Telegram был недоступен — сообщения уйдут отсюда, с повторами."""
+    while True:
+        try:
+            deliver_pending()
+        except Exception:
+            logger.exception("Ошибка очереди сообщений")
+        time.sleep(OUTBOX_INTERVAL)
 
 
 def main() -> None:
@@ -26,7 +42,8 @@ def main() -> None:
             time.sleep(delay)
             delay = min(delay * 2, 60)
     setup_bot_profile()
-    logger.info("Telegram-бот запускается; polling включён.")
+    threading.Thread(target=outbox_worker, name="outbox", daemon=True).start()
+    logger.info("Telegram-бот запускается; polling включён, очередь сообщений — каждые %s с.", OUTBOX_INTERVAL)
     offset = None
     while True:
         try:

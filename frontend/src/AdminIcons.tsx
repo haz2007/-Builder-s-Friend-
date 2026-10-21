@@ -4,6 +4,7 @@ import {
   Check,
   Eye,
   EyeOff,
+  KeyRound,
   Layers,
   LogOut,
   Pencil,
@@ -27,6 +28,7 @@ const ICONS = {
   save: Check,
   userMinus: UserMinus,
   logout: LogOut,
+  key: KeyRound,
 };
 
 export type IconName = keyof typeof ICONS;

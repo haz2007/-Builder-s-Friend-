@@ -2,7 +2,7 @@
 import re
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from ..auth import (
@@ -15,13 +15,16 @@ from ..auth import (
 )
 from ..database import get_db
 from ..models import User
-from ..rate_limit import login_limiter, register_limiter
+from ..rate_limit import login_limiter, register_limiter, reset_confirm_limiter, reset_request_limiter
 from ..schemas import (
     LoginRequest,
+    PasswordResetConfirm,
+    PasswordResetRequest,
     TokenResponse,
     UserRegister,
     UserResponse,
 )
+from ..services import password_reset
 
 router = APIRouter(
     prefix="/api/v1/auth",
@@ -137,3 +140,44 @@ def get_me(
     current_user: User = Depends(get_current_user),
 ):
     return current_user
+
+
+RESET_SENT = (
+    "Если номер зарегистрирован и подключён к Telegram-боту магазина, код уже там. "
+    "Если бот не подключён — позвоните в магазин, и вам сбросят пароль."
+)
+
+
+@router.post(
+    "/password-reset/request",
+    dependencies=[Depends(reset_request_limiter)],
+)
+def request_password_reset(
+    data: PasswordResetRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """Код для смены пароля приходит в Telegram-бота. Ответ один и тот же,
+    есть такой номер или нет, — чтобы нельзя было перебирать номера."""
+    message = password_reset.request_code(db, normalize_phone(data.phone))
+    if message is not None:
+        background_tasks.add_task(password_reset.send_code, *message)
+    return {"detail": RESET_SENT}
+
+
+@router.post(
+    "/password-reset/confirm",
+    response_model=TokenResponse,
+    dependencies=[Depends(reset_confirm_limiter)],
+)
+def confirm_password_reset(
+    data: PasswordResetConfirm,
+    db: Session = Depends(get_db),
+):
+    """Новый пароль по коду из Telegram; сразу выполняется вход."""
+    try:
+        user = password_reset.confirm_code(db, normalize_phone(data.phone), data.code, data.new_password)
+    except password_reset.PasswordResetError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    return {"access_token": create_access_token(user_id=user.id, role=user.role), "token_type": "bearer"}
+

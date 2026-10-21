@@ -109,6 +109,8 @@ export type ApiOrder = {
   allowed_statuses?: string[];
   customer_name: string;
   customer_phone: string | null;
+  /** id покупателя — для сброса пароля из админки */
+  user_id?: number | null;
   items: ApiOrderItem[];
   status_history: ApiOrderStatusHistory[];
 };
@@ -202,6 +204,37 @@ export function loginUser(data: LoginData): Promise<AuthToken> {
   return request<AuthToken>("/api/v1/auth/login", {
     method: "POST",
     body: JSON.stringify(data),
+  });
+}
+
+/** Код для смены пароля придёт в Telegram-бота (если аккаунт к нему привязан). */
+export function requestPasswordReset(phone: string): Promise<{ detail: string }> {
+  return request<{ detail: string }>("/api/v1/auth/password-reset/request", {
+    method: "POST",
+    body: JSON.stringify({ phone }),
+  });
+}
+
+/** Новый пароль по коду из Telegram — сразу выполняется вход. */
+export function confirmPasswordReset(data: {
+  phone: string;
+  code: string;
+  new_password: string;
+}): Promise<AuthToken> {
+  return request<AuthToken>("/api/v1/auth/password-reset/confirm", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+/** Админ: временный пароль покупателю, у которого не подключён бот. */
+export function resetUserPassword(
+  userId: number,
+  token: string,
+): Promise<{ user_id: number; phone: string | null; temporary_password: string }> {
+  return request(`/api/v1/users/${userId}/reset-password`, {
+    method: "POST",
+    headers: adminHeaders(token),
   });
 }
 
@@ -626,6 +659,24 @@ export type ApiActivityEntry = {
 
 export function getActivity(token: string, limit = 100): Promise<ApiActivityEntry[]> {
   return request<ApiActivityEntry[]>(`/api/v1/admin/activity?limit=${limit}`, {
+    headers: adminHeaders(token),
+  });
+}
+
+/** Запись журнала действий: товары, варианты, категории, админы, пароли. */
+export type ApiAuditEntry = {
+  id: number;
+  action: string;
+  entity: string;
+  entity_id: number | null;
+  summary: string;
+  changes: Record<string, [unknown, unknown]> | null;
+  actor: string | null;
+  created_at: string;
+};
+
+export function getAudit(token: string, limit = 100): Promise<ApiAuditEntry[]> {
+  return request<ApiAuditEntry[]>(`/api/v1/admin/audit?limit=${limit}`, {
     headers: adminHeaders(token),
   });
 }

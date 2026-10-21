@@ -6,7 +6,8 @@
 #   1. swap 2 ГБ — чтобы сборка сайта и база не упирались в 1 ГБ памяти;
 #   2. Docker и Docker Compose;
 #   3. файрвол: открыты только SSH, 80 и 443;
-#   4. ежедневный бэкап базы и фото в 03:30 (scripts/backup.sh).
+#   4. ежедневный бэкап базы и фото в 03:30 (scripts/backup.sh);
+#   5. проверка каждые 5 минут (scripts/healthcheck.sh) — при поломке пишет в Telegram.
 set -euo pipefail
 
 if [[ $EUID -ne 0 ]]; then
@@ -48,10 +49,12 @@ ufw --force enable >/dev/null
 ufw status | sed 's/^/    /'
 
 echo "==> Ежедневный бэкап"
-chmod +x "$PROJECT_DIR/scripts/backup.sh" "$PROJECT_DIR/scripts/restore.sh"
+chmod +x "$PROJECT_DIR/scripts/backup.sh" "$PROJECT_DIR/scripts/restore.sh" "$PROJECT_DIR/scripts/healthcheck.sh"
 CRON_LINE="30 3 * * * $PROJECT_DIR/scripts/backup.sh >> /var/log/wood-backup.log 2>&1"
-( crontab -l 2>/dev/null | grep -v 'scripts/backup.sh' ; echo "$CRON_LINE" ) | crontab -
+HEALTH_LINE="*/5 * * * * $PROJECT_DIR/scripts/healthcheck.sh >> /var/log/wood-health.log 2>&1"
+( crontab -l 2>/dev/null | grep -v 'scripts/backup.sh' | grep -v 'scripts/healthcheck.sh' ; echo "$CRON_LINE" ; echo "$HEALTH_LINE" ) | crontab -
 echo "    $CRON_LINE"
+echo "    $HEALTH_LINE"
 
 echo
 echo "Готово. Дальше: заполни .env.production и запусти проект (см. DEPLOY.md)."

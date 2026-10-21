@@ -21,9 +21,10 @@ from ..schemas import (
     OrderStatusUpdate,
 )
 from ..services.order_notifications import (
-    notify_order_cancelled_by_customer,
-    notify_order_created,
-    notify_order_status_changed,
+    deliver_pending,
+    queue_cancelled_by_customer,
+    queue_order_created,
+    queue_status_changed,
 )
 from ..services.order_service import (
     change_order_status,
@@ -194,6 +195,8 @@ def create_order(
             )
 
         order.total_price = total_price
+        # Уведомления — в той же транзакции: заказ и сообщения сохраняются вместе
+        queue_order_created(db, order)
 
         db.commit()
         db.refresh(order)
@@ -205,7 +208,8 @@ def create_order(
         db.rollback()
         raise
 
-    background_tasks.add_task(notify_order_created, order.id)
+    # Отправка — после ответа покупателю; не ушедшее досылает бот
+    background_tasks.add_task(deliver_pending)
 
     return order
 
@@ -348,6 +352,7 @@ def cancel_order(
         )
 
         restore_order_stock(db, order)
+        queue_cancelled_by_customer(db, order)
 
         db.commit()
         db.refresh(order)
@@ -356,7 +361,7 @@ def cancel_order(
         db.rollback()
         raise
 
-    background_tasks.add_task(notify_order_cancelled_by_customer, order.id)
+    background_tasks.add_task(deliver_pending)
 
     return order
 
@@ -401,6 +406,7 @@ def update_order_status(
 
         if previous_status != "CANCELLED" and new_status == "CANCELLED":
             restore_order_stock(db, order)
+        queue_status_changed(db, order, previous_status, new_status, current_user.id)
 
         db.commit()
         db.refresh(order)
@@ -409,13 +415,7 @@ def update_order_status(
         db.rollback()
         raise
 
-    background_tasks.add_task(
-        notify_order_status_changed,
-        order.id,
-        previous_status,
-        new_status,
-        current_user.id,
-    )
+    background_tasks.add_task(deliver_pending)
 
     return order
 

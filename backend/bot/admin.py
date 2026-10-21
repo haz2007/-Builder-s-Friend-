@@ -15,10 +15,11 @@ from app.models import (
 from app.services.order_notifications import (
     build_order_keyboard,
     build_order_message,
+    deliver_pending,
     format_money,
     format_quantity,
     load_order,
-    notify_order_status_changed,
+    queue_status_changed,
     status_name,
 )
 from app.services.order_service import (
@@ -106,13 +107,13 @@ def admin_change_status(chat_id, telegram_user_id, order_id, new_status, message
             change_order_status(order, new_status, db, user.id)
             if new_status == "CANCELLED":
                 restore_order_stock(db, order)
+            queue_status_changed(db, order, previous_status, new_status, user.id)
             db.commit()
         except HTTPException as error:
             db.rollback()
             return str(error.detail)
-        actor_id = user.id
 
-    notify_order_status_changed(order_id, previous_status, new_status, actor_id)
+    deliver_pending()
     admin_order_screen(
         chat_id, telegram_user_id, order_id, "all", message_id,
         title=f"✅ Заказ №{order_id}: {status_name(new_status, delivery_method)}",

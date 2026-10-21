@@ -193,6 +193,8 @@ class OrderResponse(BaseModel):
     delivery_method: str = "DELIVERY"
     customer_name: str
     customer_phone: str | None = None
+    # Нужен админке, чтобы сбросить пароль покупателю
+    user_id: int | None = None
     items: list[OrderItemResponse]
     status_history: list[OrderStatusHistoryResponse] = []
 
@@ -219,6 +221,22 @@ class UserRegister(BaseModel):
     password: str = Field(min_length=PASSWORD_MIN_LENGTH, max_length=128)
     # Согласие с политикой конфиденциальности — без него регистрации нет (152-ФЗ)
     privacy_accepted: Literal[True]
+
+
+class PasswordResetRequest(BaseModel):
+    phone: str = Field(min_length=10, max_length=30)
+
+
+class PasswordResetConfirm(BaseModel):
+    phone: str = Field(min_length=10, max_length=30)
+    code: str = Field(min_length=4, max_length=12)
+    new_password: str = Field(min_length=PASSWORD_MIN_LENGTH, max_length=128)
+
+
+class TemporaryPasswordResponse(BaseModel):
+    user_id: int
+    phone: str | None
+    temporary_password: str
 
 
 class UserResponse(BaseModel):

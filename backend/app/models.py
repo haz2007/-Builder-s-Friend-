@@ -2,6 +2,7 @@ import math
 from datetime import UTC, datetime
 
 from sqlalchemy import (
+    JSON,
     BigInteger,
     CheckConstraint,
     Column,
@@ -13,6 +14,7 @@ from sqlalchemy import (
     Numeric,
     String,
     Table,
+    Text,
     event,
 )
 from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
@@ -373,3 +375,87 @@ class TelegramAccountLink(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
     user: Mapped["User"] = relationship()
+
+
+class PasswordResetCode(Base):
+    """Одноразовый код сброса пароля, который бот присылает в Telegram.
+
+    Хранится только хеш кода; у пользователя один активный код — новый
+    запрос заменяет старый. Код живёт 10 минут и даёт 5 попыток.
+    """
+
+    __tablename__ = "password_reset_codes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True)
+    code_hash: Mapped[str] = mapped_column(String(255))
+    expires_at: Mapped[datetime] = mapped_column(DateTime)
+    attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+
+
+OUTBOX_STATUSES = ("pending", "sent", "failed")
+
+
+class OutboxMessage(Base):
+    """Сообщение в Telegram, записанное в той же транзакции, что и заказ.
+
+    Если процесс упадёт между сохранением заказа и отправкой, сообщение не
+    потеряется: его отправит следующий проход (API сразу после ответа, бот —
+    раз в несколько секунд). Неудачные попытки повторяются с паузой.
+    """
+
+    __tablename__ = "telegram_outbox"
+    __table_args__ = (
+        CheckConstraint(one_of("status", OUTBOX_STATUSES), name="ck_telegram_outbox_status"),
+        # Отправитель выбирает ждущие сообщения, у которых подошло время
+        Index("ix_telegram_outbox_status_next_attempt_at", "status", "next_attempt_at"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    chat_id: Mapped[int] = mapped_column(BigInteger)
+    text: Mapped[str] = mapped_column(Text)
+    reply_markup: Mapped[dict | None] = mapped_column(JSON)
+    status: Mapped[str] = mapped_column(String(20), default="pending", server_default="pending")
+    attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    last_error: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None))
+    next_attempt_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
+    )
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
+class AuditLog(Base):
+    """Журнал действий в админке: кто и когда менял товары, варианты,
+    категории, администраторов и пароли покупателей.
+
+    Записывается в той же транзакции, что и само изменение. Статусы
+    заказов ведёт отдельная история — order_status_history.
+    """
+
+    __tablename__ = "audit_log"
+    __table_args__ = (
+        Index("ix_audit_log_created_at", "created_at"),
+        Index("ix_audit_log_entity", "entity", "entity_id"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    actor_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    action: Mapped[str] = mapped_column(String(50))
+    entity: Mapped[str] = mapped_column(String(30))
+    entity_id: Mapped[int | None] = mapped_column(Integer)
+    # По-человечески: «Доска 50×150: цена 600 → 650 ₽; остаток 100 → 120 шт»
+    summary: Mapped[str] = mapped_column(String(500))
+    # Было/стало по полям — для разбора спорных случаев
+    changes: Mapped[dict | None] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None))
+
+    actor: Mapped["User | None"] = relationship()
+
+    @property
+    def actor_label(self) -> str | None:
+        user = self.actor
+        if user is None:
+            return None
+        return user.email or user.phone or f"№{user.id}"
+

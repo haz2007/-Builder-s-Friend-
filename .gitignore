@@ -37,3 +37,6 @@ frontend/dist/
 
 # Production secrets
 .env.production
+
+# Состояние мониторинга на сервере
+.healthcheck_state

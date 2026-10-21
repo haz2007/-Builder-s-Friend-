@@ -73,5 +73,8 @@ def reset_all() -> None:
 login_limiter = RateLimiter("login", limit=10, window=5 * 60)
 register_limiter = RateLimiter("register", limit=5, window=60 * 60)
 order_limiter = RateLimiter("orders", limit=30, window=60 * 60)
+# Сброс пароля: запросить код — 3 раза за 15 минут, ввести код — 10 раз
+reset_request_limiter = RateLimiter("password_reset_request", limit=3, window=15 * 60)
+reset_confirm_limiter = RateLimiter("password_reset_confirm", limit=10, window=15 * 60)
 # Вход через Telegram-бота: ключ — Telegram ID
 telegram_login_limiter = RateLimiter("telegram_login", limit=5, window=10 * 60)

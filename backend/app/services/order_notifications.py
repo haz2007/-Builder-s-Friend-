@@ -1,4 +1,4 @@
-"""Тексты и рассылка уведомлений о заказах в Telegram.
+"""Тексты уведомлений о заказах и их надёжная доставка в Telegram.
 
 Кто получает уведомления:
 - покупатель — только о своих заказах и только пока его аккаунт сайта
@@ -6,18 +6,22 @@
 - администраторы — обо всех заказах, если вошли в бот, с кнопками смены
   статуса. Админ, который сам поменял статус, второе сообщение не получает.
 
+Доставка — через transactional outbox: сообщения записываются в таблицу
+telegram_outbox в той же транзакции, что и заказ (queue_*), а отправляет
+их deliver_pending() — API сразу после ответа, бот — раз в несколько секунд.
+
 На сайте покупатель видит уведомления в колокольчике (таблица notifications).
 """
 
 import html
 import logging
-from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.orm import Session, joinedload
 
 from .. import store_info
 from ..database import SessionLocal
-from ..models import Order, OrderItem, TelegramAccountLink, User
+from ..models import Order, OrderItem, OutboxMessage, TelegramAccountLink, User
 from .order_service import allowed_transitions, get_status_value
 from .telegram_service import send_telegram_message
 
@@ -192,78 +196,125 @@ def customer_link(db: Session, order: Order) -> TelegramAccountLink | None:
     )
 
 
-def notify_order_event(
-    order_id: int,
-    admin_title: str | Callable[[Order], str],
-    customer_title: str | Callable[[Order], str] | None,
+Message = tuple[int, str, dict | None]
+
+
+def order_event_messages(
+    db: Session,
+    order: Order,
+    admin_title: str,
+    customer_title: str | None,
     actor_user_id: int | None = None,
-) -> None:
-    """Рассылает уведомление о заказе. Ошибки Telegram заказ не ломают.
+) -> list[Message]:
+    """Кому и что отправить о событии заказа: покупателю (если вошёл в бота)
+    и всем админам в боте, кроме того, кто сам совершил действие."""
+    messages: list[Message] = []
 
-    Открывает свою сессию БД, поэтому подходит для BackgroundTasks и бота.
-    """
-    db = SessionLocal()
-    try:
-        order = load_order(db, order_id)
-        if order is None:
-            return
+    if customer_title:
+        link = customer_link(db, order)
+        # Если покупатель сам админ, он и так получит сообщение как админ
+        if link is not None and order.user.role != "ADMIN":
+            messages.append((link.telegram_chat_id, build_customer_message(order, customer_title), None))
 
-        # Заголовок может зависеть от заказа: «Выдан» у самовывоза, «Доставлен» у доставки
-        if callable(admin_title):
-            admin_title = admin_title(order)
-        if callable(customer_title):
-            customer_title = customer_title(order)
-
-        if customer_title:
-            link = customer_link(db, order)
-            # Если покупатель сам админ, он и так получит сообщение как админ
-            if link is not None and order.user.role != "ADMIN":
-                send_telegram_message(
-                    link.telegram_chat_id,
-                    build_customer_message(order, customer_title),
-                )
-
-        admin_text = build_order_message(order, admin_title)
-        keyboard = build_order_keyboard(order.id, order.status, order.delivery_method)
-
-        for link in admin_links(db):
-            if link.user_id == actor_user_id:
-                continue
-            send_telegram_message(link.telegram_chat_id, admin_text, keyboard)
-    except Exception:
-        logger.exception("Не удалось разослать уведомления о заказе №%s", order_id)
-    finally:
-        db.close()
+    admin_text = build_order_message(order, admin_title)
+    keyboard = build_order_keyboard(order.id, order.status, order.delivery_method)
+    for link in admin_links(db):
+        if link.user_id != actor_user_id:
+            messages.append((link.telegram_chat_id, admin_text, keyboard))
+    return messages
 
 
-def notify_order_created(order_id: int) -> None:
-    notify_order_event(
-        order_id,
-        admin_title=f"🛒 Новый заказ №{order_id}",
-        customer_title=f"✅ Заказ №{order_id} оформлен",
-    )
+def enqueue(db: Session, messages: list[Message]) -> None:
+    """Кладёт сообщения в outbox — в текущей транзакции, без commit."""
+    for chat_id, text, markup in messages:
+        db.add(OutboxMessage(chat_id=chat_id, text=text, reply_markup=markup))
 
 
-def notify_order_status_changed(
-    order_id: int,
+def queue_order_created(db: Session, order: Order) -> None:
+    enqueue(db, order_event_messages(
+        db, order,
+        admin_title=f"🛒 Новый заказ №{order.id}",
+        customer_title=f"✅ Заказ №{order.id} оформлен",
+    ))
+
+
+def queue_status_changed(
+    db: Session,
+    order: Order,
     previous_status: str,
     new_status: str,
     actor_user_id: int | None,
 ) -> None:
-    notify_order_event(
-        order_id,
-        admin_title=lambda order: (
-            f"🔔 Заказ №{order_id}: {status_name(previous_status, order.delivery_method)} → "
-            f"{status_name(new_status, order.delivery_method)}"
+    method = order.delivery_method
+    enqueue(db, order_event_messages(
+        db, order,
+        admin_title=(
+            f"🔔 Заказ №{order.id}: {status_name(previous_status, method)} → {status_name(new_status, method)}"
         ),
-        customer_title=lambda order: (
-            f"🔔 Заказ №{order_id}: {status_name(new_status, order.delivery_method)}"
-        ),
+        customer_title=f"🔔 Заказ №{order.id}: {status_name(new_status, method)}",
         actor_user_id=actor_user_id,
-    )
-
+    ))
     if get_status_value(new_status) == "DELIVERED":
-        send_review_request(order_id)
+        enqueue(db, review_request_messages(db, order))
+
+
+def queue_cancelled_by_customer(db: Session, order: Order) -> None:
+    enqueue(db, order_event_messages(
+        db, order,
+        admin_title=f"❌ Заказ №{order.id} отменён покупателем",
+        customer_title=f"Заказ №{order.id} отменён",
+    ))
+
+
+MAX_ATTEMPTS = 8
+
+
+def _utcnow() -> datetime:
+    return datetime.now(UTC).replace(tzinfo=None)
+
+
+def deliver_pending(limit: int = 50) -> int:
+    """Отправляет ждущие сообщения из outbox; возвращает, сколько ушло.
+
+    FOR UPDATE SKIP LOCKED: API и бот могут вызывать это одновременно —
+    каждое сообщение возьмёт только один из них, дублей не будет.
+    """
+    db = SessionLocal()
+    sent = 0
+    try:
+        now = _utcnow()
+        batch = (
+            db.query(OutboxMessage)
+            .filter(OutboxMessage.status == "pending", OutboxMessage.next_attempt_at <= now)
+            .order_by(OutboxMessage.id)
+            .limit(limit)
+            .with_for_update(skip_locked=True)
+            .all()
+        )
+        for message in batch:
+            error = ""
+            try:
+                ok = send_telegram_message(message.chat_id, message.text, message.reply_markup)
+            except Exception as exc:  # сеть, Telegram — пробуем позже
+                ok, error = False, str(exc)
+            if ok:
+                message.status, message.sent_at = "sent", now
+                sent += 1
+                continue
+            message.attempts += 1
+            message.last_error = (error or "Telegram не принял сообщение")[:500]
+            if message.attempts >= MAX_ATTEMPTS:
+                message.status = "failed"
+            else:
+                # 10 с, 20 с, 40 с … но не реже чем раз в 10 минут
+                message.next_attempt_at = now + timedelta(seconds=min(5 * 2 ** message.attempts, 600))
+        db.commit()
+    except Exception:
+        db.rollback()
+        logger.exception("Не удалось обработать очередь сообщений Telegram")
+    finally:
+        db.close()
+    return sent
 
 
 def review_keyboard() -> dict | None:
@@ -285,29 +336,10 @@ def build_review_request(order: Order) -> str:
     )
 
 
-def send_review_request(order_id: int) -> None:
+def review_request_messages(db: Session, order: Order) -> list[Message]:
     """Просьба об отзыве — только покупателю, вошедшему в бота."""
     keyboard = review_keyboard()
-    if keyboard is None:
-        return
-
-    db = SessionLocal()
-    try:
-        order = load_order(db, order_id)
-        if order is None or order.user.role == "ADMIN":
-            return
-        link = customer_link(db, order)
-        if link is not None:
-            send_telegram_message(link.telegram_chat_id, build_review_request(order), keyboard)
-    except Exception:
-        logger.exception("Не удалось отправить просьбу об отзыве по заказу №%s", order_id)
-    finally:
-        db.close()
-
-
-def notify_order_cancelled_by_customer(order_id: int) -> None:
-    notify_order_event(
-        order_id,
-        admin_title=f"❌ Заказ №{order_id} отменён покупателем",
-        customer_title=f"Заказ №{order_id} отменён",
-    )
+    if keyboard is None or order.user.role == "ADMIN":
+        return []
+    link = customer_link(db, order)
+    return [(link.telegram_chat_id, build_review_request(order), keyboard)] if link else []

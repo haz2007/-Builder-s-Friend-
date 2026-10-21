@@ -75,11 +75,12 @@ def handle_add_admin_message(message: dict) -> None:
     login = (message.get("text") or "").strip()
     delete_message(chat_id, message["message_id"])
     user_states.pop(telegram_user_id, None)
-    if require_owner(chat_id, telegram_user_id) is None:
+    owner_id = require_owner(chat_id, telegram_user_id)
+    if owner_id is None:
         return
     with session() as db:
         try:
-            user = add_admin(db, login)
+            user = add_admin(db, login, db.get(User, owner_id))
             notice = f"✅ {html.escape(user.phone or user.email or f"№{user.id}")} теперь администратор."
         except AdminServiceError as error:
             notice = f"⚠️ {html.escape(str(error))}"

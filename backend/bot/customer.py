@@ -12,9 +12,10 @@ from app.models import (
 )
 from app.services.order_notifications import (
     build_customer_message,
+    deliver_pending,
     format_money,
     load_order,
-    notify_order_cancelled_by_customer,
+    queue_cancelled_by_customer,
     status_name,
 )
 from app.services.order_service import (
@@ -133,11 +134,12 @@ def customer_cancel(chat_id, telegram_user_id, order_id, message_id=None) -> str
         try:
             change_order_status(order, "CANCELLED", db, user_id)
             restore_order_stock(db, order)
+            queue_cancelled_by_customer(db, order)
             db.commit()
         except HTTPException as error:
             db.rollback()
             return str(error.detail)
-    notify_order_cancelled_by_customer(order_id)
+    deliver_pending()
     customer_order_screen(chat_id, telegram_user_id, order_id, 0, message_id)
     return f"Заказ №{order_id} отменён"
 

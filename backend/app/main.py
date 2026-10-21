@@ -1,7 +1,13 @@
+from datetime import UTC, datetime, timedelta
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
+from .database import get_db
 from .routers.admin import router as admin_router
 from .routers.admins import router as admins_router
 from .routers.auth import router as auth_router
@@ -56,5 +62,25 @@ app.include_router(admins_router)
 
 
 @app.get("/api/v1/health")
-def health_check():
-    return {"status": "ok", "service": "wood-commerce-api"}
+def health_check(db: Session = Depends(get_db)):
+    """Жив ли сервис: отвечает база и не застряли ли сообщения в Telegram.
+
+    Его опрашивают Docker (healthcheck), scripts/healthcheck.sh и внешний
+    монитор. Нет связи с базой — 503.
+    """
+    try:
+        db.execute(text("SELECT 1"))
+        stuck = db.execute(text(
+            "SELECT count(*) FILTER (WHERE status = 'pending' AND created_at < :limit) AS stuck, "
+            "count(*) FILTER (WHERE status = 'failed') AS failed FROM telegram_outbox"
+        ), {"limit": datetime.now(UTC).replace(tzinfo=None) - timedelta(minutes=10)}).one()
+    except SQLAlchemyError:
+        return JSONResponse(status_code=503, content={"status": "error", "database": "unavailable"})
+    return {
+        "status": "ok",
+        "service": "wood-commerce-api",
+        "database": "ok",
+        # Сообщения, которые не уходят дольше 10 минут, и окончательно не отправленные
+        "outbox_stuck": stuck.stuck,
+        "outbox_failed": stuck.failed,
+    }

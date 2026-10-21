@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from ..auth import find_user_by_login
 from ..models import TelegramAccountLink, User
+from . import audit
 
 
 class AdminServiceError(Exception):
@@ -28,7 +29,11 @@ def has_telegram(db: Session, user: User) -> bool:
     )
 
 
-def add_admin(db: Session, login: str) -> User:
+def who(user: User) -> str:
+    return user.phone or user.email or f"№{user.id}"
+
+
+def add_admin(db: Session, login: str, actor: User | None = None) -> User:
     user = find_user_by_login(db, login)
 
     if user is None:
@@ -41,6 +46,7 @@ def add_admin(db: Session, login: str) -> User:
         raise AdminServiceError("Этот пользователь уже администратор.")
 
     user.role = "ADMIN"
+    audit.record(db, actor, "admin.added", "user", user.id, f"{who(user)} назначен администратором")
     db.commit()
     db.refresh(user)
 
@@ -60,6 +66,7 @@ def remove_admin(db: Session, user_id: int, actor: User) -> User:
         raise AdminServiceError("Нельзя снять права с самого себя.")
 
     user.role = "CUSTOMER"
+    audit.record(db, actor, "admin.removed", "user", user.id, f"{who(user)} больше не администратор")
     db.commit()
     db.refresh(user)
 

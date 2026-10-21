@@ -25,6 +25,8 @@ import {
   getProducts,
   getCategories,
   registerUser,
+  requestPasswordReset,
+  confirmPasswordReset,
   loginUser,
   createOrder,
   getImageUrl,
@@ -42,6 +44,7 @@ import Logo from "./components/Logo";
 import CatalogPage from "./pages/CatalogPage";
 import HomePage from "./pages/HomePage";
 import ConsentPage from "./pages/ConsentPage";
+import DeliveryReturnsPage from "./pages/DeliveryReturnsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import ProductPage from "./pages/ProductPage";
 import { PHONES, SELLER, WORKING_HOURS, YANDEX_REVIEW_URL, YEARS_ON_MARKET } from "./shop/contacts";
@@ -246,7 +249,10 @@ function App() {
   const [accountPhone, setAccountPhone] = useState("");
   const [accountPassword, setAccountPassword] = useState("");
   // «Войти» в шапке: вход или регистрация нового покупателя
-  const [accountAuthMode, setAccountAuthMode] = useState<"login" | "register">("login");
+  const [accountAuthMode, setAccountAuthMode] = useState<"login" | "register" | "reset">("login");
+  // Сброс пароля: код из Telegram-бота
+  const [resetCodeSent, setResetCodeSent] = useState(false);
+  const [resetCode, setResetCode] = useState("");
   const [accountPrivacyAccepted, setAccountPrivacyAccepted] = useState(false);
   const [accountLoading, setAccountLoading] = useState(false);
   const [accountError, setAccountError] = useState("");
@@ -600,9 +606,22 @@ function App() {
       return;
     }
 
+    const resetting = accountAuthMode === "reset";
+    if (resetting && resetCodeSent && accountPassword.length < PASSWORD_MIN_LENGTH) {
+      setAccountError(`Новый пароль — не короче ${PASSWORD_MIN_LENGTH} символов.`);
+      return;
+    }
+
     setAccountLoading(true);
 
     try {
+      if (resetting && !resetCodeSent) {
+        const answer = await requestPasswordReset(accountPhone.trim());
+        setAccountNotice(answer.detail);
+        setResetCodeSent(true);
+        return;
+      }
+
       if (registering) {
         await registerUser({
           phone: accountPhone.trim(),
@@ -611,10 +630,16 @@ function App() {
         });
       }
 
-      const auth = await loginUser({
-        phone: accountPhone.trim(),
-        password: accountPassword,
-      });
+      const auth = resetting
+        ? await confirmPasswordReset({
+            phone: accountPhone.trim(),
+            code: resetCode.trim(),
+            new_password: accountPassword,
+          })
+        : await loginUser({
+            phone: accountPhone.trim(),
+            password: accountPassword,
+          });
 
       const user = await getCurrentUser(auth.access_token);
 
@@ -633,6 +658,9 @@ function App() {
       });
 
       setAccountPassword("");
+      setResetCode("");
+      setResetCodeSent(false);
+      setAccountAuthMode("login");
       setAccountMode("orders");
 
       await Promise.all([refreshOrders(auth.access_token), refreshNotifications(auth.access_token)]);
@@ -897,9 +925,9 @@ function App() {
             <NavLink to="/catalog" onClick={() => setMobileMenuOpen(false)}>
               Каталог
             </NavLink>
-            <Link to="/#delivery" onClick={() => setMobileMenuOpen(false)}>
+            <NavLink to="/delivery" onClick={() => setMobileMenuOpen(false)}>
               Доставка
-            </Link>
+            </NavLink>
             <Link to="/#contacts" onClick={() => setMobileMenuOpen(false)}>
               Контакты
             </Link>
@@ -984,6 +1012,7 @@ function App() {
           <Route path="/product/:productId" element={<ProductPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/consent" element={<ConsentPage />} />
+          <Route path="/delivery" element={<DeliveryReturnsPage />} />
           <Route path="*" element={<CatalogPage />} />
         </Routes>
       </main>
@@ -1009,6 +1038,7 @@ function App() {
             {SELLER.name} · ОГРНИП {SELLER.ogrnip} · ИНН {SELLER.inn}
           </span>
           <span className="footer-legal-links">
+            <Link to="/delivery">Доставка и возврат</Link>
             <Link to="/privacy">Политика конфиденциальности</Link>
             <Link to="/consent">Согласие на обработку данных</Link>
           </span>
@@ -1425,10 +1455,12 @@ function App() {
                 <p className="checkout-description">
                   {accountAuthMode === "login"
                     ? "Войди, чтобы смотреть историю заказов и отслеживать их статус."
-                    : "Создай аккаунт по номеру телефона — заказы и их статусы будут здесь и в Telegram-боте."}
+                    : accountAuthMode === "register"
+                      ? "Создай аккаунт по номеру телефона — заказы и их статусы будут здесь и в Telegram-боте."
+                      : "Если аккаунт подключён к нашему Telegram-боту, код для смены пароля придёт туда."}
                 </p>
 
-                <div className="auth-tabs">
+                {accountAuthMode !== "reset" && <div className="auth-tabs">
                   <button
                     type="button"
                     className={accountAuthMode === "login" ? "auth-tab active" : "auth-tab"}
@@ -1449,7 +1481,7 @@ function App() {
                   >
                     Регистрация
                   </button>
-                </div>
+                </div>}
 
                 <label className="checkout-field">
                   <span>Номер телефона</span>
@@ -1464,22 +1496,39 @@ function App() {
                   />
                 </label>
 
-                <label className="checkout-field">
-                  <span>Пароль</span>
-                  <input
-                    type="password"
-                    value={accountPassword}
-                    onChange={(event) => setAccountPassword(event.target.value)}
-                    placeholder={
-                      accountAuthMode === "register"
-                        ? `Не короче ${PASSWORD_MIN_LENGTH} символов`
-                        : "Введите пароль"
-                    }
-                    autoComplete={accountAuthMode === "register" ? "new-password" : "current-password"}
-                    minLength={accountAuthMode === "register" ? PASSWORD_MIN_LENGTH : 1}
-                    required
-                  />
-                </label>
+                {accountAuthMode === "reset" && resetCodeSent && (
+                  <label className="checkout-field">
+                    <span>Код из Telegram</span>
+                    <input
+                      inputMode="numeric"
+                      value={resetCode}
+                      onChange={(event) => setResetCode(event.target.value)}
+                      placeholder="6 цифр"
+                      autoComplete="one-time-code"
+                      maxLength={12}
+                      required
+                    />
+                  </label>
+                )}
+
+                {(accountAuthMode !== "reset" || resetCodeSent) && (
+                  <label className="checkout-field">
+                    <span>{accountAuthMode === "reset" ? "Новый пароль" : "Пароль"}</span>
+                    <input
+                      type="password"
+                      value={accountPassword}
+                      onChange={(event) => setAccountPassword(event.target.value)}
+                      placeholder={
+                        accountAuthMode === "login"
+                          ? "Введите пароль"
+                          : `Не короче ${PASSWORD_MIN_LENGTH} символов`
+                      }
+                      autoComplete={accountAuthMode === "login" ? "current-password" : "new-password"}
+                      minLength={accountAuthMode === "login" ? 1 : PASSWORD_MIN_LENGTH}
+                      required
+                    />
+                  </label>
+                )}
 
                 {accountAuthMode === "register" && (
                   <ConsentCheckbox checked={accountPrivacyAccepted} onChange={setAccountPrivacyAccepted} />
@@ -1501,14 +1550,30 @@ function App() {
                   disabled={accountLoading}
                 >
                   {accountLoading
-                    ? accountAuthMode === "register" ? "Создаём аккаунт..." : "Входим..."
-                    : accountAuthMode === "register" ? "Зарегистрироваться" : "Войти в аккаунт"}
+                    ? "Подождите..."
+                    : accountAuthMode === "register"
+                      ? "Зарегистрироваться"
+                      : accountAuthMode === "reset"
+                        ? resetCodeSent ? "Сменить пароль и войти" : "Получить код"
+                        : "Войти в аккаунт"}
                   {!accountLoading && <ArrowRight size={18} />}
                 </button>
 
                 {accountAuthMode === "login" && (
                   <p className="checkout-footnote">
-                    Ещё нет аккаунта?{" "}
+                    <button
+                      type="button"
+                      className="link-button"
+                      onClick={() => {
+                        setAccountAuthMode("reset");
+                        setResetCodeSent(false);
+                        setAccountError("");
+                        setAccountNotice("");
+                      }}
+                    >
+                      Забыли пароль?
+                    </button>
+                    {" · "}Ещё нет аккаунта?{" "}
                     <button
                       type="button"
                       className="link-button"
@@ -1518,6 +1583,24 @@ function App() {
                       }}
                     >
                       Зарегистрируйся
+                    </button>
+                  </p>
+                )}
+
+                {accountAuthMode === "reset" && (
+                  <p className="checkout-footnote">
+                    Бот не подключён? Позвоните в магазин — вам сбросят пароль.{" "}
+                    <button
+                      type="button"
+                      className="link-button"
+                      onClick={() => {
+                        setAccountAuthMode("login");
+                        setResetCodeSent(false);
+                        setAccountError("");
+                        setAccountNotice("");
+                      }}
+                    >
+                      Вернуться ко входу
                     </button>
                   </p>
                 )}

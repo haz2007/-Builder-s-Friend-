@@ -43,7 +43,7 @@ def create_admin(
     current_user: User = Depends(require_owner),
 ):
     try:
-        user = add_admin(db, data.login)
+        user = add_admin(db, data.login, current_user)
     except AdminServiceError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
 

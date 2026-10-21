@@ -117,6 +117,20 @@ scp -r root@IP-сервера:~/builders-friend/backups ./builders-friend-backup
 scripts/restore.sh backups/db_2026-10-20_033000.dump backups/uploads_2026-10-20_033000.tar.gz
 ```
 
+## Мониторинг
+
+`scripts/healthcheck.sh` (cron каждые 5 минут, ставит `setup-server.sh`) проверяет:
+API и базу (`/api/v1/health`), контейнеры, место на диске, свежесть бэкапа и застрявшие
+сообщения в Telegram. При поломке пишет **владельцу в Telegram** один раз, когда всё
+восстановилось — ещё раз. Проверить вручную, ничего не отправляя:
+```bash
+HEALTHCHECK_DRY_RUN=1 scripts/healthcheck.sh
+```
+
+Если упадёт **весь сервер**, этот скрипт уже ничего не пошлёт. На этот случай — бесплатный
+внешний монитор: [UptimeRobot](https://uptimerobot.com) → *New monitor* → HTTP(s) →
+`https://ваш-домен/api/v1/health`, интервал 5 минут, уведомления на почту или в Telegram.
+
 ## 6. Если Telegram недоступен с сервера
 
 С российского сервера `api.telegram.org` может быть закрыт — тогда сайт работает,

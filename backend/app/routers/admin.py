@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, joinedload
 from ..auth import require_admin
 from ..database import get_db
 from ..models import (
+    AuditLog,
     Order,
     OrderItem,
     OrderStatusHistory,
@@ -98,6 +99,35 @@ def get_activity(
             "changed_by": entry.changed_by_label,
             "customer_name": entry.order.customer_name,
             "total_price": entry.order.total_price,
+        }
+        for entry in entries
+    ]
+
+
+@router.get("/audit")
+def get_audit_log(
+    limit: int = Query(default=100, ge=1, le=500),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Журнал: кто и когда менял товары, варианты, категории, админов и пароли."""
+    entries = (
+        db.query(AuditLog)
+        .options(joinedload(AuditLog.actor))
+        .order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
+        .limit(limit)
+        .all()
+    )
+    return [
+        {
+            "id": entry.id,
+            "action": entry.action,
+            "entity": entry.entity,
+            "entity_id": entry.entity_id,
+            "summary": entry.summary,
+            "changes": entry.changes,
+            "actor": entry.actor_label,
+            "created_at": as_utc(entry.created_at),
         }
         for entry in entries
     ]

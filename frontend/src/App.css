@@ -5144,3 +5144,14 @@ a.category-tab {
 .footer-legal a:hover { color: #e6ded6; }
 
 .link-button { padding: 0; border: 0; color: #8a5a22; background: none; font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+
+/* Подсказки в окне входа (сброс пароля и т.п.) */
+.account-notice {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: #4d3a2a;
+  background: #f6efe6;
+  font-size: 13px;
+  line-height: 1.45;
+}
