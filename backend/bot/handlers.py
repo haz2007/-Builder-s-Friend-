@@ -6,7 +6,6 @@ from .admin import (
     admin_change_status,
     admin_order_screen,
     admin_orders_screen,
-    admin_stock_screen,
     admin_summary_screen,
 )
 from .catalog import catalog_screen, category_screen
@@ -28,6 +27,15 @@ from .owner import (
     handle_add_admin_message,
 )
 from .screens import contacts_screen, help_screen, home_screen, logout, profile_screen
+from .stock import (
+    STOCK_STEPS,
+    admin_stock_screen,
+    find_product_prompt,
+    handle_stock_message,
+    price_prompt,
+    product_screen,
+    stock_prompt,
+)
 from .telegram import answer_callback, button, delete_message, inline, show_screen
 
 # Кнопки меню и команды: функция экрана (chat_id, telegram_user_id) → None
@@ -88,7 +96,11 @@ def handle_message(message: dict) -> None:
         return
 
     action = MENU_ACTIONS.get(text) or SLASH_COMMANDS.get(text.split("@")[0])
+    if state and state["step"] in STOCK_STEPS and action is None:
+        handle_stock_message(message, state)
+        return
     if action is not None:
+        user_states.pop(telegram_user_id, None)
         delete_message(chat_id, message["message_id"])
         action(chat_id, telegram_user_id)
         return
@@ -117,6 +129,10 @@ def handle_callback(callback: dict) -> None:
     message_id = message.get("message_id")
     parts = data.split(":")
     reply = ""
+    # Нажатие любой кнопки отменяет ожидание числа: кнопки ввода выставят его заново
+    state = user_states.get(telegram_user_id)
+    if state and state["step"] in STOCK_STEPS:
+        user_states.pop(telegram_user_id, None)
 
     if data == "home":
         user_states.pop(telegram_user_id, None)
@@ -149,6 +165,14 @@ def handle_callback(callback: dict) -> None:
             admin_order_screen(chat_id, telegram_user_id, parse_int(parts[2]), parts[3], message_id)
         elif parts[1] == "stock":
             admin_stock_screen(chat_id, telegram_user_id, message_id)
+        elif parts[1] == "find":
+            find_product_prompt(chat_id, telegram_user_id, message_id)
+        elif parts[1] == "prod" and len(parts) == 3:
+            product_screen(chat_id, telegram_user_id, parse_int(parts[2]), message_id)
+        elif parts[1] == "setstock" and len(parts) == 3:
+            stock_prompt(chat_id, telegram_user_id, parse_int(parts[2]), message_id)
+        elif parts[1] == "setprice" and len(parts) == 3:
+            price_prompt(chat_id, telegram_user_id, parse_int(parts[2]), message_id)
     elif parts[0] == "order" and len(parts) == 3:
         # Кнопки статуса: из уведомления меняем статус прямо в этом сообщении
         reply = admin_change_status(chat_id, telegram_user_id, parse_int(parts[1]), parts[2], message_id)

@@ -20,6 +20,7 @@ import { pluralize } from "../shop/format";
 import { useShop } from "../shop/ShopContext";
 import type { Product } from "../shop/types";
 import { matchScore, searchTokens } from "../shop/search";
+import { usePageTitle } from "../shop/usePageTitle";
 
 const PAGE_SIZE = 12;
 const CUBIC_UNITS = ["м3", "м³", "куб"];
@@ -58,6 +59,7 @@ export default function CatalogPage() {
   const length = Number(searchParams.get("l")) || 0;
 
   const category = categories.find((item) => String(item.id) === categoryId);
+  usePageTitle(category ? category.name : "Каталог");
   const parent = category ? parentCategory(categories, category) : undefined;
   // Активная вкладка верхнего уровня и её подкатегории
   const topCategory = parent ?? category;

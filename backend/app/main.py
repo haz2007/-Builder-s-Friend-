@@ -16,6 +16,7 @@ from .routers.notifications import router as notifications_router
 from .routers.orders import router as orders_router
 from .routers.products import UPLOAD_DIR
 from .routers.products import router as products_router
+from .routers.seo import router as seo_router
 from .routers.users import router as users_router
 
 OPENAPI_TAGS = [
@@ -59,6 +60,7 @@ app.include_router(users_router)
 app.include_router(admin_router)
 app.include_router(notifications_router)
 app.include_router(admins_router)
+app.include_router(seo_router)
 
 
 @app.get("/api/v1/health")

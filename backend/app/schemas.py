@@ -195,6 +195,7 @@ class OrderResponse(BaseModel):
     customer_phone: str | None = None
     # Нужен админке, чтобы сбросить пароль покупателю
     user_id: int | None = None
+    created_at: UtcDatetime | None = None
     items: list[OrderItemResponse]
     status_history: list[OrderStatusHistoryResponse] = []
 
@@ -225,6 +226,11 @@ class UserRegister(BaseModel):
 
 class PasswordResetRequest(BaseModel):
     phone: str = Field(min_length=10, max_length=30)
+
+
+class PasswordChange(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=PASSWORD_MIN_LENGTH, max_length=128)
 
 
 class PasswordResetConfirm(BaseModel):

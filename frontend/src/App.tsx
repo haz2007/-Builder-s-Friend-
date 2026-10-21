@@ -20,12 +20,14 @@ import {
   Warehouse,
   Phone,
   Star,
+  KeyRound,
 } from "lucide-react";
 import {
   getProducts,
   getCategories,
   registerUser,
   requestPasswordReset,
+  changePassword,
   confirmPasswordReset,
   loginUser,
   createOrder,
@@ -246,6 +248,12 @@ function App() {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [accountOpen, setAccountOpen] = useState(false);
   const [accountMode, setAccountMode] = useState<"login" | "orders">("login");
+  // Смена пароля в кабинете (например, после временного пароля от магазина)
+  const [passwordFormOpen, setPasswordFormOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [accountPhone, setAccountPhone] = useState("");
   const [accountPassword, setAccountPassword] = useState("");
   // «Войти» в шапке: вход или регистрация нового покупателя
@@ -672,6 +680,31 @@ function App() {
       );
     } finally {
       setAccountLoading(false);
+    }
+  }
+
+  async function handleChangePassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) return;
+    if (newPassword.length < PASSWORD_MIN_LENGTH) {
+      setPasswordMessage({ ok: false, text: `Новый пароль — не короче ${PASSWORD_MIN_LENGTH} символов.` });
+      return;
+    }
+    setPasswordSaving(true);
+    setPasswordMessage(null);
+    try {
+      await changePassword(token, { current_password: currentPassword, new_password: newPassword });
+      setCurrentPassword("");
+      setNewPassword("");
+      setPasswordMessage({ ok: true, text: "Пароль изменён. В следующий раз входите с новым паролем." });
+    } catch (error) {
+      setPasswordMessage({
+        ok: false,
+        text: error instanceof Error ? error.message : "Не удалось сменить пароль.",
+      });
+    } finally {
+      setPasswordSaving(false);
     }
   }
 
@@ -1617,6 +1650,18 @@ function App() {
                   </div>
                   <button
                     className="account-logout"
+                    onClick={() => {
+                      setPasswordFormOpen(!passwordFormOpen);
+                      setPasswordMessage(null);
+                    }}
+                    title="Сменить пароль"
+                    aria-expanded={passwordFormOpen}
+                  >
+                    <KeyRound size={17} />
+                    <span>Пароль</span>
+                  </button>
+                  <button
+                    className="account-logout"
                     onClick={logoutCustomer}
                     title="Выйти из аккаунта"
                   >
@@ -1624,6 +1669,42 @@ function App() {
                     <span>Выйти</span>
                   </button>
                 </div>
+
+                {passwordFormOpen && (
+                  <form className="account-password-form" onSubmit={handleChangePassword}>
+                    <label className="checkout-field">
+                      <span>Текущий пароль</span>
+                      <input
+                        type="password"
+                        value={currentPassword}
+                        onChange={(event) => setCurrentPassword(event.target.value)}
+                        placeholder="Или временный пароль от магазина"
+                        autoComplete="current-password"
+                        required
+                      />
+                    </label>
+                    <label className="checkout-field">
+                      <span>Новый пароль</span>
+                      <input
+                        type="password"
+                        value={newPassword}
+                        onChange={(event) => setNewPassword(event.target.value)}
+                        placeholder={`Не короче ${PASSWORD_MIN_LENGTH} символов`}
+                        autoComplete="new-password"
+                        minLength={PASSWORD_MIN_LENGTH}
+                        required
+                      />
+                    </label>
+                    {passwordMessage && (
+                      <p className={passwordMessage.ok ? "account-notice" : "checkout-error"} role="status">
+                        {passwordMessage.text}
+                      </p>
+                    )}
+                    <button className="button button-primary checkout-button" type="submit" disabled={passwordSaving}>
+                      {passwordSaving ? "Сохраняем..." : "Сменить пароль"}
+                    </button>
+                  </form>
+                )}
 
                 <div className="account-orders-heading">
                   <div>

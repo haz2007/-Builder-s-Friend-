@@ -2,11 +2,13 @@ import { ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { PHONES, SELLER, STORE_LOCATION, STORE_NAME } from "../shop/contacts";
+import { usePageTitle } from "../shop/usePageTitle";
 
 const UPDATED = "21 октября 2026 г.";
 
 /** Политика обработки персональных данных (152-ФЗ). */
 export default function PrivacyPage() {
+  usePageTitle("Политика конфиденциальности");
   const operator = `${SELLER.name} (ОГРНИП ${SELLER.ogrnip}, ИНН ${SELLER.inn}), магазин «${STORE_NAME}»`;
   const phones = PHONES.map((phone) => phone.display).join(", ");
 

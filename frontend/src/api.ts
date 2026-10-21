@@ -111,6 +111,8 @@ export type ApiOrder = {
   customer_phone: string | null;
   /** id покупателя — для сброса пароля из админки */
   user_id?: number | null;
+  /** Когда оформлен заказ (UTC) */
+  created_at?: string | null;
   items: ApiOrderItem[];
   status_history: ApiOrderStatusHistory[];
 };
@@ -223,6 +225,18 @@ export function confirmPasswordReset(data: {
 }): Promise<AuthToken> {
   return request<AuthToken>("/api/v1/auth/password-reset/confirm", {
     method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+/** Смена своего пароля: нужен текущий (или временный от админа). */
+export function changePassword(
+  token: string,
+  data: { current_password: string; new_password: string },
+): Promise<{ detail: string }> {
+  return request<{ detail: string }>("/api/v1/auth/change-password", {
+    method: "POST",
+    headers: adminHeaders(token),
     body: JSON.stringify(data),
   });
 }

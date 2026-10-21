@@ -8,6 +8,7 @@ import { formatPrice, formatQuantity } from "../shop/format";
 import { useShop } from "../shop/ShopContext";
 import { stockLabel } from "../shop/stock";
 import { showFallbackImage } from "../shop/images";
+import { usePageTitle } from "../shop/usePageTitle";
 
 export default function ProductPage() {
   const { productId } = useParams();
@@ -26,6 +27,7 @@ export default function ProductPage() {
   const [added, setAdded] = useState("");
 
   const product = products.find((item) => String(item.id) === productId);
+  usePageTitle(product?.name);
 
   if (!product) {
     return (

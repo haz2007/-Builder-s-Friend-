@@ -1,12 +1,10 @@
 """Администратор: заказы с фильтрами и сменой статуса, сводка, остатки."""
 
-import html
 from datetime import UTC, datetime, timedelta, timezone
 
 from fastapi import HTTPException
 from sqlalchemy import func
 
-from app import store_info
 from app.models import (
     Order,
     OrderStatusHistory,
@@ -17,7 +15,6 @@ from app.services.order_notifications import (
     build_order_message,
     deliver_pending,
     format_money,
-    format_quantity,
     load_order,
     queue_status_changed,
     status_name,
@@ -173,27 +170,3 @@ def admin_summary_screen(chat_id, telegram_user_id, message_id=None):
         message_id,
     )
 
-
-def admin_stock_screen(chat_id, telegram_user_id, message_id=None):
-    if require_user(chat_id, telegram_user_id, {"ADMIN"}, message_id) is None:
-        return
-    with session() as db:
-        products = (
-            db.query(Product)
-            .filter(Product.is_active == 1, Product.stock_quantity <= LOW_STOCK_LIMIT)
-            .order_by(Product.stock_quantity)
-            .limit(20)
-            .all()
-        )
-        lines = [f"⚠️ <b>Остаток {LOW_STOCK_LIMIT} и меньше</b>", ""]
-        if not products:
-            lines.append("Всё в порядке — низких остатков нет.")
-        for product in products:
-            lines.append(
-                f"• {html.escape(product.name)} — "
-                f"<b>{format_quantity(product.stock_quantity)} {html.escape(product.unit)}</b>"
-            )
-    rows = []
-    if store_info.YANDEX_MAPS_URL:
-        rows.append([{"text": "🗺 Открыть в Яндекс Картах", "url": store_info.YANDEX_MAPS_URL}])
-    show_screen(chat_id, telegram_user_id, "\n".join(lines), inline(*rows, HOME_ROW), message_id)

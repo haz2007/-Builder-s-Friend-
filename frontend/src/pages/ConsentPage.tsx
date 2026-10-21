@@ -2,6 +2,7 @@ import { ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { PHONES, SELLER, STORE_LOCATION, STORE_NAME } from "../shop/contacts";
+import { usePageTitle } from "../shop/usePageTitle";
 
 const UPDATED = "21 октября 2026 г.";
 
@@ -11,6 +12,7 @@ const UPDATED = "21 октября 2026 г.";
  * Покупатель даёт его галочкой при регистрации.
  */
 export default function ConsentPage() {
+  usePageTitle("Согласие на обработку персональных данных");
   const phones = PHONES.map((phone) => phone.display).join(", ");
 
   return (

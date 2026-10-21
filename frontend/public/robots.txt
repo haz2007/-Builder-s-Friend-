@@ -1,3 +1,5 @@
 User-agent: *
 Disallow: /admin
 Disallow: /api/
+
+Sitemap: {{placeholder "http.request.scheme"}}://{{.Req.Host}}/sitemap.xml

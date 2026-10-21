@@ -139,3 +139,40 @@ def test_customer_cannot_reset_passwords(client: TestClient):
     headers = {"Authorization": f"Bearer {create_access_token(user_id=customer_id, role='CUSTOMER')}"}
 
     assert client.post(f"/api/v1/users/{customer_id}/reset-password", headers=headers).status_code == 403
+
+
+def customer_headers(user_id):
+    return {"Authorization": f"Bearer {create_access_token(user_id=user_id, role='CUSTOMER')}"}
+
+
+def test_customer_changes_temporary_password(client: TestClient):
+    customer_id = make_user(linked=False)
+    headers = customer_headers(customer_id)
+
+    response = client.post(
+        "/api/v1/auth/change-password",
+        json={"current_password": "old-password", "new_password": "my-new-pass"},
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    assert client.post("/api/v1/auth/login", json={"phone": PHONE, "password": "my-new-pass"}).status_code == 200
+
+
+def test_change_password_needs_current_one(client: TestClient):
+    headers = customer_headers(make_user(linked=False))
+
+    wrong = client.post(
+        "/api/v1/auth/change-password",
+        json={"current_password": "not-mine", "new_password": "my-new-pass"},
+        headers=headers,
+    )
+    short = client.post(
+        "/api/v1/auth/change-password",
+        json={"current_password": "old-password", "new_password": "short"},
+        headers=headers,
+    )
+
+    assert wrong.status_code == 400
+    assert short.status_code == 422
+    assert client.post("/api/v1/auth/change-password", json={}).status_code in (401, 422)

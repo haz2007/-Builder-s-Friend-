@@ -5155,3 +5155,6 @@ a.category-tab {
   font-size: 13px;
   line-height: 1.45;
 }
+
+/* Смена пароля в личном кабинете */
+.account-password-form { display: grid; gap: 12px; margin: 4px 0 18px; padding: 16px; border: 1px solid #ece4da; border-radius: 14px; background: #fbf8f4; }

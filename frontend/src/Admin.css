@@ -745,3 +745,30 @@ label.admin-btn { margin: 0; }
 .admin-tabs button { padding: 8px 14px; border: 0; border-radius: 9px; color: #6b5a4c; background: transparent; font: 700 13px "DM Sans", sans-serif; cursor: pointer; }
 .admin-tabs button.is-active { color: #fff; background: var(--admin-primary); }
 .admin-activity-row[class*="is-product-hidden"] em, .admin-activity-row[class*="deleted"] em, .admin-activity-row[class*="admin-removed"] em { color: #a63a2c; background: #fbf1ee; }
+
+/* Бланк заказа: на экране скрыт, при печати — единственное, что видно */
+.admin-order-print { margin-left: auto; }
+.print-sheet { display: none; }
+@media print {
+  @page { size: A4; margin: 14mm; }
+  body * { visibility: hidden; }
+  .admin-container { display: none; }
+  .admin-page { padding: 0; background: #fff; }
+  .print-sheet, .print-sheet * { visibility: visible; }
+  .print-sheet { display: block; position: absolute; inset: 0 auto auto 0; width: 100%; color: #000; font: 11pt/1.4 "DM Sans", Arial, sans-serif; }
+  .print-sheet-head { display: flex; justify-content: space-between; gap: 24px; padding-bottom: 10px; border-bottom: 2px solid #000; }
+  .print-sheet-head h1 { margin: 0; font-size: 20pt; }
+  .print-sheet-head p { margin: 2px 0 0; }
+  .print-sheet-store { display: flex; flex-direction: column; align-items: flex-end; text-align: right; font-size: 9pt; }
+  .print-sheet-store strong { font-size: 12pt; }
+  .print-sheet-info { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 14px 0; }
+  .print-sheet-info dt { font-weight: 700; }
+  .print-sheet-info dd { margin: 0; }
+  .print-sheet-items { width: 100%; border-collapse: collapse; }
+  .print-sheet-items th, .print-sheet-items td { padding: 5px 6px; border: 1px solid #000; text-align: left; vertical-align: top; }
+  .print-sheet-items th:nth-child(n + 3), .print-sheet-items td:nth-child(n + 3) { text-align: right; white-space: nowrap; }
+  .print-sheet-items tfoot td { font-weight: 700; }
+  .print-sheet-items tfoot td:first-child { text-align: right; }
+  .print-sheet-note { margin: 10px 0 0; font-size: 9pt; }
+  .print-sheet-signatures { display: flex; flex-direction: column; gap: 22px; margin-top: 36px; }
+}

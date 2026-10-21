@@ -16,15 +16,23 @@
 	handle /openapi.json {
 		reverse_proxy backend:8000
 	}
+	# Карта сайта для Яндекс Вебмастера — её собирает бэкенд по товарам и разделам
+	handle /sitemap.xml {
+		rewrite * /api/v1/seo/sitemap.xml?host={hostport}&scheme={scheme}
+		reverse_proxy backend:8000
+	}
 
 	# Сайт: файлы сборки, остальные адреса (/catalog/1, /admin) — index.html
 	handle {
 		root * /srv
 		try_files {path} /index.html
 
-		# В index.html подставляется адрес сайта для превью ссылки (og:image)
-		@page path / /index.html
-		templates @page
+		# В index.html — SEO-шапка страницы от бэкенда (httpInclude),
+		# в robots.txt — адрес карты сайта
+		@page path / /index.html /robots.txt
+		templates @page {
+			mime text/html text/plain
+		}
 		file_server
 
 		@assets path /assets/*

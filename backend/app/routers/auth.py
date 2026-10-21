@@ -18,6 +18,7 @@ from ..models import User
 from ..rate_limit import login_limiter, register_limiter, reset_confirm_limiter, reset_request_limiter
 from ..schemas import (
     LoginRequest,
+    PasswordChange,
     PasswordResetConfirm,
     PasswordResetRequest,
     TokenResponse,
@@ -140,6 +141,24 @@ def get_me(
     current_user: User = Depends(get_current_user),
 ):
     return current_user
+
+
+@router.post("/change-password", dependencies=[Depends(login_limiter)])
+def change_password(
+    data: PasswordChange,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Смена пароля из личного кабинета — например, после временного пароля от админа."""
+    if not verify_password(data.current_password, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="Текущий пароль указан неверно.")
+    if data.current_password == data.new_password:
+        raise HTTPException(status_code=400, detail="Новый пароль совпадает с текущим.")
+    user = db.get(User, current_user.id)
+    assert user is not None
+    user.password_hash = hash_password(data.new_password)
+    db.commit()
+    return {"detail": "Пароль изменён."}
 
 
 RESET_SENT = (

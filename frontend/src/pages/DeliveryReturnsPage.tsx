@@ -2,6 +2,7 @@ import { ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { PHONES, SELLER, STORE_LOCATION, WORKING_HOURS } from "../shop/contacts";
+import { usePageTitle } from "../shop/usePageTitle";
 
 /**
  * Доставка, самовывоз и возврат. Порядок возврата — по закону «О защите прав
@@ -9,6 +10,7 @@ import { PHONES, SELLER, STORE_LOCATION, WORKING_HOURS } from "../shop/contacts"
  * его покупателю до покупки.
  */
 export default function DeliveryReturnsPage() {
+  usePageTitle("Доставка и возврат");
   const phones = PHONES.map((phone) => phone.display).join(", ");
 
   return (

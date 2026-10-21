@@ -14,6 +14,7 @@ import { showFallbackImage } from "../shop/images";
 import { PHONES, STORE_LOCATION, TELEGRAM_BOT_URL, YEARS_ON_MARKET } from "../shop/contacts";
 import { pluralize } from "../shop/format";
 import { useShop } from "../shop/ShopContext";
+import { usePageTitle } from "../shop/usePageTitle";
 
 const STORY_PHOTO =
   "https://images.unsplash.com/photo-1787422429897-ad354751e61c?auto=format&fit=crop&w=1200&q=80";
@@ -39,6 +40,7 @@ const STEPS = [
 ];
 
 export default function HomePage() {
+  usePageTitle(null);
   const { products, categories, cartCount, openCheckout } = useShop();
   const navigate = useNavigate();
 

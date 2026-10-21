@@ -8,6 +8,7 @@ import {
   Layers,
   LogOut,
   Pencil,
+  Printer,
   RefreshCw,
   Trash2,
   UserMinus,
@@ -29,6 +30,7 @@ const ICONS = {
   userMinus: UserMinus,
   logout: LogOut,
   key: KeyRound,
+  print: Printer,
 };
 
 export type IconName = keyof typeof ICONS;
