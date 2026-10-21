@@ -5,6 +5,7 @@ from app.models import Category, User
 def create_admin(db):
     admin = User(
         email="admin@woodcommerce.local",
+        phone="+79991112000",
         password_hash=hash_password("123456"),
         role="ADMIN"
     )
@@ -26,13 +27,12 @@ def create_customer(db):
     return customer
 
 
+ADMIN_PHONE = "+79991112000"
+
+
 def login(client, identifier, password):
-    # Email login is reserved for administrators; customers use phone numbers.
-    login_data = {"password": password}
-    if identifier.startswith("+"):
-        login_data["phone"] = identifier
-    else:
-        login_data["email"] = identifier
+    # Вход только по телефону; «admin@…» в тестах — это админ с номером ADMIN_PHONE
+    login_data = {"password": password, "phone": identifier if identifier.startswith("+") else ADMIN_PHONE}
 
     response = client.post("/api/v1/auth/login", json=login_data)
     assert response.status_code == 200, response.text

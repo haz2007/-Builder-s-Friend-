@@ -263,15 +263,15 @@ class UserResponse(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    email: str | None = None
-    phone: str | None = None
-    password: str
+    # Вход только по телефону: все аккаунты, и админы тоже, — по номеру
+    phone: str = Field(min_length=10, max_length=30)
+    password: str = Field(min_length=1, max_length=128)
 
 
 
 class AdminCreate(BaseModel):
-    # Телефон или email уже зарегистрированного пользователя
-    login: str = Field(min_length=3, max_length=255)
+    # Телефон уже зарегистрированного пользователя
+    login: str = Field(min_length=10, max_length=30)
 
 
 class AdminResponse(UserResponse):

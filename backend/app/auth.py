@@ -199,12 +199,3 @@ def require_owner(
         )
 
     return current_user
-
-
-def find_user_by_login(db: Session, login: str) -> User | None:
-    """Поиск по email (если есть «@») или по телефону."""
-    login = login.strip()
-    if "@" in login:
-        return find_user_by_email(db, login)
-    return find_user_by_phone(db, login)
-

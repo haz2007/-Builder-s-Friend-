@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { createCallbackRequest } from "../api";
 import type { CartEntry } from "../shop/types";
 import ConsentCheckbox from "./ConsentCheckbox";
+import PhoneInput from "./PhoneInput";
 
 /**
  * Заказ без регистрации: имя и телефон, корзина уходит менеджеру.
@@ -70,15 +71,7 @@ export default function CallbackForm({
       </label>
       <label className="checkout-field">
         <span>Номер телефона</span>
-        <input
-          type="tel"
-          value={phone}
-          onChange={(event) => setPhone(event.target.value)}
-          placeholder="+7 999 123-45-67"
-          autoComplete="tel"
-          maxLength={30}
-          required
-        />
+        <PhoneInput value={phone} onChange={setPhone} required />
       </label>
       <label className="checkout-field">
         <span>

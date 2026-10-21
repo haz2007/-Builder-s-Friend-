@@ -2,7 +2,7 @@
 
 from sqlalchemy.orm import Session
 
-from ..auth import find_user_by_login
+from ..auth import find_user_by_phone
 from ..models import TelegramAccountLink, User
 from . import audit
 
@@ -34,7 +34,7 @@ def who(user: User) -> str:
 
 
 def add_admin(db: Session, login: str, actor: User | None = None) -> User:
-    user = find_user_by_login(db, login)
+    user = find_user_by_phone(db, login)
 
     if user is None:
         raise AdminServiceError(

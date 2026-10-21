@@ -2756,8 +2756,8 @@
         "properties": {
           "login": {
             "type": "string",
-            "maxLength": 255,
-            "minLength": 3,
+            "maxLength": 30,
+            "minLength": 10,
             "title": "Login"
           }
         },
@@ -3060,35 +3060,22 @@
       },
       "LoginRequest": {
         "properties": {
-          "email": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Email"
-          },
           "phone": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "maxLength": 30,
+            "minLength": 10,
             "title": "Phone"
           },
           "password": {
             "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
             "title": "Password"
           }
         },
         "type": "object",
         "required": [
+          "phone",
           "password"
         ],
         "title": "LoginRequest"

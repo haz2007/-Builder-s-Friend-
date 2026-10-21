@@ -11,6 +11,7 @@ import { Icon } from "./AdminIcons";
 import AnalyticsSection from "./AnalyticsSection";
 import CategoriesSection from "./CategoriesSection";
 import { LogoMark } from "./components/Logo";
+import PhoneInput from "./components/PhoneInput";
 import OrdersSection from "./OrdersSection";
 import ProductsSection from "./ProductsSection";
 
@@ -168,13 +169,7 @@ function Admin() {
     setNotice("");
 
     try {
-      const identifier = login.trim();
-      const auth = await loginUser({
-        ...(identifier.includes("@")
-          ? { email: identifier }
-          : { phone: identifier }),
-        password,
-      });
+      const auth = await loginUser({ phone: login.trim(), password });
 
       await loadData(auth.access_token);
 
@@ -222,19 +217,10 @@ function Admin() {
           <LogoMark size={44} />
           <span className="admin-eyebrow">ДРУГ СТРОИТЕЛЯ</span>
           <h1>Вход для администратора</h1>
-          <p>Войди с аккаунтом, которому назначена роль ADMIN.</p>
+          <p>Войди по номеру телефона аккаунта администратора — как на сайте.</p>
           <label>
-            Почта или номер телефона
-            <input
-              type="text"
-              value={login}
-
-              onChange={(event) => setLogin(event.target.value)}
-
-              autoComplete="username"
-              placeholder="admin@example.com или +79991234567"
-              required
-            />
+            Номер телефона
+            <PhoneInput value={login} onChange={setLogin} autoComplete="username" required />
           </label>
           <label>
             Пароль

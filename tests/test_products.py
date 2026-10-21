@@ -39,13 +39,11 @@ def create_category(db):
 
 
 def login(client, email, password):
-    if email.startswith("admin"):
-        credentials = {"email": email, "password": password}
-    else:
-        phone = "+7999" + str(
-            int(hashlib.sha256(email.encode("utf-8")).hexdigest(), 16) % 10_000_000
-        ).zfill(7)
-        credentials = {"phone": phone, "password": password}
+    # Вход только по телефону: у тестовых пользователей он выводится из email
+    phone = "+7999" + str(
+        int(hashlib.sha256(email.encode("utf-8")).hexdigest(), 16) % 10_000_000
+    ).zfill(7)
+    credentials = {"phone": phone, "password": password}
 
     response = client.post("/api/v1/auth/login", json=credentials)
     assert response.status_code == 200, response.text

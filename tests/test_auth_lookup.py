@@ -48,15 +48,17 @@ def test_register_rejects_same_number_in_other_format(client: TestClient):
     assert response.status_code == 400
 
 
-def test_admin_email_login_ignores_case(client: TestClient):
-    create_user(email="owner@woodcommerce.local", role="ADMIN")
+def test_login_is_by_phone_only(client: TestClient):
+    create_user(email="owner@woodcommerce.local", phone="+79991234500", role="ADMIN")
 
-    response = client.post(
+    by_email = client.post(
         "/api/v1/auth/login",
-        json={"email": "Owner@WoodCommerce.local ", "password": "password123"},
+        json={"email": "owner@woodcommerce.local", "password": "password123"},
     )
+    by_phone = client.post("/api/v1/auth/login", json={"phone": "8 999 123-45-00", "password": "password123"})
 
-    assert response.status_code == 200
+    assert by_email.status_code == 422
+    assert by_phone.status_code == 200
 
 
 def test_wrong_password_still_rejected(client: TestClient):

@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 // Тестовый админ из backend/seed_e2e.py
-const ADMIN_EMAIL = "admin@e2e.test";
+const ADMIN_PHONE = "+79990000001";
 const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? "e2e-admin-pass";
 
 // Свой номер на каждый запуск — база между запусками не очищается
@@ -47,7 +47,7 @@ test.describe.serial("покупка и обработка заказа", () => 
 
   test("администратор подтверждает заказ", async ({ page }) => {
     await page.goto("/admin");
-    await page.getByLabel("Почта или номер телефона").fill(ADMIN_EMAIL);
+    await page.getByLabel("Номер телефона").fill(ADMIN_PHONE);
     await page.getByLabel("Пароль").fill(ADMIN_PASSWORD);
     await page.getByRole("button", { name: "Войти" }).click();
     await expect(page.getByRole("heading", { name: "Управление магазином" })).toBeVisible();
@@ -102,7 +102,7 @@ test("гость оставляет заявку без регистрации, 
   await expect(page.getByRole("heading", { name: "Перезвоним!" })).toBeVisible();
 
   await page.goto("/admin");
-  await page.getByLabel("Почта или номер телефона").fill(ADMIN_EMAIL);
+  await page.getByLabel("Номер телефона").fill(ADMIN_PHONE);
   await page.getByLabel("Пароль").fill(ADMIN_PASSWORD);
   await page.getByRole("button", { name: "Войти" }).click();
   await page.getByRole("link", { name: /Заказы/ }).click();
@@ -140,4 +140,17 @@ test("кабинет: избранное и удаление аккаунта", 
   await page.getByLabel("Пароль").fill("e2e-delete-pass");
   await page.getByRole("button", { name: "Войти в аккаунт" }).click();
   await expect(page.getByRole("alert")).toBeVisible();
+});
+
+test("администратор входит через обычную форму сайта и попадает в админку", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTitle("Личный кабинет").click();
+  // «+7» подставляется само — вводим только цифры
+  await page.getByLabel("Номер телефона").pressSequentially("9990000001");
+  await expect(page.getByLabel("Номер телефона")).toHaveValue("+7 999 000-00-01");
+  await page.getByLabel("Пароль").fill(ADMIN_PASSWORD);
+  await page.getByRole("button", { name: "Войти в аккаунт" }).click();
+
+  await expect(page).toHaveURL(/\/admin$/);
+  await expect(page.getByRole("heading", { name: "Управление магазином" })).toBeVisible();
 });

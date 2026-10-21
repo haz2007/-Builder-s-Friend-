@@ -16,7 +16,7 @@ from app.database import DATABASE_URL, SessionLocal
 from app.models import User
 
 # Тестовые данные, не настоящий аккаунт; те же значения в frontend/e2e/shop.spec.ts
-ADMIN_EMAIL = "admin@e2e.test"
+ADMIN_PHONE = "+79990000001"
 ADMIN_PASSWORD = os.getenv("E2E_ADMIN_PASSWORD", "e2e-admin-pass")
 
 
@@ -27,8 +27,8 @@ def main() -> None:
     seed()
     db = SessionLocal()
     try:
-        if db.query(User).filter(User.email == ADMIN_EMAIL).first() is None:
-            db.add(User(email=ADMIN_EMAIL, password_hash=hash_password(ADMIN_PASSWORD), role="ADMIN"))
+        if db.query(User).filter(User.phone == ADMIN_PHONE).first() is None:
+            db.add(User(phone=ADMIN_PHONE, password_hash=hash_password(ADMIN_PASSWORD), role="ADMIN"))
             db.commit()
     finally:
         db.close()

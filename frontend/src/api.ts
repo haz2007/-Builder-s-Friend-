@@ -50,9 +50,8 @@ export type ApiProduct = {
 
 /** privacy_accepted — согласие с политикой конфиденциальности, без него регистрации нет */
 export type RegisterData = { phone: string; password: string; privacy_accepted: true };
-export type CustomerLoginData = { phone: string; password: string };
-export type AdminLoginData = { email: string; password: string } | { phone: string; password: string };
-export type LoginData = CustomerLoginData | AdminLoginData;
+/** Вход — только по номеру телефона, и для покупателей, и для администраторов */
+export type LoginData = { phone: string; password: string };
 
 export type AuthUser = {
   id: number;

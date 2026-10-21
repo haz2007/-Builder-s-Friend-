@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Icon } from "./AdminIcons";
+import PhoneInput from "./components/PhoneInput";
 
 import {
   addAdmin,
@@ -86,13 +87,8 @@ export default function AdminsSection({ token, user, onError, onNotice }: Props)
       {isOwner && (
         <form className="admin-admins-form" onSubmit={handleAdd}>
           <label>
-            Телефон или email пользователя
-            <input
-              value={login}
-              onChange={(event) => setLogin(event.target.value)}
-              placeholder="+7 999 123-45-67"
-              maxLength={255}
-            />
+            Телефон пользователя
+            <PhoneInput value={login} onChange={setLogin} />
           </label>
           <button className="admin-btn admin-btn-primary" disabled={busy || !login.trim()}>
             Сделать администратором

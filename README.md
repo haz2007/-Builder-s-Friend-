@@ -189,7 +189,7 @@ pip install -r requirements.txt
 cp .env.example .env            # заполни SECRET_KEY, при желании TELEGRAM_BOT_TOKEN
 python manage.py init-db        # новая база: таблицы + отметка миграций
 python seed_demo.py             # пробные товары
-python manage.py set-owner <email или телефон>   # владелец магазина
+python manage.py set-owner +79991234567   # владелец магазина (по телефону)
 uvicorn app.main:app --reload
 ```
 

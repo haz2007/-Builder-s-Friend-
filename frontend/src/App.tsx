@@ -63,6 +63,7 @@ import { showFallbackImage } from "./shop/images";
 import { orderStatusLabel } from "./shop/orderStatus";
 import CallbackForm from "./components/CallbackForm";
 import DeleteAccount from "./components/DeleteAccount";
+import PhoneInput from "./components/PhoneInput";
 import QuantityInput from "./components/QuantityInput";
 import ConsentCheckbox from "./components/ConsentCheckbox";
 
@@ -74,6 +75,8 @@ type Customer = {
 
 const TOKEN_KEY = "wood_commerce_token";
 const CART_KEY = "wood_commerce_cart";
+// Тот же ключ, что в Admin.tsx: вход админа через сайт открывает панель без второго входа
+const ADMIN_TOKEN_KEY = "wood_admin_token";
 const FAVORITES_KEY = "wood_commerce_favorites";
 
 function loadFavorites(): number[] {
@@ -703,6 +706,16 @@ function App() {
           });
 
       const user = await getCurrentUser(auth.access_token);
+
+      if (user.role === "ADMIN") {
+        // Админ вошёл через обычную форму сайта — сразу в панель управления.
+        // Токен админки живёт в sessionStorage, как при входе на /admin
+        sessionStorage.setItem(ADMIN_TOKEN_KEY, auth.access_token);
+        setAccountPassword("");
+        setAccountOpen(false);
+        navigate("/admin");
+        return;
+      }
 
       if (user.role !== "CUSTOMER") {
         throw new Error(
@@ -1777,15 +1790,7 @@ function App() {
 
                     <label className="checkout-field">
                       <span>Номер телефона</span>
-                      <input
-                        type="tel"
-                        value={phone}
-                        onChange={(event) => setPhone(event.target.value)}
-                        placeholder="+7 999 123-45-67"
-                        autoComplete="tel"
-                        maxLength={30}
-                        required
-                      />
+                      <PhoneInput value={phone} onChange={setPhone} required />
                     </label>
 
                     <label className="checkout-field">
@@ -1991,15 +1996,7 @@ function App() {
 
                 <label className="checkout-field">
                   <span>Номер телефона</span>
-                  <input
-                    type="tel"
-                    value={accountPhone}
-                    onChange={(event) => setAccountPhone(event.target.value)}
-                    placeholder="+7 999 123-45-67"
-                    autoComplete="tel"
-                    maxLength={30}
-                    required
-                  />
+                  <PhoneInput value={accountPhone} onChange={setAccountPhone} required />
                 </label>
 
                 {accountAuthMode === "reset" && resetCodeSent && (

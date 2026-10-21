@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 
 from ..auth import (
     create_access_token,
-    find_user_by_email,
     find_user_by_phone,
     get_current_user,
     hash_password,
@@ -89,25 +88,8 @@ def login(
     login_data: LoginRequest,
     db: Session = Depends(get_db),
 ):
-    # Нужно указать ровно один идентификатор: email или телефон.
-    if bool(login_data.email) == bool(login_data.phone):
-        raise HTTPException(
-            status_code=400,
-            detail="Provide either email or phone number",
-        )
-
-    if login_data.phone:
-        phone = normalize_phone(login_data.phone)
-
-        user = find_user_by_phone(db, phone)
-
-        error_message = "Invalid phone number or password"
-
-    else:
-        # Выше проверено: указан ровно один идентификатор — здесь это email
-        user = find_user_by_email(db, login_data.email or "")
-
-        error_message = "Invalid email or password"
+    user = find_user_by_phone(db, normalize_phone(login_data.phone))
+    error_message = "Invalid phone number or password"
 
     if user is None or not verify_password(
         login_data.password,
@@ -116,14 +98,6 @@ def login(
         raise HTTPException(
             status_code=401,
             detail=error_message,
-        )
-
-    # Не разрешаем покупателю войти в административную панель
-    # только потому, что он знает email другого аккаунта.
-    if login_data.email and user.role != "ADMIN":
-        raise HTTPException(
-            status_code=403,
-            detail="Email login is reserved for administrators",
         )
 
     token = create_access_token(

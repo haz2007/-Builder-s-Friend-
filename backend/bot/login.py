@@ -1,8 +1,8 @@
-"""Вход в бота по телефону (или email админа) и паролю сайта."""
+"""Вход в бота по номеру телефона и паролю сайта."""
 
 
 
-from app.auth import find_user_by_email, find_user_by_phone, verify_password
+from app.auth import find_user_by_phone, verify_password
 from app.models import (
     TelegramAccountLink,
 )
@@ -20,8 +20,8 @@ def login_prompt(chat_id: int, telegram_user_id: int):
         chat_id,
         telegram_user_id,
         "🔐 <b>Вход</b>\n\n"
-        "Отправь номер телефона (или email администратора), "
-        "указанный на сайте. Следующим сообщением — пароль.\n\n"
+        "Отправь номер телефона, с которым ты зарегистрирован на сайте. "
+        "Следующим сообщением — пароль.\n\n"
         "Для отмены отправь /cancel.",
         inline([button("✖️ Отмена", "home")]),
     )
@@ -35,7 +35,7 @@ def handle_login_message(message: dict, state: dict) -> None:
     if state["step"] == "login":
         delete_message(chat_id, message["message_id"])
         if not text or len(text) > 255:
-            show_screen(chat_id, telegram_user_id, "Введи телефон или email.", inline(HOME_ROW))
+            show_screen(chat_id, telegram_user_id, "Введи номер телефона.", inline(HOME_ROW))
             return
         state["login"] = text
         state["step"] = "password"
@@ -64,7 +64,7 @@ def handle_login_message(message: dict, state: dict) -> None:
 
     with session() as db:
         try:
-            user = find_user_by_email(db, login) if "@" in login else find_user_by_phone(db, login)
+            user = find_user_by_phone(db, login)
 
             if user is None or not verify_password(text, user.password_hash):
                 logger.info(
@@ -75,7 +75,7 @@ def handle_login_message(message: dict, state: dict) -> None:
                 show_screen(
                     chat_id,
                     telegram_user_id,
-                    "❌ <b>Не удалось войти</b>\n\nПроверь телефон/email и пароль.",
+                    "❌ <b>Не удалось войти</b>\n\nПроверь номер телефона и пароль.",
                     inline([button("🔁 Попробовать снова", "login")], HOME_ROW),
                 )
                 return

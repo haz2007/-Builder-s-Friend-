@@ -12,7 +12,6 @@
     .venv/bin/python manage.py export-openapi
 
 Назначить владельца магазина (он сможет добавлять других админов):
-    .venv/bin/python manage.py set-owner owner@example.com
     .venv/bin/python manage.py set-owner +79991234567
 """
 
@@ -23,7 +22,7 @@ from alembic import command
 from alembic.config import Config
 
 from app import models  # noqa: F401 — регистрирует модели в Base.metadata
-from app.auth import find_user_by_login
+from app.auth import find_user_by_phone
 from app.database import Base, SessionLocal, engine
 
 
@@ -64,7 +63,7 @@ def export_openapi() -> None:
 def set_owner(login: str) -> None:
     db = SessionLocal()
     try:
-        user = find_user_by_login(db, login)
+        user = find_user_by_phone(db, login)
         if user is None:
             sys.exit(f"Пользователь «{login}» не найден")
 
