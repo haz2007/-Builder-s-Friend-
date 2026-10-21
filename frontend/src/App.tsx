@@ -19,6 +19,7 @@ import {
   Phone,
   Star,
   KeyRound,
+  Trash2,
 } from "lucide-react";
 import {
   getProducts,
@@ -68,6 +69,21 @@ type Customer = {
 };
 
 const TOKEN_KEY = "wood_commerce_token";
+const CART_KEY = "wood_commerce_cart";
+
+function loadCart(): Record<number, number> {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CART_KEY) ?? "{}") as unknown;
+    if (!saved || typeof saved !== "object") return {};
+    return Object.fromEntries(
+      Object.entries(saved).filter(
+        ([id, quantity]) => Number(id) > 0 && Number.isInteger(quantity) && (quantity as number) > 0,
+      ),
+    ) as Record<number, number>;
+  } catch {
+    return {};
+  }
+}
 // Как на сервере (schemas.PASSWORD_MIN_LENGTH); для входа старых аккаунтов не проверяется
 const PASSWORD_MIN_LENGTH = 8;
 
@@ -218,7 +234,16 @@ function App() {
   const [loadError, setLoadError] = useState("");
 
   // Корзина: id варианта → количество
-  const [cart, setCart] = useState<Record<number, number>>({});
+  const [cart, setCart] = useState<Record<number, number>>(loadCart);
+
+  // Корзина переживает обновление страницы; только в этом браузере
+  useEffect(() => {
+    try {
+      localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    } catch {
+      // Приватный режим или запрет хранилища — корзина просто не сохранится
+    }
+  }, [cart]);
   // Выбранный в карточке вариант: id товара → id варианта
   const [selectedVariants, setSelectedVariants] = useState<
     Record<number, number>
@@ -389,10 +414,6 @@ function App() {
     };
   }, [customer]);
 
-  const cartCount = Object.values(cart).reduce(
-    (total, quantity) => total + quantity,
-    0,
-  );
 
   const variantIndex = useMemo(() => {
     const index = new Map<
@@ -421,6 +442,9 @@ function App() {
 
     return entries;
   }, [cart, variantIndex]);
+
+  // По найденным товарам: снятый с продажи товар из сохранённой корзины не считается
+  const cartCount = cartEntries.reduce((total, entry) => total + entry.quantity, 0);
 
   const cartTotal = cartEntries.reduce(
     (total, entry) => total + entry.variant.price * entry.quantity,
@@ -1162,9 +1186,20 @@ function App() {
                         />
                       </div>
 
-                      <strong className="cart-item-total">
-                        {formatPrice(variant.price * quantity)}
-                      </strong>
+                      <div className="cart-item-side">
+                        <strong className="cart-item-total">
+                          {formatPrice(variant.price * quantity)}
+                        </strong>
+                        <button
+                          type="button"
+                          className="cart-item-remove"
+                          onClick={() => changeQuantity(variant.id, -quantity)}
+                          aria-label={`Удалить ${product.name} из корзины`}
+                          title="Удалить из корзины"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

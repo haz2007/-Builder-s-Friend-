@@ -67,3 +67,25 @@ test("у страницы свой заголовок во вкладке", asyn
   await expect(page).toHaveTitle(/Доставка и возврат/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Доставка и возврат");
 });
+
+test("товар убирается из корзины кнопкой и вводом нуля", async ({ page }) => {
+  await page.goto("/catalog?q=брус");
+  await page.getByRole("link", { name: "Брус 100×100×6000" }).click();
+  await page.getByLabel("Количество", { exact: true }).fill("30");
+  await page.getByLabel("Количество", { exact: true }).press("Enter");
+  await page.getByRole("button", { name: /^В корзину · / }).click();
+  await page.getByRole("button", { name: "Открыть корзину", exact: true }).click();
+
+  const item = page.locator(".cart-item");
+  await expect(item.getByLabel("Количество", { exact: true })).toHaveValue("30");
+  // 30 штук — одним нажатием, а не тридцатью
+  await item.getByRole("button", { name: /^Удалить .* из корзины$/ }).click();
+  await expect(page.getByRole("heading", { name: "Пока здесь пусто" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Закрыть корзину" }).click();
+  await page.getByRole("button", { name: /^В корзину · / }).click();
+  await page.getByRole("button", { name: "Открыть корзину", exact: true }).click();
+  await item.getByLabel("Количество", { exact: true }).fill("0");
+  await item.getByLabel("Количество", { exact: true }).press("Enter");
+  await expect(page.getByRole("heading", { name: "Пока здесь пусто" })).toBeVisible();
+});

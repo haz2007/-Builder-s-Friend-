@@ -29,7 +29,12 @@ export default function QuantityInput({
     if (draft === null) return;
     const typed = Number.parseInt(draft, 10);
     setDraft(null);
-    if (!Number.isFinite(typed) || typed < 1) return;
+    if (!Number.isFinite(typed)) return;
+    // «0» в корзине убирает товар, на странице товара меньше 1 не бывает
+    if (typed < 1) {
+      if (allowRemove && value > 0) onChange(0);
+      return;
+    }
     const next = Math.min(typed, Math.max(max, 1));
     if (next !== value) onChange(next);
   }
