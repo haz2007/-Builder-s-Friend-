@@ -14,14 +14,26 @@ ENV_FILE="${ENV_FILE:-.env.production}"
 [[ -f "$ENV_FILE" ]] && { set -a; source "$ENV_FILE"; set +a; }
 COMPOSE=(docker compose -f docker-compose.prod.yml --env-file "$ENV_FILE")
 
-HEALTH_URL="${HEALTH_URL:-http://localhost:${HTTP_PORT:-80}/api/v1/health}"
+# С доменом Caddy отвечает только по HTTPS и только на этот домен (на
+# http://localhost — перенаправление), поэтому проверяем настоящий адрес сайта,
+# но через сам сервер (--resolve), не завися от внешнего DNS. Без домена — :80.
+SITE_HOST="${SITE_ADDRESS:-}"
+SITE_HOST="${SITE_HOST#*://}"
+SITE_HOST="${SITE_HOST%%[/ ,]*}"
+if [[ -n "$SITE_HOST" && "$SITE_HOST" != :* ]]; then
+  HEALTH_URL="${HEALTH_URL:-https://$SITE_HOST/api/v1/health}"
+  CURL_RESOLVE=(--resolve "$SITE_HOST:${HTTPS_PORT:-443}:127.0.0.1")
+else
+  HEALTH_URL="${HEALTH_URL:-http://localhost:${HTTP_PORT:-80}/api/v1/health}"
+  CURL_RESOLVE=()
+fi
 BACKUP_DIR="${BACKUP_DIR:-$PROJECT_DIR/backups}"
 STATE_FILE="${STATE_FILE:-$PROJECT_DIR/.healthcheck_state}"
 DISK_LIMIT="${DISK_LIMIT:-90}"   # % занятого места
 problems=()
 
 # 1. API и база
-health="$(curl -fsS -m 10 "$HEALTH_URL" 2>/dev/null)"
+health="$(curl -fsS -m 10 "${CURL_RESOLVE[@]}" "$HEALTH_URL" 2>/dev/null)"
 if [[ -z "$health" ]]; then
   problems+=("сайт или API не отвечают ($HEALTH_URL)")
 else
