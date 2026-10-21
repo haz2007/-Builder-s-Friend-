@@ -9,7 +9,7 @@ import { parentCategory } from "../shop/categories";
 import { formatPrice, formatQuantity } from "../shop/format";
 import { useShop } from "../shop/ShopContext";
 import { stockLabel } from "../shop/stock";
-import { showFallbackImage } from "../shop/images";
+import { showFallbackImage, sizedImage } from "../shop/images";
 import { usePageTitle } from "../shop/usePageTitle";
 
 export default function ProductPage() {
@@ -86,7 +86,12 @@ export default function ProductPage() {
 
         <div className="product-page-grid">
           <div className="product-page-image">
-            <img src={product.image} alt={product.name} onError={showFallbackImage} />
+            <img
+              src={sizedImage(product.image, 1000)}
+              alt={product.name}
+              onError={showFallbackImage}
+              fetchPriority="high"
+            />
           </div>
 
           <div className="product-page-info">

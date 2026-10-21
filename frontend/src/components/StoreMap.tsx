@@ -1,9 +1,13 @@
-import { Clock, MapPin, Navigation, Phone } from "lucide-react";
+import { Clock, Map as MapIcon, MapPin, Navigation, Phone } from "lucide-react";
+import { useState } from "react";
 
 import { PHONES, STORE_LOCATION, WORKING_HOURS } from "../shop/contacts";
 
 /** Карта склада с маршрутом в Яндекс.Картах, 2ГИС и Google Maps. */
 export default function StoreMap() {
+  // Карта Яндекса грузится по нажатию: без неё главная быстрее, и до клика
+  // посетителю не ставятся сторонние cookie
+  const [mapShown, setMapShown] = useState(false);
   if (!STORE_LOCATION) return null;
 
   const { address, latitude, longitude, yandexUrl } = STORE_LOCATION;
@@ -18,13 +22,20 @@ export default function StoreMap() {
 
   return (
     <div className="store-map">
-      <iframe
-        className="store-map-frame"
-        src={mapUrl}
-        title={`Склад на карте: ${address}`}
-        loading="lazy"
-        allowFullScreen
-      />
+      {mapShown ? (
+        <iframe
+          className="store-map-frame"
+          src={mapUrl}
+          title={`Склад на карте: ${address}`}
+          allowFullScreen
+        />
+      ) : (
+        <button type="button" className="store-map-frame store-map-placeholder" onClick={() => setMapShown(true)}>
+          <MapIcon size={28} />
+          <span>Показать карту</span>
+          <small>Откроется карта Яндекса</small>
+        </button>
+      )}
 
       <div className="store-map-card">
         <span className="home-eyebrow">Как нас найти</span>

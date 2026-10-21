@@ -1,18 +1,21 @@
-fastapi
-uvicorn[standard]
-sqlalchemy
-psycopg2-binary
-pydantic
-pydantic-settings
-python-dotenv
-pytest
-httpx
-python-jose[cryptography]
-pwdlib[argon2]
-alembic
-requests
-psycopg[binary]
-pillow
-python-multipart
-requests[socks]
-openpyxl
+# Версии зафиксированы: пересборка на сервере ставит ровно то, что прошло тесты.
+# Обновлять осознанно: поднять версию → прогнать pytest и E2E → закоммитить.
+fastapi==0.157.0
+starlette==1.9.0
+uvicorn[standard]==0.54.0
+sqlalchemy==2.1.6
+alembic==1.20.0
+psycopg[binary]==3.3.6
+psycopg2-binary==2.9.13
+pydantic==2.14.1
+pydantic-settings==2.16.0
+python-dotenv==1.2.4
+python-jose[cryptography]==3.5.0
+pwdlib[argon2]==0.3.1
+python-multipart==0.0.32
+requests[socks]==2.34.2
+pillow==13.0.0
+openpyxl==3.1.5
+# Тесты (pytest + TestClient)
+pytest==9.1.1
+httpx==0.28.1

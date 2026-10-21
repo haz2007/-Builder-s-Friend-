@@ -382,8 +382,8 @@ export default function CatalogPage() {
             ) : pageItems.length > 0 ? (
               <>
                 <div className="product-grid">
-                  {pageItems.map((product) => (
-                    <ProductCard key={product.id} product={product} />
+                  {pageItems.map((product, index) => (
+                    <ProductCard key={product.id} product={product} priority={index < 3} />
                   ))}
                 </div>
 

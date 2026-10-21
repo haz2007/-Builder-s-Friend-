@@ -1,5 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap");
-
 :root {
   font-family: "DM Sans", sans-serif;
   color: #292623;
@@ -4490,7 +4488,14 @@ a.category-tab {
 
 .home-hero-photo {
   /* Склад пиломатериалов: ровные штабеля обрезной доски (Unsplash) */
-  background: url("https://images.unsplash.com/photo-1706027554829-50c444350e43?auto=format&fit=crop&w=2000&q=85") center 40% / cover;
+  background: url("https://images.unsplash.com/photo-1706027554829-50c444350e43?auto=format&fit=crop&w=1600&q=70") center 40% / cover;
+}
+
+/* На телефоне фону хватает 800 px: картинка в несколько раз легче */
+@media (max-width: 700px) {
+  .home-hero-photo {
+    background-image: url("https://images.unsplash.com/photo-1706027554829-50c444350e43?auto=format&fit=crop&w=800&q=70");
+  }
 }
 
 .home-hero-shade {
@@ -5616,5 +5621,84 @@ a.category-tab {
 @media (max-width: 360px) {
   .brand .logo-text {
     display: none;
+  }
+}
+
+/* Заглушка вместо карты Яндекса до нажатия */
+.store-map-placeholder {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 6px;
+  padding: 0;
+  background:
+    repeating-linear-gradient(45deg, rgba(150, 120, 90, 0.07) 0 12px, transparent 12px 24px),
+    #efe6db;
+  color: #4d3f32;
+  font: inherit;
+  cursor: pointer;
+  filter: none;
+}
+
+.store-map-placeholder span {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.store-map-placeholder small {
+  color: #6b5d50;
+  font-size: 13px;
+}
+
+.store-map-placeholder:hover {
+  background-color: #e8dccd;
+}
+
+/* ---------- Читаемость (по замечаниям Lighthouse) ----------
+   Контраст текста не ниже 4,5:1, на телефоне — не мельче 11–12 px */
+.home-button-primary,
+.home-button-primary:hover {
+  color: #24170d;
+}
+
+.product-category {
+  color: #7a6350;
+}
+
+.product-info > p,
+.variant-hint {
+  color: #6b645d;
+}
+
+.variant-option small {
+  color: #6f6862;
+}
+
+@media (max-width: 760px) {
+  .product-info > p {
+    display: -webkit-box;
+    min-height: 0;
+    overflow: hidden;
+    font-size: 12px;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .product-stock,
+  .variant-picker-label,
+  .variant-option small,
+  .category-tab,
+  .footer-legal,
+  .footer-note,
+  .copyright,
+  .topbar,
+  .topbar-inner > span {
+    font-size: 12px;
+  }
+
+  .product-category,
+  .hero-label,
+  .eyebrow {
+    font-size: 11px;
   }
 }

@@ -7,9 +7,9 @@ import { stockLabel } from "../shop/stock";
 import { useShop } from "../shop/ShopContext";
 import type { Product } from "../shop/types";
 import VariantPicker from "./VariantPicker";
-import { showFallbackImage } from "../shop/images";
+import { showFallbackImage, sizedImage } from "../shop/images";
 
-export default function ProductCard({ product }: { product: Product }) {
+export default function ProductCard({ product, priority = false }: { product: Product; priority?: boolean }) {
   const {
     cart,
     favorites,
@@ -36,10 +36,12 @@ export default function ProductCard({ product }: { product: Product }) {
         <Link to={productUrl} tabIndex={-1} aria-hidden="true">
           <img
             className="product-image"
-            src={product.image}
+            src={sizedImage(product.image, 600)}
             onError={showFallbackImage}
             alt={product.name}
-            loading="lazy"
+            // Первый ряд виден сразу — грузим без задержки, остальное лениво
+            loading={priority ? "eager" : "lazy"}
+            fetchPriority={priority ? "high" : "auto"}
           />
         </Link>
 
