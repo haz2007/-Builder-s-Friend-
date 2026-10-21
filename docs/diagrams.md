@@ -81,7 +81,7 @@ erDiagram
     PRODUCTS {
         int id PK
         string name
-        float stock_quantity "общий остаток"
+        numeric stock_quantity "общий остаток"
         string unit "базовая единица"
         float thickness_mm
         float width_mm
@@ -94,15 +94,16 @@ erDiagram
         int product_id FK
         string name "Штука, Куб, Пачка"
         string unit
-        float price
-        float base_quantity "сколько базовых единиц"
+        numeric price
+        numeric base_quantity "сколько базовых единиц"
         int is_active
     }
     ORDERS {
         int id PK
         int user_id FK
         string status
-        float total_price
+        numeric total_price
+        datetime created_at
         string delivery_method "DELIVERY, PICKUP"
         string delivery_address
     }
@@ -111,10 +112,10 @@ erDiagram
         int order_id FK
         int product_id FK
         int variant_id FK
-        float quantity
-        float price "снимок цены"
+        numeric quantity
+        numeric price "снимок цены"
         string unit "снимок единицы"
-        float base_quantity "снимок коэффициента"
+        numeric base_quantity "снимок коэффициента"
     }
     ORDER_STATUS_HISTORY {
         int id PK

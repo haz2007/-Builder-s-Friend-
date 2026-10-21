@@ -216,6 +216,30 @@ def test_fasteners_allow_fractional_kilograms(client: TestClient):
     assert get_product(product["id"]).stock_quantity == 7.5
 
 
+def test_money_is_exact_numeric(client: TestClient):
+    """В float 3 кг × 1.10 ₽ = 3.3000000000000003 — в NUMERIC ровно 3.30."""
+    admin = create_user("admin_numeric@woodcommerce.local", "ADMIN")
+    category = create_category("Крепёж")
+    product = client.post(
+        "/api/v1/products/",
+        json={
+            "name": "Гвозди финишные",
+            "price": 1.10,
+            "stock_quantity": 3.5,
+            "unit": "кг",
+            "category_id": category.id,
+        },
+        headers=auth_headers(admin),
+    ).json()
+    customer = create_user("customer_numeric@woodcommerce.local", "CUSTOMER")
+
+    response = create_order(client, customer, [{"product_id": product["id"], "quantity": 3}])
+
+    assert 1.10 * 3 != 3.3
+    assert response.json()["total_price"] == 3.3
+    assert get_product(product["id"]).stock_quantity == 0.5
+
+
 def test_order_without_variant_uses_primary(client: TestClient):
     _, product, _, _ = setup_board(client)
     customer = create_user("customer_primary@woodcommerce.local", "CUSTOMER")

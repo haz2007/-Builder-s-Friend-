@@ -413,7 +413,6 @@ export type AdminAnalytics = {
   revenue: { not_cancelled: number; delivered: number };
   average_order_value: number;
   delivery_conversion_rate: number;
-  trend: { date: string; orders: number; revenue: number; delivered_revenue: number }[];
   /** day — для 7 дней, week — для 30/90, month — за всё время */
   granularity: "day" | "week" | "month";
   revenue_series: { start: string; end: string; revenue: number; orders: number }[];
@@ -423,6 +422,50 @@ export type AdminAnalytics = {
   top_products: { product_id: number; name: string; quantity: number; revenue: number }[];
   low_stock_products: { id: number; name: string; stock_quantity: number; unit: string }[];
 };
+
+/** Отчёты на SQL (CTE, оконные функции) — app/sql/*.sql на сервере. */
+export type AdminReports = {
+  abc: {
+    product_id: number;
+    name: string;
+    base_quantity_sold: number;
+    unit: string;
+    revenue: number;
+    rank: number;
+    share_pct: number;
+    cumulative_pct: number;
+    abc_class: "A" | "B" | "C";
+  }[];
+  monthly: {
+    month: string;
+    orders: number;
+    revenue: number;
+    average_check: number;
+    pickup_pct: number;
+    revenue_change_pct: number | null;
+  }[];
+  customers: {
+    customers: number;
+    repeat_customers: number;
+    average_days_between_orders: number | null;
+  };
+};
+
+export function getAdminReports(
+  token: string,
+  period: AdminAnalyticsPeriod,
+  dateFrom?: string,
+  dateTo?: string,
+): Promise<AdminReports> {
+  const params = new URLSearchParams({ period });
+  if (period === "custom") {
+    if (dateFrom) params.set("date_from", dateFrom);
+    if (dateTo) params.set("date_to", dateTo);
+  }
+  return request<AdminReports>(`/api/v1/admin/reports?${params.toString()}`, {
+    headers: adminHeaders(token),
+  });
+}
 
 export function getAdminAnalytics(
   token: string,

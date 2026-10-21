@@ -705,3 +705,25 @@ label.admin-btn { margin: 0; }
 /* Кто сменил статус — в истории заказа */
 .admin-history-actor { color: var(--admin-muted); font-size: 12px; font-style: normal; }
 .admin-status-pickup { margin-left: 6px; color: #285b91; background: #e7f1ff; }
+
+/* ---------- SQL-отчёты ---------- */
+.admin-reports { display: grid; gap: 18px; margin-top: 18px; }
+.admin-reports-grid { grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr); }
+.admin-panel-note { margin: -4px 0 14px; color: var(--admin-muted); font-size: 13px; }
+.admin-report-table { min-width: 0; }
+.admin-report-table td, .admin-report-table th { padding: 9px 10px; }
+.admin-report-table th { white-space: normal; letter-spacing: .04em; }
+.admin-report-table th:first-child, .admin-report-table td:first-child { width: 44px; }
+.admin-reports-grid .admin-report-table td:first-child { width: auto; white-space: nowrap; }
+.admin-report-table td { font-variant-numeric: tabular-nums; }
+.admin-abc { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; font-weight: 800; font-size: 12px; }
+.admin-abc-a { color: #fff; background: #8a5a22; }
+.admin-abc-b { color: #6b4a1f; background: #ecd9bd; }
+.admin-abc-c { color: #7a6f65; background: #f1ece6; }
+.admin-up { color: #28643b; font-weight: 700; }
+.admin-down { color: #a33333; font-weight: 700; }
+.admin-repeat { display: grid; gap: 14px; }
+.admin-repeat div { display: grid; gap: 2px; }
+.admin-repeat strong { color: var(--admin-ink); font: 800 26px "Manrope", sans-serif; }
+.admin-repeat span { color: var(--admin-muted); font-size: 13px; }
+@media (max-width: 900px) { .admin-reports-grid { grid-template-columns: 1fr; } }

@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 
 from sqlalchemy import (
     Column,
+    Index,
+    Numeric,
     Integer,
     String,
     Float,
@@ -32,6 +34,14 @@ ORDER_STATUSES = (
     "CANCELLED",
 )
 DELIVERY_METHODS = ("DELIVERY", "PICKUP")
+
+
+# Деньги — NUMERIC(12, 2), количества — NUMERIC(12, 3): база хранит их точно,
+# без копеечных погрешностей float. В Python они читаются как float
+# (asdecimal=False): расчёты в коде остаются простыми, а округление до копеек
+# и тысячных делает PostgreSQL.
+Money = Numeric(12, 2, asdecimal=False)
+Quantity = Numeric(12, 3, asdecimal=False)
 
 
 def one_of(column: str, values: tuple[str, ...]) -> str:
@@ -110,6 +120,8 @@ product_categories = Table(
         ForeignKey("categories.id", ondelete="CASCADE"),
         primary_key=True,
     ),
+    # Первичный ключ (product_id, category_id) не помогает искать товары категории
+    Index("ix_product_categories_category_id", "category_id"),
 )
 
 
@@ -145,9 +157,9 @@ class Product(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(200), nullable=False)
     description = Column(String(1000))
-    price = Column(Float, nullable=False)
+    price = Column(Money, nullable=False)
     # Общий остаток товара в базовой единице unit (для досок — в штуках)
-    stock_quantity = Column(Float, nullable=False, default=0)
+    stock_quantity = Column(Quantity, nullable=False, default=0)
     unit = Column(String(20), nullable=False)
 
     # Размеры доски в мм; если заданы, остаток ведётся в штуках
@@ -159,6 +171,7 @@ class Product(Base):
         Integer,
         ForeignKey("categories.id"),
         nullable=False,
+        index=True,
     )
 
     is_active = Column(Integer, nullable=False, default=1)
@@ -214,9 +227,9 @@ class ProductVariant(Base):
     )
     name = Column(String(100), nullable=False)
     unit = Column(String(20), nullable=False)
-    price = Column(Float, nullable=False)
+    price = Column(Money, nullable=False)
     base_quantity = Column(
-        Float,
+        Quantity,
         nullable=False,
         default=1,
         server_default="1",
@@ -242,11 +255,16 @@ class Order(Base):
         CheckConstraint(one_of("status", ORDER_STATUSES), name="ck_orders_status"),
         CheckConstraint(one_of("delivery_method", DELIVERY_METHODS), name="ck_orders_delivery_method"),
         CheckConstraint("total_price >= 0", name="ck_orders_total_not_negative"),
+        # «Мои заказы»: WHERE user_id = … ORDER BY id DESC LIMIT 20 — индекс
+        # сразу отдаёт последние заказы покупателя (один user_id не помогал)
+        Index("ix_orders_user_id_id", "user_id", "id"),
+        # Счётчик новых заказов, этапы и отчёты: фильтр по статусу + период
+        Index("ix_orders_status_created_at", "status", "created_at"),
     )
 
     id = Column(Integer, primary_key=True)
     status = Column(String(50), nullable=False, default="NEW")
-    total_price = Column(Float, nullable=False, default=0)
+    total_price = Column(Money, nullable=False, default=0)
     delivery_address = Column(String(500), nullable=False)
     # DELIVERY — привозит магазин, PICKUP — самовывоз со склада
     delivery_method = Column(
@@ -261,6 +279,13 @@ class Order(Base):
         default="Покупатель",
     )
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # Когда оформлен заказ — для отчётов и сортировки (раньше брали из истории статусов)
+    created_at = Column(
+        DateTime,
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        index=True,
+    )
 
     user = relationship("User", back_populates="orders")
 
@@ -317,11 +342,13 @@ class OrderItem(Base):
         Integer,
         ForeignKey("orders.id"),
         nullable=False,
+        index=True,
     )
     product_id = Column(
         Integer,
         ForeignKey("products.id"),
         nullable=False,
+        index=True,
     )
     variant_id = Column(
         Integer,
@@ -331,12 +358,12 @@ class OrderItem(Base):
         ),
         nullable=False,
     )
-    quantity = Column(Float, nullable=False)
-    price = Column(Float, nullable=False)
+    quantity = Column(Quantity, nullable=False)
+    price = Column(Money, nullable=False)
     unit = Column(String(20), nullable=False)
     # Сколько базовых единиц списано за 1 единицу (снимок на момент заказа)
     base_quantity = Column(
-        Float,
+        Quantity,
         nullable=False,
         default=1,
         server_default="1",
@@ -363,6 +390,7 @@ class OrderStatusHistory(Base):
         Integer,
         ForeignKey("orders.id"),
         nullable=False,
+        index=True,
     )
     status = Column(String(50), nullable=False)
     created_at = Column(
@@ -394,6 +422,8 @@ class OrderStatusHistory(Base):
 
 class Notification(Base):
     __tablename__ = "notifications"
+    # Колокольчик: непрочитанные уведомления покупателя
+    __table_args__ = (Index("ix_notifications_user_id_is_read", "user_id", "is_read"),)
 
     id = Column(Integer, primary_key=True)
     user_id = Column(

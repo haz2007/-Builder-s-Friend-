@@ -45,6 +45,7 @@ import type { ApiCategory, ApiOrder, ApiProduct, AuthUser, AdminAnalytics, Admin
 import "./Admin.css";
 import { CategoryRevenue, PipelinePanel, RevenueChart } from "./AdminCharts";
 import ActivitySection from "./ActivitySection";
+import AdminReports from "./AdminReports";
 import AdminsSection from "./AdminsSection";
 import { Icon } from "./AdminIcons";
 import { FILTER_STATUSES, orderStages, orderStatusLabel } from "./shop/orderStatus";
@@ -1209,6 +1210,7 @@ function Admin() {
                 {analytics.low_stock_products.map((product) => <div className="admin-low-stock-item" key={product.id}><strong>{product.name}</strong><span>{product.stock_quantity} {product.unit}</span></div>)}
               </div>}
             </div>
+            <AdminReports token={token} period={analyticsPeriod} dateFrom={analyticsFrom} dateTo={analyticsTo} />
           </>}
         </section>
         )}
