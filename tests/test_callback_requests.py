@@ -114,3 +114,32 @@ def test_bot_button_marks_request_done(client: TestClient, sent):  # noqa: F811
     db.close()
     edits = [payload for method, payload in sent if method == "editMessageText"]
     assert "Перезвонили" in edits[-1]["text"]
+
+
+def test_bot_lists_requests_by_five_and_marks_from_list(client: TestClient, sent):  # noqa: F811
+    from test_bot_handlers import message
+
+    from app.models import CallbackRequest as Request
+
+    make_admin()
+    db = SessionLocal()
+    db.add_all(Request(name=f"Покупатель {i}", phone=f"+7999000000{i}") for i in range(7))
+    db.commit()
+    newest_id = db.query(Request).order_by(Request.id.desc()).first().id
+    db.close()
+
+    handlers.handle_message(message("📞 Заявки", ADMIN_TG))
+    screen = [payload for method, payload in sent if "reply_markup" in payload][-1]
+    buttons = [b["callback_data"] for row in screen["reply_markup"]["inline_keyboard"] for b in row]
+    assert sum(data.startswith("cb:done:") for data in buttons) == 5
+    assert "a:calls:1" in buttons
+    assert "Ждут звонка: 7" in screen["text"]
+
+    handlers.handle_callback(press(f"cb:done:{newest_id}:0", ADMIN_TG))
+
+    db = SessionLocal()
+    assert db.get(Request, newest_id).status == "DONE"
+    db.close()
+    # После отметки бот снова показывает список, уже без этой заявки
+    screens = [payload for method, payload in sent if method == "editMessageText"]
+    assert "Ждут звонка: 6" in screens[-1]["text"]

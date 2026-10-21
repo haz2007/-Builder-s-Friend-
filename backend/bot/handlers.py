@@ -4,6 +4,7 @@ from collections.abc import Callable
 
 from .admin import (
     admin_callback_done,
+    admin_callbacks_screen,
     admin_change_status,
     admin_order_screen,
     admin_orders_screen,
@@ -59,6 +60,7 @@ MENU_ACTIONS: dict[str, ScreenAction] = {
     "🔔 Уведомления": customer_notifications_screen,
     "📋 Заказы": admin_orders_screen,
     "📊 Сводка": admin_summary_screen,
+    "📞 Заявки": admin_callbacks_screen,
     "⚠️ Остатки": admin_stock_screen,
     "👥 Администраторы": admins_screen,
     "📞 Контакты": contacts_screen,
@@ -181,6 +183,8 @@ def handle_callback(callback: dict) -> None:
             admin_order_screen(chat_id, telegram_user_id, parse_int(parts[2]), parts[3], message_id)
         elif parts[1] == "stock":
             admin_stock_screen(chat_id, telegram_user_id, message_id)
+        elif parts[1] == "calls" and len(parts) == 3:
+            admin_callbacks_screen(chat_id, telegram_user_id, parse_int(parts[2]), message_id)
         elif parts[1] == "new":
             new_product_prompt(chat_id, telegram_user_id, message_id)
         elif parts[1] == "newcat" and len(parts) == 3:
@@ -199,8 +203,9 @@ def handle_callback(callback: dict) -> None:
             stock_prompt(chat_id, telegram_user_id, parse_int(parts[2]), message_id)
         elif parts[1] == "setprice" and len(parts) == 3:
             price_prompt(chat_id, telegram_user_id, parse_int(parts[2]), message_id)
-    elif parts[0] == "cb" and len(parts) == 3 and parts[1] == "done":
-        reply = admin_callback_done(chat_id, telegram_user_id, parse_int(parts[2]), message_id)
+    elif parts[0] == "cb" and len(parts) in (3, 4) and parts[1] == "done":
+        list_page = parse_int(parts[3]) if len(parts) == 4 else None
+        reply = admin_callback_done(chat_id, telegram_user_id, parse_int(parts[2]), message_id, list_page)
     elif parts[0] == "order" and len(parts) == 3:
         # Кнопки статуса: из уведомления меняем статус прямо в этом сообщении
         reply = admin_change_status(chat_id, telegram_user_id, parse_int(parts[1]), parts[2], message_id)

@@ -5440,3 +5440,175 @@ a.category-tab {
   background: #a63a2c;
   color: #fff;
 }
+
+/* ---------- Личный кабинет — отдельная страница ---------- */
+.account-page .container {
+  max-width: 920px;
+}
+
+.account-page h1 {
+  margin: 0 0 18px;
+  color: #2d241d;
+  font-family: "Manrope", sans-serif;
+  font-size: clamp(28px, 4vw, 38px);
+  letter-spacing: -0.03em;
+}
+
+.account-page .account-orders {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  overflow: visible;
+}
+
+.account-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 5px;
+  overflow-x: auto;
+  border-radius: 14px;
+  background: #efe8df;
+  scrollbar-width: none;
+}
+
+.account-tabs button {
+  position: relative;
+  display: inline-flex;
+  flex: 1 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #6b5a4c;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.account-tabs button.is-active {
+  background: #fff;
+  color: #2d241d;
+  box-shadow: 0 2px 8px rgb(45 36 29 / 8%);
+}
+
+.account-tabs em {
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--brand-primary);
+  color: #fff;
+  font-size: 11px;
+  font-style: normal;
+}
+
+.account-favorites {
+  margin-top: 4px;
+}
+
+.account-notification-list {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+
+.account-notification {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #e6dfd8;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.account-notification.is-unread {
+  border-color: var(--brand-primary);
+  background: #fffaf4;
+}
+
+.account-notification p {
+  margin: 0;
+  color: #5a4839;
+  font-size: 14px;
+}
+
+.account-notification small {
+  color: #9a8f86;
+  font-size: 12px;
+}
+
+.account-notification .link-button {
+  justify-self: start;
+}
+
+.account-settings {
+  display: grid;
+  gap: 14px;
+  max-width: 480px;
+}
+
+.account-settings h3 {
+  margin: 0;
+  color: #2d241d;
+  font-size: 17px;
+}
+
+.account-settings .account-delete-link {
+  margin-top: 12px;
+}
+
+@media (max-width: 600px) {
+  /* Четыре вкладки — сеткой 2×2, без листания вбок */
+  .account-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .account-tabs button {
+    padding: 10px 8px;
+    font-size: 13px;
+  }
+}
+
+.account-settings-danger {
+  margin-top: 18px !important;
+  padding-top: 18px;
+  border-top: 1px solid #e6dfd8;
+}
+
+.account-delete-intro p {
+  margin: 0 0 8px;
+  color: #7a6d62;
+  font-size: 13px;
+}
+
+/* Узкий телефон: колокольчик вошедшего покупателя не выталкивает корзину за экран */
+@media (max-width: 430px) {
+  .header-actions {
+    gap: 5px;
+  }
+
+  .notification-bell-button {
+    width: 38px;
+    height: 38px;
+  }
+
+}
+
+@media (max-width: 430px) {
+  /* Вошёл покупатель — в шапке ещё колокольчик: название прячем, логотип остаётся */
+  .header-inner:has(.header-notification-bell) .brand .logo-text {
+    display: none;
+  }
+}
+
+@media (max-width: 360px) {
+  .brand .logo-text {
+    display: none;
+  }
+}

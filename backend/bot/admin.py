@@ -7,6 +7,7 @@ from fastapi import HTTPException
 from sqlalchemy import func
 
 from app.models import (
+    CallbackRequest,
     Order,
     OrderStatusHistory,
     Product,
@@ -29,7 +30,7 @@ from app.services.order_service import (
 from app.services.variant_service import restore_order_stock
 
 from .config import LOW_STOCK_LIMIT, ORDER_FILTERS, PAGE_SIZE, logger
-from .context import get_logged_user, require_user, session
+from .context import format_date, get_logged_user, require_user, session
 from .customer import status_history_lines
 from .telegram import HOME_ROW, button, edit_message, inline, show_screen
 
@@ -150,6 +151,7 @@ def admin_summary_screen(chat_id, telegram_user_id, message_id=None):
         month_count, month_sum = period_stats(month_start)
         new_count = db.query(Order).filter(Order.status == "NEW").count()
         in_work = db.query(Order).filter(Order.status.in_(ORDER_FILTERS["work"][1])).count()
+        callbacks_waiting = db.query(CallbackRequest).filter(CallbackRequest.status == "NEW").count()
         low_stock = db.query(Product).filter(
             Product.is_active == 1, Product.stock_quantity <= LOW_STOCK_LIMIT
         ).count()
@@ -161,6 +163,7 @@ def admin_summary_screen(chat_id, telegram_user_id, message_id=None):
         "<i>(сумма без отменённых)</i>\n\n"
         f"🆕 Ждут подтверждения: <b>{new_count}</b>\n"
         f"🔄 В работе: <b>{in_work}</b>\n"
+        f"📞 Ждут звонка: <b>{callbacks_waiting}</b>\n"
         f"⚠️ Товаров с низким остатком: <b>{low_stock}</b>"
     )
     show_screen(
@@ -173,8 +176,43 @@ def admin_summary_screen(chat_id, telegram_user_id, message_id=None):
     )
 
 
-def admin_callback_done(chat_id, telegram_user_id, request_id: int, message_id=None) -> str:
-    """Кнопка «Перезвонили» под заявкой: отмечает и убирает кнопку."""
+def admin_callbacks_screen(chat_id, telegram_user_id, page=0, message_id=None):
+    """Заявки «перезвоните мне», ждущие звонка: по 5, новые сверху."""
+    if require_user(chat_id, telegram_user_id, {"ADMIN"}, message_id) is None:
+        return
+    with session() as db:
+        query = db.query(CallbackRequest).filter(CallbackRequest.status == "NEW")
+        total = query.count()
+        max_page = max(0, (total - 1) // PAGE_SIZE)
+        page = max(0, min(page, max_page))
+        requests = query.order_by(CallbackRequest.id.desc()).offset(page * PAGE_SIZE).limit(PAGE_SIZE).all()
+        lines = ["📞 <b>Перезвонить</b>", ""]
+        if not requests:
+            lines.append("Все заявки обработаны 👍")
+        for request in requests:
+            lines.append(f"<b>№{request.id}</b> · {html.escape(request.name)} · {html.escape(request.phone)}")
+            if request.comment:
+                lines.append(f"<i>{html.escape(request.comment)}</i>")
+            if request.cart_total:
+                lines.append(f"Корзина: {format_money(request.cart_total)}")
+            lines.append(f"<i>{format_date(request.created_at)}</i>")
+            lines.append("")
+        if total:
+            lines.append(f"Ждут звонка: {total} · страница {page + 1} из {max_page + 1}")
+        rows = [
+            [button(f"✅ Перезвонили №{request.id}", f"cb:done:{request.id}:{page}")]
+            for request in requests
+        ]
+    navigation = []
+    if page > 0:
+        navigation.append(button("◀️ Новее", f"a:calls:{page - 1}"))
+    if page < max_page:
+        navigation.append(button("Старше ▶️", f"a:calls:{page + 1}"))
+    show_screen(chat_id, telegram_user_id, "\n".join(lines).strip(), inline(*rows, navigation, HOME_ROW), message_id)
+
+
+def admin_callback_done(chat_id, telegram_user_id, request_id: int, message_id=None, list_page=None) -> str:
+    """Кнопка «Перезвонили» — под уведомлением о заявке или в списке заявок."""
     with session() as db:
         user = get_logged_user(db, telegram_user_id)
         if user is None or user.role != "ADMIN":
@@ -184,7 +222,9 @@ def admin_callback_done(chat_id, telegram_user_id, request_id: int, message_id=N
             return "Заявка не найдена."
         who = request.handled_by_label or "администратор"
         text = callbacks.admin_message(request) + f"\n\n✅ <b>Перезвонили</b> · {html.escape(who)}"
-    if message_id is not None:
+    if list_page is not None:
+        admin_callbacks_screen(chat_id, telegram_user_id, list_page, message_id)
+    elif message_id is not None:
         try:
             edit_message(chat_id, message_id, text, {"inline_keyboard": []})
         except Exception:

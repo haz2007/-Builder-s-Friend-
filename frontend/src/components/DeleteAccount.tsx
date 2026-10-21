@@ -28,9 +28,12 @@ export default function DeleteAccount({ token, onDeleted }: { token: string; onD
 
   if (!open) {
     return (
-      <button type="button" className="account-delete-link" onClick={() => setOpen(true)}>
-        Удалить аккаунт
-      </button>
+      <div className="account-delete-intro">
+        <p>Телефон и привязка к Telegram удалятся, войти будет нельзя.</p>
+        <button type="button" className="account-delete-link" onClick={() => setOpen(true)}>
+          Удалить аккаунт
+        </button>
+      </div>
     );
   }
 

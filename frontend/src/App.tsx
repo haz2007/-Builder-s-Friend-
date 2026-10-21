@@ -18,7 +18,8 @@ import {
   Warehouse,
   Phone,
   Star,
-  KeyRound,
+  Heart,
+  Settings,
   Trash2,
 } from "lucide-react";
 import {
@@ -43,6 +44,7 @@ import type { ApiProduct, ApiCategory, ApiOrder, ApiNotification } from "./api";
 import "./App.css";
 import Logo from "./components/Logo";
 import CatalogPage from "./pages/CatalogPage";
+import ProductCard from "./components/ProductCard";
 import HomePage from "./pages/HomePage";
 import ConsentPage from "./pages/ConsentPage";
 import DeliveryReturnsPage from "./pages/DeliveryReturnsPage";
@@ -72,6 +74,16 @@ type Customer = {
 
 const TOKEN_KEY = "wood_commerce_token";
 const CART_KEY = "wood_commerce_cart";
+const FAVORITES_KEY = "wood_commerce_favorites";
+
+function loadFavorites(): number[] {
+  try {
+    const saved = JSON.parse(localStorage.getItem(FAVORITES_KEY) ?? "[]") as unknown;
+    return Array.isArray(saved) ? saved.filter((id) => Number.isInteger(id) && id > 0) : [];
+  } catch {
+    return [];
+  }
+}
 
 function loadCart(): Record<number, number> {
   try {
@@ -250,11 +262,20 @@ function App() {
   const [selectedVariants, setSelectedVariants] = useState<
     Record<number, number>
   >({});
-  const [favorites, setFavorites] = useState<number[]>([]);
+  const [favorites, setFavorites] = useState<number[]>(loadFavorites);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
+    } catch {
+      // Хранилище недоступно — избранное просто не сохранится
+    }
+  }, [favorites]);
   const [cartOpen, setCartOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [headerSearch, setHeaderSearch] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
@@ -279,7 +300,7 @@ function App() {
   const [accountOpen, setAccountOpen] = useState(false);
   const [accountMode, setAccountMode] = useState<"login" | "orders">("login");
   // Смена пароля в кабинете (например, после временного пароля от магазина)
-  const [passwordFormOpen, setPasswordFormOpen] = useState(false);
+  const [accountTab, setAccountTab] = useState<"orders" | "favorites" | "notifications" | "settings">("orders");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [passwordSaving, setPasswordSaving] = useState(false);
@@ -613,13 +634,16 @@ function App() {
   }
 
   useEffect(() => {
-    if (!accountOpen || accountMode !== "orders" || !customer) {
+    if (location.pathname !== "/account" || !customer) {
       return;
     }
 
     const token = localStorage.getItem(TOKEN_KEY);
     if (!token) return;
 
+    // Открыли /account по ссылке или после обновления страницы — сразу подгружаем
+    void refreshOrders(token);
+    void refreshNotifications(token);
     const intervalId = window.setInterval(() => {
       void refreshOrders(token);
     }, 15000);
@@ -627,7 +651,7 @@ function App() {
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [accountOpen, accountMode, customer]);
+  }, [location.pathname, customer]);
 
   async function handleAccountLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -699,6 +723,9 @@ function App() {
       setResetCodeSent(false);
       setAccountAuthMode("login");
       setAccountMode("orders");
+      setAccountOpen(false);
+      setAccountTab("orders");
+      navigate("/account");
 
       await Promise.all([refreshOrders(auth.access_token), refreshNotifications(auth.access_token)]);
     } catch (error) {
@@ -740,7 +767,6 @@ function App() {
   async function openAccount() {
     setCartOpen(false);
     setCheckoutOpen(false);
-    setAccountOpen(true);
     setAccountError("");
     setOrdersError("");
     setAccountNotice("");
@@ -748,10 +774,14 @@ function App() {
     const token = localStorage.getItem(TOKEN_KEY);
 
     if (token && customer) {
+      // Вошедший покупатель — на страницу кабинета, а не во всплывающую панель
       setAccountMode("orders");
+      setAccountOpen(false);
+      navigate("/account");
       await Promise.all([refreshOrders(token), refreshNotifications(token)]);
     } else {
       setAccountMode("login");
+      setAccountOpen(true);
     }
   }
 
@@ -954,6 +984,359 @@ function App() {
     openCheckout,
   };
 
+
+  const favoriteProducts = products.filter((product) => favorites.includes(product.id));
+  const ACCOUNT_TABS = [
+    { key: "orders", label: "Заказы", icon: <ClipboardList size={17} /> },
+    { key: "favorites", label: "Избранное", icon: <Heart size={17} /> },
+    { key: "notifications", label: "Уведомления", icon: <Bell size={17} /> },
+    { key: "settings", label: "Настройки", icon: <Settings size={17} /> },
+  ] as const;
+
+  const accountPage = customer ? (
+    <section className="page-section account-page">
+      <div className="container">
+        <h1>Личный кабинет</h1>
+        <div className="account-orders">
+                <div className="account-profile">
+                  <span className="account-profile-icon">
+                    <UserRound size={22} />
+                  </span>
+                  <div>
+                    <strong>{customer?.phone || "Покупатель"}</strong>
+                    <small>Аккаунт покупателя</small>
+                  </div>
+                  <button
+                    className="account-logout"
+                    onClick={logoutCustomer}
+                    title="Выйти из аккаунта"
+                  >
+                    <LogOut size={17} />
+                    <span>Выйти</span>
+                  </button>
+                </div>
+
+
+          <nav className="account-tabs" aria-label="Разделы личного кабинета">
+            {ACCOUNT_TABS.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                className={accountTab === tab.key ? "is-active" : ""}
+                onClick={() => setAccountTab(tab.key)}
+              >
+                {tab.icon}
+                {tab.label}
+                {tab.key === "notifications" && unreadNotificationsCount > 0 && (
+                  <em>{unreadNotificationsCount}</em>
+                )}
+                {tab.key === "favorites" && favoriteProducts.length > 0 && <em>{favoriteProducts.length}</em>}
+              </button>
+            ))}
+          </nav>
+
+          {accountTab === "orders" && (
+            <>
+                <div className="account-orders-heading">
+                  <div>
+                    <h3>История заказов</h3>
+                    <p>Здесь можно проверить состояние каждого заказа.</p>
+                  </div>
+                  <button
+                    className="account-refresh"
+                    onClick={() => void refreshOrders()}
+                    disabled={ordersLoading}
+                    title="Обновить список заказов"
+                  >
+                    <RefreshCw
+                      size={17}
+                      className={ordersLoading ? "refresh-spinning" : ""}
+                    />
+                  </button>
+                </div>
+
+                {accountError && (
+                  <p className="checkout-error" role="alert">
+                    {accountError}
+                  </p>
+                )}
+
+                {accountNotice && (
+                  <p className="account-notice">{accountNotice}</p>
+                )}
+
+                {ordersError && (
+                  <p className="checkout-error" role="alert">
+                    {ordersError}
+                  </p>
+                )}
+
+                {ordersLoading && orders.length === 0 ? (
+                  <div className="account-empty">
+                    <RefreshCw size={26} className="refresh-spinning" />
+                    <p>Загружаем заказы...</p>
+                  </div>
+                ) : orders.length === 0 ? (
+                  <div className="account-empty">
+                    <ClipboardList size={34} />
+                    <h3>Заказов пока нет</h3>
+                    <p>
+                      Когда ты оформишь заказ, он появится в этом разделе.
+                    </p>
+                    <button
+                      className="button button-primary checkout-button"
+                      onClick={() => navigate("/catalog")}
+                    >
+                      Перейти в каталог
+                    </button>
+                  </div>
+                ) : (
+                  <div className="account-order-list">
+                    {orders.map((order) => (
+                      <article className="account-order-card" key={order.id}>
+                        <div className="account-order-top">
+                          <div>
+                            <span className="account-order-number">
+                              Заказ №{order.id}
+                            </span>
+                            <span
+                              className={`order-status status-${order.status.toLowerCase()}`}
+                            >
+                              {orderStatusLabel(order.status, order.delivery_method)}
+                            </span>
+                          </div>
+                          <strong>{formatPrice(order.total_price)}</strong>
+                        </div>
+
+                        <div className="account-order-address">
+                          <MapPin size={15} />
+                          <span>
+                            {order.delivery_method === "PICKUP"
+                              ? "Самовывоз со склада"
+                              : order.delivery_address}
+                          </span>
+                        </div>
+
+                        {order.comment && (
+                          <p className="account-order-comment">«{order.comment}»</p>
+                        )}
+
+                        <div className="account-order-items">
+                          {order.items.map((item) => {
+                            const product = products.find(
+                              (candidate) => candidate.id === item.product_id,
+                            );
+
+                            return (
+                              <div
+                                className="account-order-item"
+                                key={item.id}
+                              >
+                                <span>
+                                  {item.product_name ??
+                                    product?.name ??
+                                    `Товар №${item.product_id}`}
+                                  {item.variant_name &&
+                                    item.variant_name !== item.unit &&
+                                    ` (${item.variant_name})`}
+                                  {" × "}
+                                  {item.quantity} {item.unit}
+                                </span>
+                                <strong>
+                                  {formatPrice(item.price * item.quantity)}
+                                </strong>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <div className="order-history">
+                          <strong className="order-history-title">
+                            <Clock3 size={15} />
+                            История статусов
+                          </strong>
+
+                          {order.status_history.length > 0 ? (
+                            <ol>
+                              {order.status_history.map((history) => (
+                                <li key={history.id}>
+                                  <span className="history-dot" />
+                                  <div>
+                                    <strong>
+                                      {orderStatusLabel(history.status, order.delivery_method)}
+                                    </strong>
+                                    <small>
+                                      {formatDate(history.created_at)}
+                                    </small>
+                                  </div>
+                                </li>
+                              ))}
+                            </ol>
+                          ) : (
+                            <p className="order-history-empty">
+                              История пока не заполнена.
+                            </p>
+                          )}
+                        </div>
+
+                        {order.status === "NEW" && (
+                          <button
+                            className="cancel-order-button"
+                            onClick={() => void handleCancelOrder(order.id)}
+                            disabled={cancelLoadingId === order.id}
+                          >
+                            {cancelLoadingId === order.id
+                              ? "Отменяем заказ..."
+                              : "Отменить заказ"}
+                          </button>
+                        )}
+
+                        {order.status === "DELIVERED" && (
+                          <a
+                            className="review-order-link"
+                            href={YANDEX_REVIEW_URL}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            <Star size={16} /> Оставить отзыв на Яндекс Картах
+                          </a>
+                        )}
+                      </article>
+                    ))}
+                  </div>
+                )}
+            </>
+          )}
+
+          {accountTab === "favorites" &&
+            (favoriteProducts.length === 0 ? (
+              <div className="account-empty">
+                <Heart size={34} />
+                <h3>В избранном пусто</h3>
+                <p>Нажимайте на сердечко у товара, чтобы вернуться к нему позже.</p>
+                <button className="button button-primary checkout-button" onClick={() => navigate("/catalog")}>
+                  Перейти в каталог
+                </button>
+              </div>
+            ) : (
+              <div className="product-grid account-favorites">
+                {favoriteProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            ))}
+
+          {accountTab === "notifications" &&
+            (notifications.length === 0 ? (
+              <div className="account-empty">
+                <Bell size={34} />
+                <h3>Уведомлений нет</h3>
+                <p>Здесь появятся сообщения о смене статуса ваших заказов.</p>
+              </div>
+            ) : (
+              <div className="account-notification-list">
+                {unreadNotificationsCount > 0 && (
+                  <button
+                    type="button"
+                    className="button button-dark"
+                    onClick={() => void handleMarkAllNotificationsAsRead()}
+                    disabled={notificationActionLoading}
+                  >
+                    <Check size={16} /> Прочитать все
+                  </button>
+                )}
+                {notifications.map((notification) => (
+                  <article
+                    key={notification.id}
+                    className={`account-notification ${notification.is_read ? "" : "is-unread"}`}
+                  >
+                    <strong>Заказ №{notification.order_id}</strong>
+                    <p>{notification.message}</p>
+                    <small>{formatDate(notification.created_at)}</small>
+                    {!notification.is_read && (
+                      <button
+                        type="button"
+                        className="link-button"
+                        onClick={() => void handleMarkNotificationAsRead(notification.id)}
+                        disabled={notificationActionLoading}
+                      >
+                        Отметить прочитанным
+                      </button>
+                    )}
+                  </article>
+                ))}
+              </div>
+            ))}
+
+          {accountTab === "settings" && (
+            <div className="account-settings">
+              <h3>Сменить пароль</h3>
+                {(
+                  <form className="account-password-form" onSubmit={handleChangePassword}>
+                    <label className="checkout-field">
+                      <span>Текущий пароль</span>
+                      <input
+                        type="password"
+                        value={currentPassword}
+                        onChange={(event) => setCurrentPassword(event.target.value)}
+                        placeholder="Или временный пароль от магазина"
+                        autoComplete="current-password"
+                        required
+                      />
+                    </label>
+                    <label className="checkout-field">
+                      <span>Новый пароль</span>
+                      <input
+                        type="password"
+                        value={newPassword}
+                        onChange={(event) => setNewPassword(event.target.value)}
+                        placeholder={`Не короче ${PASSWORD_MIN_LENGTH} символов`}
+                        autoComplete="new-password"
+                        minLength={PASSWORD_MIN_LENGTH}
+                        required
+                      />
+                    </label>
+                    {passwordMessage && (
+                      <p className={passwordMessage.ok ? "account-notice" : "checkout-error"} role="status">
+                        {passwordMessage.text}
+                      </p>
+                    )}
+                    <button className="button button-primary checkout-button" type="submit" disabled={passwordSaving}>
+                      {passwordSaving ? "Сохраняем..." : "Сменить пароль"}
+                    </button>
+                  </form>
+                )}
+                <h3 className="account-settings-danger">Удаление аккаунта</h3>
+                {(
+                  <DeleteAccount
+                    token={localStorage.getItem(TOKEN_KEY) ?? ""}
+                    onDeleted={() => {
+                      logoutCustomer();
+                      setAccountTab("orders");
+                      setAccountNotice("Аккаунт удалён. Спасибо, что были с нами.");
+                    }}
+                  />
+                )}
+
+
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  ) : (
+    <section className="page-section">
+      <div className="container empty-results">
+        <UserRound size={30} />
+        <h3>Личный кабинет</h3>
+        <p>Войдите, чтобы видеть заказы, избранное и уведомления.</p>
+        <button className="button button-dark" onClick={() => void openAccount()}>
+          Войти или зарегистрироваться
+        </button>
+      </div>
+    </section>
+  );
+
   return (
     <ShopContext.Provider value={shop}>
     <ScrollManager />
@@ -1054,7 +1437,7 @@ function App() {
               title="Личный кабинет"
             >
               <UserRound size={19} />
-              <span>{customer ? "Мои заказы" : "Войти"}</span>
+              <span>{customer ? "Кабинет" : "Войти"}</span>
             </button>
 
             <button
@@ -1079,6 +1462,7 @@ function App() {
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/consent" element={<ConsentPage />} />
           <Route path="/delivery" element={<DeliveryReturnsPage />} />
+          <Route path="/account" element={accountPage} />
           <Route path="*" element={<CatalogPage />} />
         </Routes>
       </main>
@@ -1727,259 +2111,7 @@ function App() {
                   </p>
                 )}
               </form>
-            ) : (
-              <div className="account-orders">
-                <div className="account-profile">
-                  <span className="account-profile-icon">
-                    <UserRound size={22} />
-                  </span>
-                  <div>
-                    <strong>{customer?.phone || "Покупатель"}</strong>
-                    <small>Аккаунт покупателя</small>
-                  </div>
-                  <button
-                    className="account-logout"
-                    onClick={() => {
-                      setPasswordFormOpen(!passwordFormOpen);
-                      setPasswordMessage(null);
-                    }}
-                    title="Сменить пароль"
-                    aria-expanded={passwordFormOpen}
-                  >
-                    <KeyRound size={17} />
-                    <span>Пароль</span>
-                  </button>
-                  <button
-                    className="account-logout"
-                    onClick={logoutCustomer}
-                    title="Выйти из аккаунта"
-                  >
-                    <LogOut size={17} />
-                    <span>Выйти</span>
-                  </button>
-                </div>
-
-                {passwordFormOpen && (
-                  <form className="account-password-form" onSubmit={handleChangePassword}>
-                    <label className="checkout-field">
-                      <span>Текущий пароль</span>
-                      <input
-                        type="password"
-                        value={currentPassword}
-                        onChange={(event) => setCurrentPassword(event.target.value)}
-                        placeholder="Или временный пароль от магазина"
-                        autoComplete="current-password"
-                        required
-                      />
-                    </label>
-                    <label className="checkout-field">
-                      <span>Новый пароль</span>
-                      <input
-                        type="password"
-                        value={newPassword}
-                        onChange={(event) => setNewPassword(event.target.value)}
-                        placeholder={`Не короче ${PASSWORD_MIN_LENGTH} символов`}
-                        autoComplete="new-password"
-                        minLength={PASSWORD_MIN_LENGTH}
-                        required
-                      />
-                    </label>
-                    {passwordMessage && (
-                      <p className={passwordMessage.ok ? "account-notice" : "checkout-error"} role="status">
-                        {passwordMessage.text}
-                      </p>
-                    )}
-                    <button className="button button-primary checkout-button" type="submit" disabled={passwordSaving}>
-                      {passwordSaving ? "Сохраняем..." : "Сменить пароль"}
-                    </button>
-                  </form>
-                )}
-                {passwordFormOpen && (
-                  <DeleteAccount
-                    token={localStorage.getItem(TOKEN_KEY) ?? ""}
-                    onDeleted={() => {
-                      logoutCustomer();
-                      setPasswordFormOpen(false);
-                      setAccountNotice("Аккаунт удалён. Спасибо, что были с нами.");
-                    }}
-                  />
-                )}
-
-                <div className="account-orders-heading">
-                  <div>
-                    <h3>История заказов</h3>
-                    <p>Здесь можно проверить состояние каждого заказа.</p>
-                  </div>
-                  <button
-                    className="account-refresh"
-                    onClick={() => void refreshOrders()}
-                    disabled={ordersLoading}
-                    title="Обновить список заказов"
-                  >
-                    <RefreshCw
-                      size={17}
-                      className={ordersLoading ? "refresh-spinning" : ""}
-                    />
-                  </button>
-                </div>
-
-                {accountError && (
-                  <p className="checkout-error" role="alert">
-                    {accountError}
-                  </p>
-                )}
-
-                {accountNotice && (
-                  <p className="account-notice">{accountNotice}</p>
-                )}
-
-                {ordersError && (
-                  <p className="checkout-error" role="alert">
-                    {ordersError}
-                  </p>
-                )}
-
-                {ordersLoading && orders.length === 0 ? (
-                  <div className="account-empty">
-                    <RefreshCw size={26} className="refresh-spinning" />
-                    <p>Загружаем заказы...</p>
-                  </div>
-                ) : orders.length === 0 ? (
-                  <div className="account-empty">
-                    <ClipboardList size={34} />
-                    <h3>Заказов пока нет</h3>
-                    <p>
-                      Когда ты оформишь заказ, он появится в этом разделе.
-                    </p>
-                    <button
-                      className="button button-primary checkout-button"
-                      onClick={() => {
-                        setAccountOpen(false);
-                        document.getElementById("catalog")?.scrollIntoView({
-                          behavior: "smooth",
-                        });
-                      }}
-                    >
-                      Перейти в каталог
-                    </button>
-                  </div>
-                ) : (
-                  <div className="account-order-list">
-                    {orders.map((order) => (
-                      <article className="account-order-card" key={order.id}>
-                        <div className="account-order-top">
-                          <div>
-                            <span className="account-order-number">
-                              Заказ №{order.id}
-                            </span>
-                            <span
-                              className={`order-status status-${order.status.toLowerCase()}`}
-                            >
-                              {orderStatusLabel(order.status, order.delivery_method)}
-                            </span>
-                          </div>
-                          <strong>{formatPrice(order.total_price)}</strong>
-                        </div>
-
-                        <div className="account-order-address">
-                          <MapPin size={15} />
-                          <span>
-                            {order.delivery_method === "PICKUP"
-                              ? "Самовывоз со склада"
-                              : order.delivery_address}
-                          </span>
-                        </div>
-
-                        {order.comment && (
-                          <p className="account-order-comment">«{order.comment}»</p>
-                        )}
-
-                        <div className="account-order-items">
-                          {order.items.map((item) => {
-                            const product = products.find(
-                              (candidate) => candidate.id === item.product_id,
-                            );
-
-                            return (
-                              <div
-                                className="account-order-item"
-                                key={item.id}
-                              >
-                                <span>
-                                  {item.product_name ??
-                                    product?.name ??
-                                    `Товар №${item.product_id}`}
-                                  {item.variant_name &&
-                                    item.variant_name !== item.unit &&
-                                    ` (${item.variant_name})`}
-                                  {" × "}
-                                  {item.quantity} {item.unit}
-                                </span>
-                                <strong>
-                                  {formatPrice(item.price * item.quantity)}
-                                </strong>
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        <div className="order-history">
-                          <strong className="order-history-title">
-                            <Clock3 size={15} />
-                            История статусов
-                          </strong>
-
-                          {order.status_history.length > 0 ? (
-                            <ol>
-                              {order.status_history.map((history) => (
-                                <li key={history.id}>
-                                  <span className="history-dot" />
-                                  <div>
-                                    <strong>
-                                      {orderStatusLabel(history.status, order.delivery_method)}
-                                    </strong>
-                                    <small>
-                                      {formatDate(history.created_at)}
-                                    </small>
-                                  </div>
-                                </li>
-                              ))}
-                            </ol>
-                          ) : (
-                            <p className="order-history-empty">
-                              История пока не заполнена.
-                            </p>
-                          )}
-                        </div>
-
-                        {order.status === "NEW" && (
-                          <button
-                            className="cancel-order-button"
-                            onClick={() => void handleCancelOrder(order.id)}
-                            disabled={cancelLoadingId === order.id}
-                          >
-                            {cancelLoadingId === order.id
-                              ? "Отменяем заказ..."
-                              : "Отменить заказ"}
-                          </button>
-                        )}
-
-                        {order.status === "DELIVERED" && (
-                          <a
-                            className="review-order-link"
-                            href={YANDEX_REVIEW_URL}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            <Star size={16} /> Оставить отзыв на Яндекс Картах
-                          </a>
-                        )}
-                      </article>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+            ) : null}
           </section>
         </div>
       )}

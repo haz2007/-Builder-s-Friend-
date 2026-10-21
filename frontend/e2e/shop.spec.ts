@@ -111,3 +111,33 @@ test("гость оставляет заявку без регистрации, 
   await request.getByRole("button", { name: "Перезвонили" }).click();
   await expect(request).toHaveCount(0);
 });
+
+test("кабинет: избранное и удаление аккаунта", async ({ page }) => {
+  const userPhone = `+7997${String(Date.now()).slice(-7)}`;
+  await page.goto("/catalog?q=брус");
+  await page.getByRole("button", { name: "Добавить в избранное" }).first().click();
+
+  await page.getByTitle("Личный кабинет").click();
+  await page.getByRole("button", { name: "Регистрация" }).click();
+  await page.getByLabel("Номер телефона").fill(userPhone);
+  await page.getByLabel("Пароль").fill("e2e-delete-pass");
+  await page.locator(".account-panel").getByRole("checkbox").check();
+  await page.getByRole("button", { name: "Зарегистрироваться" }).click();
+  await expect(page).toHaveURL(/\/account$/);
+
+  await page.getByRole("button", { name: /Избранное/ }).click();
+  await expect(page.locator(".account-favorites .product-card")).toHaveCount(1);
+
+  await page.getByRole("button", { name: /Настройки/ }).click();
+  await page.getByRole("button", { name: "Удалить аккаунт" }).click();
+  await page.getByLabel("Пароль для подтверждения").fill("e2e-delete-pass");
+  await page.getByRole("button", { name: "Удалить навсегда" }).click();
+  await expect(page.getByRole("button", { name: "Войти или зарегистрироваться" })).toBeVisible();
+
+  // Войти с этим номером больше нельзя
+  await page.getByRole("button", { name: "Войти или зарегистрироваться" }).click();
+  await page.getByLabel("Номер телефона").fill(userPhone);
+  await page.getByLabel("Пароль").fill("e2e-delete-pass");
+  await page.getByRole("button", { name: "Войти в аккаунт" }).click();
+  await expect(page.getByRole("alert")).toBeVisible();
+});
