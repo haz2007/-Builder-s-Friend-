@@ -1169,7 +1169,7 @@ function Admin() {
           </div>
           {analyticsError && <p className="admin-error">{analyticsError}</p>}
           {analytics && <>
-            <div className="admin-stats-grid">
+            <div className="admin-stats-grid admin-kpi-grid">
               <article className="admin-stat-card admin-stat-primary"><span>Сумма неотменённых заказов</span><strong>{analytics.revenue.not_cancelled.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽</strong><small>Включая ещё не доставленные</small></article>
               <article className="admin-stat-card"><span>Фактическая выручка</span><strong>{analytics.revenue.delivered.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽</strong><small>Только доставленные заказы</small></article>
               <article className="admin-stat-card"><span>Всего заказов</span><strong>{analytics.orders.total}</strong><small>Отменено: {analytics.orders.cancelled}</small></article>
@@ -1203,12 +1203,12 @@ function Admin() {
                   </div>)}
                 </div>}
               </div>
-            </div>
-            <div className="admin-stat-panel admin-low-stock-panel">
-              <h3>Низкий остаток (10 или меньше)</h3>
-              {analytics.low_stock_products.length === 0 ? <p className="admin-empty">Нет товаров с низким остатком.</p> : <div className="admin-low-stock-list">
-                {analytics.low_stock_products.map((product) => <div className="admin-low-stock-item" key={product.id}><strong>{product.name}</strong><span>{product.stock_quantity} {product.unit}</span></div>)}
-              </div>}
+              <div className="admin-stat-panel admin-low-stock-panel">
+                <h3>Низкий остаток (10 или меньше)</h3>
+                {analytics.low_stock_products.length === 0 ? <p className="admin-empty">Нет товаров с низким остатком.</p> : <div className="admin-low-stock-list">
+                  {analytics.low_stock_products.map((product) => <div className="admin-low-stock-item" key={product.id}><strong>{product.name}</strong><span>{product.stock_quantity} {product.unit}</span></div>)}
+                </div>}
+              </div>
             </div>
             <AdminReports token={token} period={analyticsPeriod} dateFrom={analyticsFrom} dateTo={analyticsTo} />
           </>}

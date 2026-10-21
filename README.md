@@ -95,15 +95,16 @@ stateDiagram-v2
     NEW --> CONFIRMED
     CONFIRMED --> PREPARING
     PREPARING --> READY_FOR_DELIVERY
-    READY_FOR_DELIVERY --> ON_THE_WAY
+    READY_FOR_DELIVERY --> ON_THE_WAY: доставка
     ON_THE_WAY --> DELIVERED
+    READY_FOR_DELIVERY --> DELIVERED: самовывоз
     NEW --> CANCELLED
     READY_FOR_DELIVERY --> CANCELLED
     DELIVERED --> [*]
     CANCELLED --> [*]
 ```
 
-<sub>Жизненный цикл заказа (упрощённо; отмена возможна со всех этапов до «В пути» — см. диаграммы).</sub>
+<sub>Жизненный цикл заказа (упрощённо): доставка идёт через «В пути», самовывоз из «Готов к выдаче» сразу становится «Выдан». Отмена возможна со всех этапов до «В пути» — см. диаграммы.</sub>
 
 ### Связи таблиц
 
