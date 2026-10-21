@@ -1,0 +1,9 @@
+# Нагрузочный тест: продакшен-стек как на сервере — 1 ядро на всё (cpuset)
+# и те же лимиты памяти из docker-compose.prod.yml. Запуск — benchmarks/load/README.md.
+services:
+  db:
+    cpuset: "0"
+  backend:
+    cpuset: "0"
+  web:
+    cpuset: "0"

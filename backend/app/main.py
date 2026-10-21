@@ -8,6 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from .database import get_db
+from .overload import ConcurrencyLimit
 from .routers.admin import router as admin_router
 from .routers.admins import router as admins_router
 from .routers.auth import router as auth_router
@@ -40,6 +41,9 @@ app = FastAPI(
     version="1.0.0",
     openapi_tags=OPENAPI_TAGS,
 )
+
+# Наплыв запросов: лишним — сразу 503, а не очередь на минуты (app/overload.py)
+app.add_middleware(ConcurrencyLimit)
 
 # Создаём папку для фотографий товаров
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)

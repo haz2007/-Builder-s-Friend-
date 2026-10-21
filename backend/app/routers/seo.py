@@ -134,6 +134,19 @@ def short(text: str, limit: int = 160) -> str:
     return text if len(text) <= limit else text[: limit - 1].rsplit(" ", 1)[0] + "…"
 
 
+def default_head(path: str, host: str, scheme: str) -> str:
+    """Общие теги без обращения к базе — когда сервер перегружен (app/overload.py)."""
+    base = site_url(host, scheme)
+    path = "/" + path.strip("/") if path.strip("/") else "/"
+    return render_head(
+        f"{store_info.STORE_NAME} — доска, брус и крепёж в Химках",
+        DEFAULT_DESCRIPTION,
+        f"{base}{path}",
+        f"{base}/og-image.jpg",
+        index=not path.startswith("/admin"),
+    )
+
+
 @router.get("/head", response_class=HTMLResponse)
 def seo_head(
     path: str = Query("/", max_length=300),
