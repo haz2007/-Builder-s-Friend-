@@ -17,12 +17,13 @@ import ProductsSection from "./ProductsSection";
 const TOKEN_KEY = "wood_admin_token";
 
 const ADMIN_SECTIONS = [
-  { key: "analytics", label: "Обзор", icon: "📊" },
-  { key: "orders", label: "Заказы", icon: "📦" },
-  { key: "products", label: "Товары", icon: "🪵" },
-  { key: "categories", label: "Категории", icon: "🗂" },
-  { key: "activity", label: "Журнал", icon: "🕓" },
-  { key: "admins", label: "Администраторы", icon: "👥" },
+  // short — подпись в нижней панели на телефоне
+  { key: "analytics", label: "Обзор", short: "Обзор", icon: "📊" },
+  { key: "orders", label: "Заказы", short: "Заказы", icon: "📦" },
+  { key: "products", label: "Товары", short: "Товары", icon: "🪵" },
+  { key: "categories", label: "Категории", short: "Разделы", icon: "🗂" },
+  { key: "activity", label: "Журнал", short: "Журнал", icon: "🕓" },
+  { key: "admins", label: "Администраторы", short: "Админы", icon: "👥" },
 ];
 
 function Admin() {
@@ -419,8 +420,9 @@ function Admin() {
                   : "admin-nav-link"
               }
             >
-              <span>{item.icon}</span>
-              {item.label}
+              <span className="admin-nav-icon">{item.icon}</span>
+              <span className="admin-nav-label">{item.label}</span>
+              <span className="admin-nav-short">{item.short}</span>
               {item.key === "orders" && newOrdersCount > 0 && (
                 <em className="admin-nav-badge">{newOrdersCount}</em>
               )}

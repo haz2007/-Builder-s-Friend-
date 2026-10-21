@@ -787,7 +787,7 @@ export default function ProductsSection({
 
       ) : (
 
-        <div className="admin-table-wrap">
+        <div className="admin-table-wrap admin-products-table">
 
           <table className="admin-table">
 
@@ -815,7 +815,7 @@ export default function ProductsSection({
 
                 <tr key={product.id}>
 
-                  <td>
+                  <td data-label="Товар">
 
                     <strong>{product.name}</strong>
 
@@ -870,7 +870,7 @@ export default function ProductsSection({
 
                   </td>
 
-                  <td>
+                  <td data-label="Цены">
                     <div className="admin-variant-prices">
                       {product.variants
                         .filter((variant) => variant.is_active === 1)
@@ -886,13 +886,13 @@ export default function ProductsSection({
                     </div>
                   </td>
 
-                  <td>
+                  <td data-label="Остаток">
 
                     {product.stock_quantity} {product.unit}
 
                   </td>
 
-                  <td>
+                  <td data-label="Статус">
 
                     <span
 
@@ -918,7 +918,7 @@ export default function ProductsSection({
 
                   </td>
 
-                  <td>
+                  <td data-label="Действия">
 
                     <div className="admin-product-actions">
                       <button

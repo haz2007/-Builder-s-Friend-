@@ -16,7 +16,10 @@ async function addBoardToCart(page: Page) {
 
   await page.getByRole("link", { name: "Доска обрезная 50×150×6000" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Доска обрезная 50×150×6000");
-  await page.getByLabel("Больше").click();
+  // Количество вписывается вручную
+  await page.getByLabel("Количество", { exact: true }).fill("2");
+  await page.getByLabel("Количество", { exact: true }).press("Enter");
+  await expect(page.getByRole("button", { name: /^В корзину · 1\s240/ })).toBeVisible();
   await page.getByRole("button", { name: /^В корзину · / }).click();
   await page.getByRole("button", { name: "Открыть корзину", exact: true }).click();
 }

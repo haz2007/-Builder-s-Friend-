@@ -20,7 +20,11 @@ export const SELLER = {
 
 export const TELEGRAM_BOT_URL = "https://t.me/builders_friend_bot";
 
-export const WORKING_HOURS = "Ежедневно с 9:00 до 19:00";
+/** Часы работы склада по московскому времени, без выходных */
+export const OPEN_HOUR = 9;
+export const CLOSE_HOUR = 19;
+
+export const WORKING_HOURS = `Ежедневно с ${OPEN_HOUR}:00 до ${CLOSE_HOUR}:00`;
 
 /**
  * Адрес склада и точка на карте. Пока null — блок «Как нас найти» скрыт.

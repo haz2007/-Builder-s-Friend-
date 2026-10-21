@@ -55,7 +55,12 @@ def answer_callback(callback_id: str, text: str = "", alert=False) -> None:
             "answerCallbackQuery",
             {"callback_query_id": callback_id, "text": text, "show_alert": alert},
         )
-    except Exception:
+    except Exception as exc:
+        # Нажатия, накопившиеся, пока бот был выключен: само действие выполнено,
+        # а ответить на кнопку Telegram уже не даёт — это не ошибка
+        if "query is too old" in str(exc):
+            logger.info("Нажатие кнопки устарело — ответ пропущен")
+            return
         logger.exception("Не удалось ответить на нажатие кнопки")
 
 

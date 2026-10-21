@@ -903,6 +903,31 @@ textarea:focus-visible {
   text-align: center;
 }
 
+/* Количество можно вписать вручную */
+.quantity-input {
+  width: 3.2em;
+  min-width: 0;
+  padding: 2px 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #3f352c;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.quantity-input:hover {
+  border-color: #e6dfd8;
+}
+
+.quantity-input:focus {
+  border-color: var(--brand-primary);
+  background: #fff;
+  outline: none;
+}
+
 .empty-results {
   display: flex;
   flex-direction: column;
@@ -4001,6 +4026,11 @@ a.category-tab {
   font-weight: 700;
 }
 
+.quantity-control-large .quantity-input {
+  width: 3.6em;
+  font-size: 16px;
+}
+
 .product-page-added {
   margin: 0;
   color: var(--brand-primary);
@@ -4505,6 +4535,23 @@ a.category-tab {
 .home-hero-facts li > span {
   color: #cdbba6;
   font-size: 13px;
+}
+
+/* Точка «открыто / закрыто» рядом с часами работы */
+.home-hours-status::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: #c98b6b;
+  vertical-align: 1px;
+}
+
+.home-hours-status.is-open::before {
+  background: #7cc47f;
+  box-shadow: 0 0 0 3px rgba(124, 196, 127, 0.2);
 }
 
 /* Секции */

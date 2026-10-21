@@ -5,8 +5,6 @@ import {
   Check,
   Clock3,
   Menu,
-  Minus,
-  Plus,
   Search,
   ShoppingCart,
   UserRound,
@@ -60,6 +58,7 @@ import type {
 } from "./shop/types";
 import { showFallbackImage } from "./shop/images";
 import { orderStatusLabel } from "./shop/orderStatus";
+import QuantityInput from "./components/QuantityInput";
 import ConsentCheckbox from "./components/ConsentCheckbox";
 
 type Customer = {
@@ -1154,22 +1153,13 @@ function App() {
                           {formatPrice(variant.price)} / {variant.unit}
                         </small>
 
-                        <div className="quantity-control">
-                          <button
-                            onClick={() => changeQuantity(variant.id, -1)}
-                            aria-label="Уменьшить количество"
-                          >
-                            <Minus size={14} />
-                          </button>
-                          <span>{quantity}</span>
-                          <button
-                            onClick={() => changeQuantity(variant.id, 1)}
-                            disabled={!canAddVariant(product, variant)}
-                            aria-label="Увеличить количество"
-                          >
-                            <Plus size={14} />
-                          </button>
-                        </div>
+                        <QuantityInput
+                          value={quantity}
+                          max={quantity + maxAddable(product, variant)}
+                          onChange={(next) => changeQuantity(variant.id, next - quantity)}
+                          allowRemove
+                          iconSize={14}
+                        />
                       </div>
 
                       <strong className="cart-item-total">

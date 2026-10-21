@@ -1,6 +1,7 @@
-import { Heart, Minus, Plus } from "lucide-react";
+import { Heart, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 
+import QuantityInput from "./QuantityInput";
 import { formatPrice } from "../shop/format";
 import { stockLabel } from "../shop/stock";
 import { useShop } from "../shop/ShopContext";
@@ -17,6 +18,7 @@ export default function ProductCard({ product }: { product: Product }) {
     selectVariant,
     changeQuantity,
     canAddVariant,
+    maxAddable,
   } = useShop();
 
   const variant = getSelectedVariant(product);
@@ -83,22 +85,12 @@ export default function ProductCard({ product }: { product: Product }) {
           </div>
 
           {variant && inCart ? (
-            <div className="quantity-control">
-              <button
-                onClick={() => changeQuantity(variant.id, -1)}
-                aria-label="Уменьшить количество"
-              >
-                <Minus size={15} />
-              </button>
-              <span>{inCart}</span>
-              <button
-                onClick={() => changeQuantity(variant.id, 1)}
-                disabled={!canAdd}
-                aria-label="Увеличить количество"
-              >
-                <Plus size={15} />
-              </button>
-            </div>
+            <QuantityInput
+              value={inCart}
+              max={inCart + maxAddable(product, variant)}
+              onChange={(next) => changeQuantity(variant.id, next - inCart)}
+              allowRemove
+            />
           ) : (
             <button
               className="add-button"

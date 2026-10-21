@@ -1,7 +1,8 @@
-import { ChevronRight, Minus, Package, Plus, ShoppingCart } from "lucide-react";
+import { ChevronRight, Package, ShoppingCart } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
+import QuantityInput from "../components/QuantityInput";
 import VariantPicker from "../components/VariantPicker";
 import { parentCategory } from "../shop/categories";
 import { formatPrice, formatQuantity } from "../shop/format";
@@ -127,23 +128,13 @@ export default function ProductPage() {
                 )}
 
                 <div className="product-page-actions">
-                  <div className="quantity-control quantity-control-large">
-                    <button
-                      onClick={() => setQuantity(Math.max(1, amount - 1))}
-                      disabled={amount <= 1}
-                      aria-label="Меньше"
-                    >
-                      <Minus size={16} />
-                    </button>
-                    <span>{amount}</span>
-                    <button
-                      onClick={() => setQuantity(amount + 1)}
-                      disabled={amount >= available}
-                      aria-label="Больше"
-                    >
-                      <Plus size={16} />
-                    </button>
-                  </div>
+                  <QuantityInput
+                    value={amount}
+                    max={available}
+                    onChange={setQuantity}
+                    large
+                    iconSize={16}
+                  />
 
                   <button
                     className="button button-primary"

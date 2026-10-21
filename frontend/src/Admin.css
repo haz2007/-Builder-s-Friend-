@@ -772,3 +772,78 @@ label.admin-btn { margin: 0; }
   .print-sheet-note { margin: 10px 0 0; font-size: 9pt; }
   .print-sheet-signatures { display: flex; flex-direction: column; gap: 22px; margin-top: 36px; }
 }
+
+/* ---------- Телефон ---------- */
+.admin-nav-short { display: none; }
+@media (max-width: 900px) {
+  /* minmax(0, …): широкая таблица не распирает страницу */
+  .admin-layout { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  /* Разделы — нижней панелью, как в приложениях: всегда под пальцем */
+  .admin-page { padding-bottom: calc(86px + env(safe-area-inset-bottom)); }
+  .admin-sidebar {
+    position: fixed; inset: auto 0 0 0; z-index: 50; top: auto;
+    display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0; overflow: visible;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    border: 0; border-top: 1px solid var(--admin-line); border-radius: 0;
+    background: rgb(255 254 250 / 96%); backdrop-filter: blur(10px);
+    box-shadow: 0 -6px 20px rgb(35 28 20 / 8%);
+  }
+  .admin-nav-link { position: relative; flex-direction: column; gap: 2px; padding: 6px 2px; font-size: 10.5px; text-align: center; }
+  .admin-nav-icon { font-size: 19px; line-height: 1; }
+  .admin-nav-label { display: none; }
+  .admin-nav-short { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .admin-nav-badge { position: absolute; top: 2px; left: calc(50% + 6px); margin: 0; min-width: 18px; padding: 1px 5px; font-size: 10px; }
+
+  /* Шапка компактнее: на телефоне важны сами разделы */
+  .admin-header { margin-bottom: 14px; padding-bottom: 14px; }
+  .admin-header h1 { font-size: 26px; }
+  .admin-header-main > p { margin-top: 4px; font-size: 13px; }
+  .admin-header .admin-eyebrow { margin: 6px 0 2px; }
+  .admin-header-summary { padding: 12px 14px; }
+  .admin-header-summary > p { display: none; }
+  .admin-header { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px 12px; }
+  .admin-header-main { grid-column: 1 / -1; }
+  .admin-header-main > .logo-mark, .admin-header-main > .admin-eyebrow { display: none; }
+  .admin-header-summary { grid-column: 1; grid-row: 2; padding: 10px 14px; }
+  .admin-header-summary .admin-eyebrow { display: none; }
+  .admin-header-summary > strong { font-size: 15px; }
+  .admin-header .admin-logout { grid-column: 2; grid-row: 2; justify-self: end; }
+  .admin-content { gap: 16px; }
+
+  /* Товары — карточками вместо таблицы на 760 px */
+  .admin-table-wrap.admin-products-table { overflow: visible; border: 0; }
+  .admin-products-table .admin-table { min-width: 0; }
+  .admin-products-table thead { display: none; }
+  .admin-products-table tbody { display: grid; gap: 12px; }
+  .admin-products-table tr { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--admin-line); border-radius: 12px; background: #fff; }
+  .admin-products-table td { display: grid; grid-template-columns: 84px minmax(0, 1fr); align-items: start; gap: 10px; min-width: 0 !important; padding: 0; border: 0; }
+  .admin-products-table td::before { content: attr(data-label); color: var(--admin-muted); font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+  .admin-products-table td:first-child { display: block; }
+  .admin-products-table td:first-child::before { content: none; }
+  .admin-products-table td:last-child { grid-template-columns: 1fr; }
+  .admin-products-table td:last-child::before { content: none; }
+  .admin-products-table .admin-variant-price { min-width: 0; }
+  .admin-products-table td > .admin-status { justify-self: start; }
+  .admin-products-table .admin-product-photo { display: flex; flex-direction: row; align-items: center; gap: 12px; margin-top: 10px; }
+  .admin-products-table .admin-product-photo img, .admin-products-table .admin-product-photo-empty { flex: 0 0 auto; width: 64px; height: 64px; }
+  .admin-products-table .admin-product-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: auto; min-width: 0; }
+  .admin-products-table .admin-product-actions > .admin-btn { width: 100%; justify-content: center; }
+  .admin-products-table .admin-product-actions-row { grid-column: 1 / -1; display: flex; gap: 8px; }
+  .admin-products-table .admin-product-actions-row > .admin-btn:first-child { flex: 1; justify-content: center; }
+
+  /* Заказ — одной колонкой: правило выше задаёт вторую колонку 230 px для ПК */
+  .admin-order-card { grid-template-columns: minmax(0, 1fr); }
+  .admin-order-heading { flex-wrap: wrap; }
+  .admin-order-print { margin-left: 0; }
+  .admin-order-actions { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  .admin-order-item > span:last-child { white-space: nowrap; }
+  /* «Подтверж-дён» переносится по слогам, а не посреди буквы */
+  .admin-order-progress-label { hyphens: auto; overflow-wrap: normal; word-break: normal; }
+
+  /* Поля и кнопки — под палец, без зума iOS при фокусе (шрифт от 16 px) */
+  .admin-page input, .admin-page select, .admin-page textarea { font-size: 16px; }
+  .admin-btn { min-height: 42px; }
+  .admin-btn-sm { min-height: 38px; }
+}

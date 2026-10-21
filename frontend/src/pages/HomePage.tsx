@@ -11,7 +11,8 @@ import {
   topLevelCategories,
 } from "../shop/categories";
 import { showFallbackImage } from "../shop/images";
-import { PHONES, STORE_LOCATION, TELEGRAM_BOT_URL, YEARS_ON_MARKET } from "../shop/contacts";
+import { CLOSE_HOUR, OPEN_HOUR, PHONES, STORE_LOCATION, TELEGRAM_BOT_URL, YEARS_ON_MARKET } from "../shop/contacts";
+import { storeStatus } from "../shop/hours";
 import { pluralize } from "../shop/format";
 import { useShop } from "../shop/ShopContext";
 import { usePageTitle } from "../shop/usePageTitle";
@@ -43,6 +44,7 @@ export default function HomePage() {
   usePageTitle(null);
   const { products, categories, cartCount, openCheckout } = useShop();
   const navigate = useNavigate();
+  const hours = storeStatus();
 
   const categoryTiles = topLevelCategories(categories).map((category) => {
     const ids = categoryWithChildrenIds(categories, category.id);
@@ -101,8 +103,12 @@ export default function HomePage() {
                 <span>позиций в наличии</span>
               </li>
               <li>
-                <strong>9–19</strong>
-                <span>ежедневно, без выходных</span>
+                <strong>
+                  {OPEN_HOUR}:00–{CLOSE_HOUR}:00
+                </strong>
+                <span className={`home-hours-status ${hours.open ? "is-open" : ""}`}>
+                  {hours.text}
+                </span>
               </li>
               <li>
                 <strong>Любая</strong>
