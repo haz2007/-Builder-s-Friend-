@@ -106,11 +106,34 @@ scripts/backup.sh                     # вручную; по расписани�
 ls backups/                           # db_<дата>.dump и uploads_<дата>.tar.gz
 ```
 
-Хранятся последние 14 дней (`BACKUP_KEEP_DAYS`). Копируйте бэкапы и к себе — сервер
-может сломаться вместе с ними:
-```bash
-scp -r root@IP-сервера:~/builders-friend/backups ./builders-friend-backups
-```
+Хранятся последние 14 дней (`BACKUP_KEEP_DAYS`).
+
+### Копия бэкапов на Яндекс Диске
+
+Сервер может пропасть вместе с бэкапами, поэтому после каждого ночного бэкапа
+`scripts/offsite-backup.sh` кладёт копию на Яндекс Диск — в папку
+`builders-friend-backups/`, 7 файлов по дням недели (`db_1.dump` … `db_7.dump` и
+архивы фото): место на Диске не растёт. Если копия не ушла за сутки, мониторинг
+напишет в Telegram.
+
+Бесплатный Диск не пускает по WebDAV («not available for the free tariff»), поэтому
+используется REST API с OAuth-токеном. Настройка — один раз:
+
+1. [oauth.yandex.ru/client/new](https://oauth.yandex.ru/client/new) — приложение
+   «Веб-сервисы», Redirect URI `https://oauth.yandex.ru/verification_code`. Личные
+   данные (почта, телефон, имя) не нужны; в «Дополнительных» — два доступа:
+   «Запись в любом месте на Диске» (`cloud_api:disk.write`) и «Чтение всего Диска»
+   (`cloud_api:disk.read`). Сохранить ClientID.
+2. Открыть `https://oauth.yandex.ru/authorize?response_type=token&client_id=<ClientID>`,
+   «Разрешить», скопировать токен.
+3. На сервере: `sudo bash scripts/set-offsite-credentials.sh` — вставить токен (не
+   отображается). Скрипт проверит его на Диске и сохранит в
+   `/root/.config/builders-friend/yandex-disk.token` (права 600, не в проекте).
+
+Токен живёт около года: когда истечёт, мониторинг сообщит — повторить шаги 2–3.
+
+Восстановиться можно и с Диска: скачать нужный `db_N.dump` (и `uploads_N.tar.gz`)
+в `backups/` и запустить `scripts/restore.sh`, как ниже.
 
 Восстановление (перед заменой скрипт сам сделает свежий бэкап текущей базы):
 ```bash

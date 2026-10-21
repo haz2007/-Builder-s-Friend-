@@ -3,7 +3,7 @@
 #   scripts/healthcheck.sh            — проверить и при проблеме написать в Telegram
 #   HEALTHCHECK_DRY_RUN=1 scripts/healthcheck.sh — только напечатать, ничего не отправлять
 #
-# Проверяет: API и базу, контейнеры, место на диске, свежесть бэкапа,
+# Проверяет: API и базу, контейнеры, место на диске, свежесть бэкапа и его копии на Диске,
 # застрявшие сообщения Telegram. Пишет владельцу магазина в Telegram один раз
 # при поломке и один раз, когда всё восстановилось (без спама каждые 5 минут).
 set -uo pipefail
@@ -61,6 +61,15 @@ used="$(df -P / | awk 'NR==2 {gsub("%", "", $5); print $5}')"
 # 4. Бэкап не старше суток (с запасом)
 if [[ -d "$BACKUP_DIR" ]] && [[ -z "$(find "$BACKUP_DIR" -name '*db_*.dump' -mmin -1560 2>/dev/null | head -1)" ]]; then
   problems+=("нет свежего бэкапа базы за последние сутки")
+fi
+
+# 5. Копия на Яндекс Диске не старше суток — если выгрузка настроена
+OFFSITE_CREDS="${OFFSITE_TOKEN:-/root/.config/builders-friend/yandex-disk.token}"
+if [[ -f "$OFFSITE_CREDS" && -n "$(find "$BACKUP_DIR" -name '*db_*.dump' 2>/dev/null | head -1)" ]]; then
+  last_offsite="$(cat "$BACKUP_DIR/.offsite_ok" 2>/dev/null || echo 0)"
+  if (( $(date +%s) - last_offsite > 1560 * 60 )); then
+    problems+=("копия бэкапа не ушла на Яндекс Диск за последние сутки")
+  fi
 fi
 
 # --- куда писать: MONITOR_CHAT_ID или владелец магазина, вошедший в бота

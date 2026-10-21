@@ -31,3 +31,7 @@ find "$BACKUP_DIR" -name '*db_*.dump' -mtime +"$KEEP_DAYS" -delete
 find "$BACKUP_DIR" -name 'uploads_*.tar.gz' -mtime +"$KEEP_DAYS" -delete
 
 echo "$(date '+%F %T') бэкап готов: $(basename "$DB_FILE") ($(du -h "$DB_FILE" | cut -f1)), $(basename "$UPLOADS_FILE")"
+
+# Копия на Яндекс Диск — если настроена (scripts/set-offsite-credentials.sh).
+# Сбой выгрузки не отменяет локальный бэкап: о нём сообщит мониторинг
+"$PROJECT_DIR/scripts/offsite-backup.sh" || echo "$(date '+%F %T') ⚠️ копия на Яндекс Диск не ушла" >&2
