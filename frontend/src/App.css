@@ -17,7 +17,7 @@
   --brand-sand: #eadcc6;
   --brand-wood: #c8873a;
   --brand-text: #2b211a;
-  --brand-muted: #7a6e63;
+  --brand-muted: #6b5f55;
 }
 
 * {
@@ -3049,7 +3049,7 @@ textarea:focus-visible {
   --brand-primary-light: #f1e5d3;
   --brand-cream: #f7f1e8;
   --brand-text: #2b211a;
-  --brand-muted: #7a6e63;
+  --brand-muted: #6b5f55;
 }
 
 html {
@@ -5670,8 +5670,13 @@ a.category-tab {
   color: #6b645d;
 }
 
-.variant-option small {
+.variant-option small,
+.product-price small {
   color: #6f6862;
+}
+
+.product-page-description {
+  color: #625b55;
 }
 
 @media (max-width: 760px) {
@@ -5698,7 +5703,8 @@ a.category-tab {
 
   .product-category,
   .hero-label,
-  .eyebrow {
+  .eyebrow,
+  .product-price small {
     font-size: 11px;
   }
 }
