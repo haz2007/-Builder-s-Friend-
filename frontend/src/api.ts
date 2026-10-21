@@ -76,6 +76,8 @@ export type CreateOrderData = {
   /** DELIVERY — привозит магазин, PICKUP — самовывоз */
   delivery_method: "DELIVERY" | "PICKUP";
   delivery_address: string;
+  /** Пожелания: распил, время доставки */
+  comment?: string;
 };
 
 export type ApiOrderItem = {
@@ -109,6 +111,7 @@ export type ApiOrder = {
   allowed_statuses?: string[];
   customer_name: string;
   customer_phone: string | null;
+  comment?: string | null;
   /** id покупателя — для сброса пароля из админки */
   user_id?: number | null;
   /** Когда оформлен заказ (UTC) */
@@ -209,6 +212,65 @@ export function loginUser(data: LoginData): Promise<AuthToken> {
   });
 }
 
+/** Заказы за период файлом .xlsx — скачивается в браузере. */
+export async function downloadOrdersExcel(token: string, period: string): Promise<void> {
+  const response = await fetch(`/api/v1/admin/orders/export?period=${encodeURIComponent(period)}`, {
+    headers: adminHeaders(token),
+  });
+  if (!response.ok) throw new Error("Не удалось выгрузить заказы.");
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `zakazy_${new Date().toISOString().slice(0, 10)}.xlsx`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+/** Похожие названия для запроса с опечаткой (pg_trgm на сервере). */
+export function getProductSuggestions(query: string, signal?: AbortSignal): Promise<{ id: number; name: string; score: number }[]> {
+  return request(`/api/v1/products/suggest?q=${encodeURIComponent(query)}`, { signal });
+}
+
+export type ApiCallbackRequest = {
+  id: number;
+  name: string;
+  phone: string;
+  comment: string | null;
+  cart_summary: string | null;
+  cart_total: number | null;
+  status: "NEW" | "DONE";
+  created_at: string;
+  handled_at: string | null;
+  handled_by_label: string | null;
+};
+
+/** «Перезвоните мне» — заказ по телефону без регистрации. */
+export function createCallbackRequest(data: {
+  name: string;
+  phone: string;
+  comment: string;
+  items: { variant_id: number; quantity: number }[];
+  privacy_accepted: true;
+}): Promise<ApiCallbackRequest> {
+  return request<ApiCallbackRequest>("/api/v1/callback-requests/", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function getCallbackRequests(token: string, status?: "NEW" | "DONE"): Promise<ApiCallbackRequest[]> {
+  return request<ApiCallbackRequest[]>(`/api/v1/callback-requests/${status ? `?status=${status}` : ""}`, {
+    headers: adminHeaders(token),
+  });
+}
+
+export function markCallbackDone(id: number, token: string): Promise<ApiCallbackRequest> {
+  return request<ApiCallbackRequest>(`/api/v1/callback-requests/${id}/done`, {
+    method: "POST",
+    headers: adminHeaders(token),
+  });
+}
+
 /** Код для смены пароля придёт в Telegram-бота (если аккаунт к нему привязан). */
 export function requestPasswordReset(phone: string): Promise<{ detail: string }> {
   return request<{ detail: string }>("/api/v1/auth/password-reset/request", {
@@ -230,6 +292,15 @@ export function confirmPasswordReset(data: {
 }
 
 /** Смена своего пароля: нужен текущий (или временный от админа). */
+/** Покупатель удаляет аккаунт сам (отзыв согласия на обработку данных). */
+export function deleteAccount(token: string, password: string): Promise<{ detail: string }> {
+  return request<{ detail: string }>("/api/v1/auth/delete-account", {
+    method: "POST",
+    headers: adminHeaders(token),
+    body: JSON.stringify({ password }),
+  });
+}
+
 export function changePassword(
   token: string,
   data: { current_password: string; new_password: string },

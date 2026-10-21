@@ -78,3 +78,5 @@ reset_request_limiter = RateLimiter("password_reset_request", limit=3, window=15
 reset_confirm_limiter = RateLimiter("password_reset_confirm", limit=10, window=15 * 60)
 # Вход через Telegram-бота: ключ — Telegram ID
 telegram_login_limiter = RateLimiter("telegram_login", limit=5, window=10 * 60)
+# Заявки «перезвоните мне» без входа: защита от спама с одного адреса
+callback_limiter = RateLimiter("callback_requests", limit=5, window=60 * 60)

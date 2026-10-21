@@ -12,8 +12,9 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    // Только методы нашего бота: /bot<BOT_ID>:<секрет>/<метод>
-    if (!env.BOT_ID || !url.pathname.startsWith(`/bot${env.BOT_ID}:`)) {
+    // Только наш бот: /bot<BOT_ID>:<секрет>/<метод> и его файлы (фото товаров)
+    const ours = [`/bot${env.BOT_ID}:`, `/file/bot${env.BOT_ID}:`];
+    if (!env.BOT_ID || !ours.some((prefix) => url.pathname.startsWith(prefix))) {
       return new Response("Not found", { status: 404 });
     }
 

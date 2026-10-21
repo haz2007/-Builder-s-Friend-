@@ -140,7 +140,8 @@ def get_current_user(
         .first()
     )
 
-    if user is None:
+    # Удалённый (обезличенный) аккаунт: ни телефона, ни почты — старый токен не действует
+    if user is None or (user.phone is None and user.email is None):
         raise HTTPException(
             status_code=401,
             detail="User not found"

@@ -1,5 +1,6 @@
 """Администратор: заказы с фильтрами и сменой статуса, сводка, остатки."""
 
+import html
 from datetime import UTC, datetime, timedelta, timezone
 
 from fastapi import HTTPException
@@ -10,6 +11,7 @@ from app.models import (
     OrderStatusHistory,
     Product,
 )
+from app.services import callbacks
 from app.services.order_notifications import (
     build_order_keyboard,
     build_order_message,
@@ -26,10 +28,10 @@ from app.services.order_service import (
 )
 from app.services.variant_service import restore_order_stock
 
-from .config import LOW_STOCK_LIMIT, ORDER_FILTERS, PAGE_SIZE
+from .config import LOW_STOCK_LIMIT, ORDER_FILTERS, PAGE_SIZE, logger
 from .context import get_logged_user, require_user, session
 from .customer import status_history_lines
-from .telegram import HOME_ROW, button, inline, show_screen
+from .telegram import HOME_ROW, button, edit_message, inline, show_screen
 
 
 def admin_orders_screen(chat_id, telegram_user_id, filter_key="new", page=0, message_id=None):
@@ -170,3 +172,21 @@ def admin_summary_screen(chat_id, telegram_user_id, message_id=None):
         message_id,
     )
 
+
+def admin_callback_done(chat_id, telegram_user_id, request_id: int, message_id=None) -> str:
+    """Кнопка «Перезвонили» под заявкой: отмечает и убирает кнопку."""
+    with session() as db:
+        user = get_logged_user(db, telegram_user_id)
+        if user is None or user.role != "ADMIN":
+            return "Нужно войти как администратор."
+        request = callbacks.mark_done(db, request_id, user)
+        if request is None:
+            return "Заявка не найдена."
+        who = request.handled_by_label or "администратор"
+        text = callbacks.admin_message(request) + f"\n\n✅ <b>Перезвонили</b> · {html.escape(who)}"
+    if message_id is not None:
+        try:
+            edit_message(chat_id, message_id, text, {"inline_keyboard": []})
+        except Exception:
+            logger.info("Не удалось обновить сообщение о заявке №%s", request_id)
+    return "Отмечено: перезвонили"

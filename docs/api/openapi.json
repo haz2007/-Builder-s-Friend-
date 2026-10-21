@@ -184,6 +184,55 @@
         }
       }
     },
+    "/api/v1/products/suggest": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Suggest Products",
+        "description": "Похожие названия для запроса с опечаткой: «досака» → «Доска обрезная…».",
+        "operationId": "suggest_products_api_v1_products_suggest_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 100,
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductSuggestion"
+                  },
+                  "title": "Response Suggest Products Api V1 Products Suggest Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/products/{product_id}": {
       "get": {
         "tags": [
@@ -1422,6 +1471,51 @@
         ]
       }
     },
+    "/api/v1/auth/delete-account": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Delete Account",
+        "description": "Покупатель удаляет свой аккаунт сам; пароль — защита от чужих рук.",
+        "operationId": "delete_account_api_v1_auth_delete_account_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountDelete"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/auth/password-reset/request": {
       "post": {
         "tags": [
@@ -1971,6 +2065,88 @@
         }
       }
     },
+    "/api/v1/admin/orders/export": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Export Orders",
+        "description": "Заказы за период в Excel (.xlsx): лист заказов и лист проданных позиций.",
+        "operationId": "export_orders_api_v1_admin_orders_export_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^(7d|30d|90d|all|custom)$",
+              "default": "30d",
+              "title": "Period"
+            }
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date From"
+            }
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/notifications/": {
       "get": {
         "tags": [
@@ -2383,6 +2559,164 @@
         }
       }
     },
+    "/api/v1/callback-requests/": {
+      "post": {
+        "tags": [
+          "Callback requests"
+        ],
+        "summary": "Create Callback Request",
+        "description": "Заказ по телефону без регистрации: админам сразу приходит сообщение в Telegram.",
+        "operationId": "create_callback_request_api_v1_callback_requests__post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CallbackRequestCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CallbackRequestResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Callback requests"
+        ],
+        "summary": "List Callback Requests",
+        "operationId": "list_callback_requests_api_v1_callback_requests__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(NEW|DONE)$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CallbackRequestResponse"
+                  },
+                  "title": "Response List Callback Requests Api V1 Callback Requests  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/callback-requests/{request_id}/done": {
+      "post": {
+        "tags": [
+          "Callback requests"
+        ],
+        "summary": "Mark Callback Done",
+        "operationId": "mark_callback_done_api_v1_callback_requests__request_id__done_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CallbackRequestResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/health": {
       "get": {
         "summary": "Health Check",
@@ -2403,6 +2737,21 @@
   },
   "components": {
     "schemas": {
+      "AccountDelete": {
+        "properties": {
+          "password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "password"
+        ],
+        "title": "AccountDelete"
+      },
       "AdminCreate": {
         "properties": {
           "login": {
@@ -2481,6 +2830,163 @@
           "file"
         ],
         "title": "Body_upload_product_image_api_v1_products__product_id__image_post"
+      },
+      "CallbackItem": {
+        "properties": {
+          "variant_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Variant Id"
+          },
+          "quantity": {
+            "type": "integer",
+            "maximum": 100000.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Quantity"
+          }
+        },
+        "type": "object",
+        "required": [
+          "variant_id",
+          "quantity"
+        ],
+        "title": "CallbackItem"
+      },
+      "CallbackRequestCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 2,
+            "title": "Name"
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 30,
+            "minLength": 10,
+            "title": "Phone"
+          },
+          "comment": {
+            "type": "string",
+            "maxLength": 500,
+            "title": "Comment",
+            "default": ""
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CallbackItem"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Items"
+          },
+          "privacy_accepted": {
+            "type": "boolean",
+            "const": true,
+            "title": "Privacy Accepted"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "phone",
+          "privacy_accepted"
+        ],
+        "title": "CallbackRequestCreate",
+        "description": "Заявка «перезвоните мне»: телефон и, если есть, корзина."
+      },
+      "CallbackRequestResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "phone": {
+            "type": "string",
+            "title": "Phone"
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          },
+          "cart_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cart Summary"
+          },
+          "cart_total": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cart Total"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "handled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Handled At"
+          },
+          "handled_by_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Handled By Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "phone",
+          "comment",
+          "cart_summary",
+          "cart_total",
+          "status",
+          "created_at"
+        ],
+        "title": "CallbackRequestResponse"
       },
       "CategoryBase": {
         "properties": {
@@ -2673,6 +3179,12 @@
             "maxLength": 500,
             "title": "Delivery Address",
             "default": ""
+          },
+          "comment": {
+            "type": "string",
+            "maxLength": 500,
+            "title": "Comment",
+            "default": ""
           }
         },
         "type": "object",
@@ -2812,6 +3324,17 @@
               }
             ],
             "title": "Customer Phone"
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
           },
           "user_id": {
             "anyOf": [
@@ -3249,6 +3772,29 @@
           "stock_quantity"
         ],
         "title": "ProductStockUpdate"
+      },
+      "ProductSuggestion": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "score"
+        ],
+        "title": "ProductSuggestion"
       },
       "ProductUpdate": {
         "properties": {

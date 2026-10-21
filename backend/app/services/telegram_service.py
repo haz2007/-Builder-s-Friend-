@@ -17,6 +17,12 @@ def telegram_api_url(token: str) -> str:
     return f"{base.rstrip('/')}/bot{token}"
 
 
+def telegram_file_url(token: str, file_path: str) -> str:
+    """Скачивание файла (фото товара), через того же посредника, что и API."""
+    base = os.getenv("TELEGRAM_API_URL", "").strip() or "https://api.telegram.org"
+    return f"{base.rstrip('/')}/file/bot{token}/{file_path}"
+
+
 def telegram_proxies() -> dict | None:
     """TELEGRAM_PROXY=socks5://user:pass@host:port — если Telegram недоступен напрямую."""
     proxy = os.getenv("TELEGRAM_PROXY")

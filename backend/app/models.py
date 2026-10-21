@@ -16,6 +16,7 @@ from sqlalchemy import (
     Table,
     Text,
     event,
+    text,
 )
 from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
@@ -153,6 +154,12 @@ class Product(Base):
     __table_args__ = (
         CheckConstraint("stock_quantity >= 0", name="ck_products_stock_not_negative"),
         CheckConstraint("price >= 0", name="ck_products_price_not_negative"),
+        # Поиск с опечатками: триграммы названия (pg_trgm), см. services/search.py
+        Index(
+            "ix_products_name_trgm",
+            text("lower(name) gin_trgm_ops"),
+            postgresql_using="gin",
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -254,6 +261,8 @@ class Order(Base):
     # DELIVERY — привозит магазин, PICKUP — самовывоз со склада
     delivery_method: Mapped[str] = mapped_column(String(20), default="DELIVERY", server_default="DELIVERY")
     customer_name: Mapped[str] = mapped_column(String(255), default="Покупатель")
+    # «Распилить по 3 м», «привезти после 14:00» — от покупателя
+    comment: Mapped[str | None] = mapped_column(String(500))
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     # Когда оформлен заказ — для отчётов и сортировки (раньше брали из истории статусов)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), index=True)
@@ -459,3 +468,46 @@ class AuditLog(Base):
             return None
         return user.email or user.phone or f"№{user.id}"
 
+
+
+CALLBACK_STATUSES = ("NEW", "DONE")
+
+
+class CallbackRequest(Base):
+    """Заявка «перезвоните мне» — заказ по телефону, без регистрации и пароля.
+
+    Состав корзины сохраняется текстом по ценам на момент заявки: менеджер
+    видит, что человек хотел, и оформляет заказ во время звонка.
+    """
+
+    __tablename__ = "callback_requests"
+    __table_args__ = (
+        CheckConstraint(one_of("status", CALLBACK_STATUSES), name="ck_callback_requests_status"),
+        Index("ix_callback_requests_status_id", "status", "id"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100))
+    phone: Mapped[str] = mapped_column(String(30))
+    comment: Mapped[str | None] = mapped_column(String(500))
+    cart_summary: Mapped[str | None] = mapped_column(Text)
+    cart_total: Mapped[float | None] = mapped_column(Money)
+    status: Mapped[str] = mapped_column(String(10), default="NEW", server_default="NEW")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None))
+    handled_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    handled_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+    handled_by: Mapped["User | None"] = relationship()
+
+    @property
+    def handled_by_label(self) -> str | None:
+        user = self.handled_by
+        if user is None:
+            return None
+        return user.email or user.phone or f"№{user.id}"
+
+
+@event.listens_for(Base.metadata, "before_create")
+def create_trgm_extension(target, connection, **kwargs):
+    """Без расширения не создастся триграммный индекс (новая база, тесты)."""
+    connection.exec_driver_sql("CREATE EXTENSION IF NOT EXISTS pg_trgm")

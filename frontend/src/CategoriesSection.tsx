@@ -38,9 +38,7 @@ export default function CategoriesSection({
   const [categoryParentId, setCategoryParentId] = useState("");
 
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(
-
     null,
-
   );
 
   const sortedCategories = categoriesTree(categories);
@@ -50,7 +48,6 @@ export default function CategoriesSection({
   }
 
   function startEditingCategory(category: ApiCategory) {
-
     setEditingCategoryId(category.id);
 
     setCategoryName(category.name);
@@ -59,7 +56,6 @@ export default function CategoriesSection({
     setError("");
 
     setNotice("");
-
   }
 
   async function handleDeleteCategory(category: ApiCategory) {
@@ -94,16 +90,13 @@ export default function CategoriesSection({
   }
 
   function resetCategoryForm() {
-
     setEditingCategoryId(null);
 
     setCategoryName("");
     setCategoryParentId("");
-
   }
 
   async function handleSaveCategory(event: FormEvent<HTMLFormElement>) {
-
     event.preventDefault();
 
     if (!token) return;
@@ -111,11 +104,9 @@ export default function CategoriesSection({
     const name = categoryName.trim();
 
     if (!name) {
-
       setError("Введи название категории.");
 
       return;
-
     }
 
     setLoading(true);
@@ -125,86 +116,54 @@ export default function CategoriesSection({
     setNotice("");
 
     try {
-
       if (editingCategoryId === null) {
-
         await createCategory({ name, parent_id: categoryParentId ? Number(categoryParentId) : null }, token);
 
         setNotice("Категория добавлена.");
-
       } else {
-
         await updateCategory(editingCategoryId, { name, parent_id: categoryParentId ? Number(categoryParentId) : null }, token);
 
         setNotice("Категория сохранена.");
-
       }
 
       resetCategoryForm();
 
       await onReload();
-
     } catch (err) {
-
       setError(
-
         err instanceof Error
-
           ? err.message
-
           : "Не удалось сохранить категорию.",
-
       );
-
     } finally {
-
       setLoading(false);
-
     }
-
   }
 
   return (
     <section className="admin-card">
-
       <h2>
-
         {editingCategoryId === null
-
           ? "Добавить категорию"
-
           : `Переименовать категорию №${editingCategoryId}`}
-
       </h2>
-
       <p>
-
         Категории отображаются в каталоге магазина и при добавлении товара.
-
       </p>
-
       <form className="admin-product-form" onSubmit={handleSaveCategory}>
-
         <label className="admin-full">
-
           Название категории
-
           <input
-
             value={categoryName}
 
             onChange={(event) => setCategoryName(event.target.value)}
 
             placeholder="Например, Крепёж и метизы"
-
             maxLength={100}
 
             required
-
           />
-
         </label>
-
         <label className="admin-full">
           Где находится
           <select
@@ -225,53 +184,30 @@ export default function CategoriesSection({
               ))}
           </select>
         </label>
-
         <div className="admin-form-actions admin-full">
-
           <button className="admin-btn admin-btn-primary" disabled={loading}>
-
             {loading
-
               ? "Сохраняем..."
-
               : editingCategoryId === null
-
                 ? "Добавить категорию"
-
                 : "Сохранить"}
-
           </button>
-
           {editingCategoryId !== null && (
-
             <button
-
               type="button"
-
               className="admin-btn admin-btn-outline"
-
               onClick={resetCategoryForm}
 
             >
-
               Отмена
-
             </button>
-
           )}
-
         </div>
-
       </form>
-
       <div className="admin-category-list">
-
         {categories.length === 0 ? (
-
           <p>Категорий пока нет.</p>
-
         ) : (
-
           sortedCategories.map((category) => (
             <div
               className={`admin-category-row ${category.parent_id ? "is-child" : ""}`}
@@ -288,7 +224,6 @@ export default function CategoriesSection({
                     : `Раздел · подкатегорий: ${categories.filter((item) => item.parent_id === category.id).length}`}
                 </small>
               </div>
-
               <div className="admin-category-actions">
                 <button
                   type="button"
@@ -310,15 +245,10 @@ export default function CategoriesSection({
                   <Icon name="trash" size={15} />
                 </button>
               </div>
-
             </div>
-
           ))
-
         )}
-
       </div>
-
     </section>
   );
 }

@@ -33,11 +33,8 @@ function Admin() {
     ? (params["*"] as string)
     : "analytics";
 
-
   const [token, setToken] = useState(
-
     () => sessionStorage.getItem(TOKEN_KEY) ?? "",
-
   );
 
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -52,7 +49,6 @@ function Admin() {
 
   const [password, setPassword] = useState("");
 
-
   const [loading, setLoading] = useState(false);
 
   const [orderFilter, setOrderFilter] = useState("ALL");
@@ -63,29 +59,18 @@ function Admin() {
 
   const [newOrdersCount, setNewOrdersCount] = useState(0);
 
-
-
-
   async function loadData(currentToken: string) {
-
     const currentUser = await getCurrentUser(currentToken);
 
     if (currentUser.role !== "ADMIN") {
-
       throw new Error("У этого аккаунта нет прав администратора.");
-
     }
 
     const [loadedProducts, loadedCategories, loadedOrders] =
-
       await Promise.all([
-
         getAdminProducts(currentToken),
-
         getCategories(),
-
         getAdminOrders(currentToken),
-
       ]);
 
     setUser(currentUser);
@@ -95,31 +80,22 @@ function Admin() {
     setCategories(loadedCategories);
 
     setOrders(loadedOrders);
-
   }
 
   useEffect(() => {
-
     if (!token) {
-
       setUser(null);
 
       return;
-
     }
 
     let cancelled = false;
 
     async function verifySession() {
-
       try {
-
         await loadData(token);
-
       } catch (err) {
-
         if (!cancelled) {
-
           sessionStorage.removeItem(TOKEN_KEY);
 
           setToken("");
@@ -127,94 +103,62 @@ function Admin() {
           setUser(null);
 
           setError(
-
             err instanceof Error
-
               ? err.message
-
               : "Не удалось проверить доступ.",
-
           );
-
         }
-
       }
-
     }
 
     void verifySession();
 
     return () => {
-
       cancelled = true;
-
     };
-
   }, [token]);
 
   useEffect(() => {
-
     if (!token || !user) return;
 
     let cancelled = false;
 
     async function refreshData() {
-
       try {
-
         const count = await getNewOrdersCount(token);
 
         if (!cancelled) setNewOrdersCount(count);
-
       } catch (err) {
-
         if (!cancelled) {
-
           console.error("Не удалось обновить счётчик заказов:", err);
-
         }
-
       }
 
       try {
-
         const loadedOrders = await getAdminOrders(token);
 
         if (!cancelled) setOrders(loadedOrders);
-
       } catch (err) {
-
         if (!cancelled) {
-
           console.error("Не удалось обновить список заказов:", err);
-
         }
-
       }
-
     }
 
     void refreshData();
 
     const intervalId = window.setInterval(() => {
-
       void refreshData();
-
     }, 15000);
 
     return () => {
-
       cancelled = true;
 
       window.clearInterval(intervalId);
-
     };
-
   }, [token, user]);
 
-
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
-
     event.preventDefault();
 
     setLoading(true);
@@ -224,7 +168,6 @@ function Admin() {
     setNotice("");
 
     try {
-
       const identifier = login.trim();
       const auth = await loginUser({
         ...(identifier.includes("@")
@@ -240,25 +183,16 @@ function Admin() {
       setToken(auth.access_token);
 
       setPassword("");
-
     } catch (err) {
-
       setError(
-
         err instanceof Error ? err.message : "Не удалось войти в панель.",
-
       );
-
     } finally {
-
       setLoading(false);
-
     }
-
   }
 
   function logout() {
-
     sessionStorage.removeItem(TOKEN_KEY);
 
     setToken("");
@@ -276,138 +210,77 @@ function Admin() {
     setError("");
 
     setNotice("");
-
   }
 
-
-
-
-
   if (!user) {
-
     return (
-
       <main className="admin-page">
-
         <form className="admin-login" onSubmit={handleLogin}>
-
           <a className="admin-back" href="/">
-
             ← Вернуться в магазин
-
           </a>
-
           <LogoMark size={44} />
-
           <span className="admin-eyebrow">ДРУГ СТРОИТЕЛЯ</span>
-
           <h1>Вход для администратора</h1>
-
           <p>Войди с аккаунтом, которому назначена роль ADMIN.</p>
-
           <label>
-
             Почта или номер телефона
-
             <input
-
               type="text"
-
               value={login}
 
               onChange={(event) => setLogin(event.target.value)}
 
               autoComplete="username"
-
               placeholder="admin@example.com или +79991234567"
-
               required
-
             />
-
           </label>
-
           <label>
-
             Пароль
-
             <input
-
               type="password"
-
               value={password}
 
               onChange={(event) => setPassword(event.target.value)}
 
               autoComplete="current-password"
-
               required
-
             />
-
           </label>
-
           {error && <p className="admin-error">{error}</p>}
 
           <button className="admin-btn admin-btn-primary" disabled={loading}>
-
             {loading ? "Проверяем доступ..." : "Войти"}
-
           </button>
-
         </form>
-
       </main>
-
     );
-
   }
 
   return (
-
     <main className="admin-page">
-
       <div className="admin-container">
-
         <header className="admin-header">
-
           <div className="admin-header-main">
-
             <a className="admin-back" href="/">
-
               ← Открыть магазин
-
             </a>
-
             <LogoMark size={40} />
-
             <span className="admin-eyebrow">ПАНЕЛЬ УПРАВЛЕНИЯ</span>
-
             <h1>Управление магазином</h1>
-
             <p>Вы вошли как {user.phone ?? user.email ?? "Администратор"}</p>
-
           </div>
-
           <aside className="admin-header-summary">
-
             <span className="admin-eyebrow">СВОДКА</span>
-
             <strong>Новые заказы: {newOrdersCount}</strong>
-
             <p>Счётчик и список заказов обновляются каждые 15 секунд.</p>
-
           </aside>
-
           <button className="admin-btn admin-btn-ghost admin-logout" onClick={logout}>
             <Icon name="logout" />
-
             Выйти
-
           </button>
-
         </header>
-
         <div className="admin-layout">
         <nav className="admin-sidebar" aria-label="Разделы админки">
           {ADMIN_SECTIONS.map((item) => (
@@ -429,17 +302,14 @@ function Admin() {
             </NavLink>
           ))}
         </nav>
-
         <div className="admin-content">
         {error && <p className="admin-error">{error}</p>}
 
         {notice && <p className="admin-notice">{notice}</p>}
                 
-                
         {section === "analytics" && (
           <AnalyticsSection token={token} onSelectStatus={setOrderFilter} />
         )}
-
 
         {section === "orders" && (
           <OrdersSection
@@ -490,14 +360,9 @@ function Admin() {
         )}
         </div>
         </div>
-
       </div>
-
-
     </main>
-
   );
-
 }
 
 export default Admin;

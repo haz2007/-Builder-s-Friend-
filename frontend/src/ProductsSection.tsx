@@ -17,7 +17,6 @@ import { showFallbackImage } from "./shop/images";
 import { matchScore, searchTokens } from "./shop/search";
 
 type ProductForm = {
-
   name: string;
 
   description: string;
@@ -32,26 +31,18 @@ type ProductForm = {
   thickness_mm: string;
   width_mm: string;
   length_mm: string;
-
 };
 
 const emptyForm: ProductForm = {
-
   name: "",
-
   description: "",
-
   price: "",
-
   stock_quantity: "0",
-
   unit: "шт.",
-
   category_id: "",
   thickness_mm: "",
   width_mm: "",
   length_mm: "",
-
 };
 
 type Props = {
@@ -84,9 +75,7 @@ export default function ProductsSection({
   const [productCategoryFilter, setProductCategoryFilter] = useState("ALL");
   const [productStockFilter, setProductStockFilter] = useState("ALL");
   const [uploadingProductId, setUploadingProductId] = useState<number | null>(
-
     null,
-
   );
 
   const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
@@ -123,11 +112,9 @@ export default function ProductsSection({
   }
 
   function resetForm() {
-
     setForm(emptyForm);
 
     setEditingId(null);
-
   }
 
   function openVariants(product: ApiProduct) {
@@ -141,26 +128,18 @@ export default function ProductsSection({
   }
 
   function startEditing(product: ApiProduct) {
-
     setEditingId(product.id);
 
     setForm({
-
       name: product.name,
-
       description: product.description ?? "",
-
       price: String(product.price),
-
       stock_quantity: String(product.stock_quantity),
-
       unit: product.unit,
-
       category_id: String(product.category_id),
       thickness_mm: product.thickness_mm ? String(product.thickness_mm) : "",
       width_mm: product.width_mm ? String(product.width_mm) : "",
       length_mm: product.length_mm ? String(product.length_mm) : "",
-
     });
 
     setError("");
@@ -173,11 +152,9 @@ export default function ProductsSection({
         block: "start",
       });
     });
-
   }
 
   async function handleSaveProduct(event: FormEvent<HTMLFormElement>) {
-
     event.preventDefault();
 
     if (!token) return;
@@ -189,29 +166,18 @@ export default function ProductsSection({
     const categoryId = Number(form.category_id);
 
     if (
-
       !form.name.trim() ||
-
       !Number.isFinite(price) ||
-
       price <= 0 ||
-
       !Number.isFinite(stock) ||
-
       stock < 0 ||
-
       !Number.isInteger(categoryId) ||
-
       categoryId <= 0 ||
-
       !form.unit.trim()
-
     ) {
-
       setError("Проверь название, цену, остаток, единицу и категорию.");
 
       return;
-
     }
 
     const dimensionValues = [form.thickness_mm, form.width_mm, form.length_mm]
@@ -234,26 +200,18 @@ export default function ProductsSection({
     setNotice("");
 
     const data = {
-
       name: form.name.trim(),
-
       description: form.description.trim() || null,
-
       price,
-
       stock_quantity: stock,
-
       unit: form.unit.trim(),
-
       category_id: categoryId,
       thickness_mm: thickness,
       width_mm: width,
       length_mm: length,
-
     };
 
     try {
-
       if (editingId === null) {
         const created = await createProduct(data, token);
         await onReload();
@@ -268,37 +226,26 @@ export default function ProductsSection({
         resetForm();
         await onReload();
       }
-
     } catch (err) {
-
       setError(
-
         err instanceof Error ? err.message : "Не удалось сохранить товар.",
-
       );
-
     } finally {
-
       setLoading(false);
-
     }
-
   }
 
   async function handleUploadImage(productId: number, file: File) {
-
     if (!token) return;
 
     const input = fileInputRefs.current[productId];
 
-    if (file.size > 5 * 1024 * 1024) {
-
-      setError("Размер фотографии не должен превышать 5 МБ.");
+    if (file.size > 15 * 1024 * 1024) {
+      setError("Размер фотографии не должен превышать 15 МБ.");
 
       if (input) input.value = "";
 
       return;
-
     }
 
     setUploadingProductId(productId);
@@ -308,49 +255,33 @@ export default function ProductsSection({
     setNotice("");
 
     try {
-
       await uploadProductImage(productId, file, token);
 
       await onReload();
 
       setNotice("Фотография загружена.");
-
     } catch (err) {
-
       setError(
-
         err instanceof Error
-
           ? err.message
-
           : "Не удалось загрузить фотографию.",
-
       );
-
     } finally {
-
       if (input) input.value = "";
 
       setUploadingProductId(null);
-
     }
-
   }
 
   async function handleProductStatus(product: ApiProduct) {
-
     if (!token) return;
 
     const action =
-
       product.is_active === 1 ? deactivateProduct : restoreProduct;
 
     const confirmation =
-
       product.is_active === 1
-
         ? `Скрыть товар «${product.name}» из каталога?`
-
         : `Вернуть товар «${product.name}» в каталог?`;
 
     if (!window.confirm(confirmation)) return;
@@ -362,39 +293,24 @@ export default function ProductsSection({
     setNotice("");
 
     try {
-
       await action(product.id, token);
 
       await onReload();
 
       setNotice(
-
         product.is_active === 1
-
           ? "Товар скрыт из каталога."
-
           : "Товар снова доступен в каталоге.",
-
       );
-
     } catch (err) {
-
       setError(
-
         err instanceof Error
-
           ? err.message
-
           : "Не удалось изменить статус товара.",
-
       );
-
     } finally {
-
       setLoading(false);
-
     }
-
   }
 
   async function handleDeleteProduct(product: ApiProduct) {
@@ -443,59 +359,37 @@ export default function ProductsSection({
       ref={productFormRef}
       style={{ scrollMarginTop: "24px" }}
     >
-
       <h2>
-
         {editingId === null
-
           ? "Добавить товар"
-
           : `Редактировать товар №${editingId}`}
-
       </h2>
-
       <form className="admin-product-form" onSubmit={handleSaveProduct}>
-
         <label>
-
           Название
-
           <input
-
             value={form.name}
 
             onChange={(event) =>
-
               setForm({ ...form, name: event.target.value })
-
             }
 
             maxLength={200}
 
             required
-
           />
-
         </label>
-
         <label>
-
           Категория
-
           <select
-
             value={form.category_id}
 
             onChange={(event) =>
-
               setForm({ ...form, category_id: event.target.value })
-
             }
 
             required
-
           >
-
             <option value="">Выбрать категорию</option>
             {categories
               .filter((category) => category.parent_id === null)
@@ -518,87 +412,53 @@ export default function ProductsSection({
                   </option>
                 );
               })}
-
           </select>
-
         </label>
-
         <label>
-
           Цена основного варианта, ₽
-
           <input
-
             type="number"
-
             min="0.01"
-
             step="0.01"
-
             value={form.price}
 
             onChange={(event) =>
-
               setForm({ ...form, price: event.target.value })
-
             }
 
             required
-
           />
-
         </label>
-
         <label>
-
           Остаток на складе (в единице товара)
-
           <input
-
             type="number"
-
             min="0"
-
             step="0.01"
-
             value={form.stock_quantity}
 
             onChange={(event) =>
-
               setForm({ ...form, stock_quantity: event.target.value })
-
             }
 
             required
-
           />
-
         </label>
-
         <label>
-
           Единица измерения
-
           <input
-
             value={form.unit}
 
             onChange={(event) =>
-
               setForm({ ...form, unit: event.target.value })
-
             }
 
             placeholder="шт., м, м², м³, уп."
-
             maxLength={20}
 
             required
-
           />
-
         </label>
-
         <fieldset className="admin-dimensions admin-full">
           <legend>Размеры доски, мм (только для пиломатериалов)</legend>
           <p>
@@ -653,19 +513,13 @@ export default function ProductsSection({
             </strong>
           )}
         </fieldset>
-
         <label className="admin-full">
-
           Описание
-
           <textarea
-
             value={form.description}
 
             onChange={(event) =>
-
               setForm({ ...form, description: event.target.value })
-
             }
 
             maxLength={1000}
@@ -673,47 +527,27 @@ export default function ProductsSection({
             rows={3}
 
           />
-
         </label>
-
         <div className="admin-form-actions admin-full">
-
           <button className="admin-btn admin-btn-primary" disabled={loading}>
-
             {loading
-
               ? "Сохраняем..."
-
               : editingId === null
-
                 ? "Добавить товар"
-
                 : "Сохранить изменения"}
-
           </button>
-
           {editingId !== null && (
-
             <button
-
               type="button"
-
               className="admin-btn admin-btn-outline"
-
               onClick={resetForm}
 
             >
-
               Отмена
-
             </button>
-
           )}
-
         </div>
-
       </form>
-
       {editingProduct === null && (
         <p className="admin-hint admin-variants-hint">
           💡 Продавать товар по-разному (штука, куб, пачка) можно будет
@@ -732,21 +566,13 @@ export default function ProductsSection({
           onNotice={setNotice}
         />
       )}
-
     </section>
-
     <section className="admin-card">
-
       <div className="admin-list-heading">
-
         <div>
-
           <h2>Список товаров</h2>
-
           <p>Показано: {visibleProducts.length} из {products.length}</p>
-
         </div>
-
         <div className="admin-row-actions admin-product-filters">
           <input
             className="admin-search"
@@ -778,59 +604,32 @@ export default function ProductsSection({
             <option value="OUT_OF_STOCK">Нет в наличии</option>
           </select>
         </div>
-
       </div>
-
       {visibleProducts.length === 0 ? (
-
         <p>Товары не найдены.</p>
-
       ) : (
-
         <div className="admin-table-wrap admin-products-table">
-
           <table className="admin-table">
-
             <thead>
-
               <tr>
-
                 <th>Товар и фото</th>
-
                 <th>Варианты и цены</th>
-
                 <th>Остаток</th>
-
                 <th>Статус</th>
-
                 <th>Действия</th>
-
               </tr>
-
             </thead>
-
             <tbody>
-
               {visibleProducts.map((product) => (
-
                 <tr key={product.id}>
-
                   <td data-label="Товар">
-
                     <strong>{product.name}</strong>
-
                     <small>
-
                       {categories.find(
-
                         (category) =>
-
                           category.id === product.category_id,
-
                       )?.name ?? "Без категории"}
-
                     </small>
-
                     <div className="admin-product-photo">
                       {product.image_url ? (
                         <img
@@ -867,9 +666,7 @@ export default function ProductsSection({
                         />
                       </label>
                     </div>
-
                   </td>
-
                   <td data-label="Цены">
                     <div className="admin-variant-prices">
                       {product.variants
@@ -885,41 +682,24 @@ export default function ProductsSection({
                         ))}
                     </div>
                   </td>
-
                   <td data-label="Остаток">
-
                     {product.stock_quantity} {product.unit}
-
                   </td>
-
                   <td data-label="Статус">
-
                     <span
-
                       className={
-
                         product.is_active === 1
-
                           ? "admin-status active"
-
                           : "admin-status inactive"
-
                       }
 
                     >
-
                       {product.is_active === 1
-
                         ? "В каталоге"
-
                         : "Скрыт"}
-
                     </span>
-
                   </td>
-
                   <td data-label="Действия">
-
                     <div className="admin-product-actions">
                       <button
                         type="button"
@@ -966,21 +746,13 @@ export default function ProductsSection({
                         </button>
                       </div>
                     </div>
-
                   </td>
-
                 </tr>
-
               ))}
-
             </tbody>
-
           </table>
-
         </div>
-
       )}
-
     </section>
     </>
   );

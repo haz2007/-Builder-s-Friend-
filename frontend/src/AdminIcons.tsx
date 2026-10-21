@@ -2,6 +2,7 @@ import {
   ArrowRight,
   Camera,
   Check,
+  Download,
   Eye,
   EyeOff,
   KeyRound,
@@ -31,6 +32,7 @@ const ICONS = {
   logout: LogOut,
   key: KeyRound,
   print: Printer,
+  download: Download,
 };
 
 export type IconName = keyof typeof ICONS;

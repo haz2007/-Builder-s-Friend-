@@ -1,4 +1,3 @@
-import io
 import re
 import uuid
 from pathlib import Path
@@ -12,7 +11,6 @@ from fastapi import (
     Query,
     UploadFile,
 )
-from PIL import Image, UnidentifiedImageError
 from sqlalchemy.orm import InstrumentedAttribute, Session
 
 from ..auth import require_admin
@@ -29,12 +27,15 @@ from ..schemas import (
     ProductCreate,
     ProductResponse,
     ProductStockUpdate,
+    ProductSuggestion,
     ProductUpdate,
     ProductVariantCreate,
     ProductVariantResponse,
     ProductVariantUpdate,
 )
 from ..services import audit
+from ..services import search as fuzzy_search
+from ..services.images import BadImage, compress_photo
 from ..services.variant_service import (
     apply_product_fields_to_primary,
     recalc_cubic_variants,
@@ -48,12 +49,8 @@ DIMENSION_FIELDS = ("thickness_mm", "width_mm", "length_mm")
 router = APIRouter(prefix="/api/v1/products", tags=["Products"])
 
 UPLOAD_DIR = Path(__file__).resolve().parents[2] / "uploads" / "products"
-MAX_IMAGE_SIZE = 5 * 1024 * 1024
-ALLOWED_FORMATS = {
-    "JPEG": ".jpg",
-    "PNG": ".png",
-    "WEBP": ".webp",
-}
+# С запасом на снимки с телефона: на диск попадёт уже сжатый WebP
+MAX_IMAGE_SIZE = 15 * 1024 * 1024
 
 
 def set_product_categories(
@@ -183,6 +180,18 @@ def get_products(
     )
 
     return query.offset(offset).limit(limit).all()
+
+
+@router.get("/suggest", response_model=list[ProductSuggestion])
+def suggest_products(
+    q: str = Query(min_length=2, max_length=100),
+    db: Session = Depends(get_db),
+):
+    """Похожие названия для запроса с опечаткой: «досака» → «Доска обрезная…»."""
+    return [
+        ProductSuggestion(id=product.id, name=product.name, score=score)
+        for product, score in fuzzy_search.suggestions(db, q)
+    ]
 
 
 @router.get("/{product_id}", response_model=ProductResponse)
@@ -523,27 +532,15 @@ async def upload_product_image(
     if len(contents) > MAX_IMAGE_SIZE:
         raise HTTPException(
             status_code=413,
-            detail="Размер изображения не должен превышать 5 МБ",
+            detail="Размер изображения не должен превышать 15 МБ",
         )
 
     try:
-        with Image.open(io.BytesIO(contents)) as image:
-            image_format = image.format
-            image.verify()
-    except (UnidentifiedImageError, OSError):
-        raise HTTPException(
-            status_code=400,
-            detail="Загрузите корректное изображение JPG, PNG или WebP",
-        ) from None
+        contents = compress_photo(contents)
+    except BadImage as error:
+        raise HTTPException(status_code=400, detail=str(error)) from None
 
-    if image_format not in ALLOWED_FORMATS:
-        raise HTTPException(
-            status_code=400,
-            detail="Разрешены только JPG, PNG и WebP",
-        )
-
-    extension = ALLOWED_FORMATS[image_format]
-    filename = f"{uuid.uuid4().hex}{extension}"
+    filename = f"{uuid.uuid4().hex}.webp"
 
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     destination = UPLOAD_DIR / filename

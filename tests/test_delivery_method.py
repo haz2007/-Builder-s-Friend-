@@ -81,3 +81,39 @@ def test_delivery_is_default(client: TestClient):
 
     assert response.status_code == 200
     assert response.json()["delivery_method"] == "DELIVERY"
+
+
+def test_order_comment_is_saved_and_shown_to_admin(client: TestClient):
+    from app.services.order_notifications import build_order_message, load_order
+
+    headers, product_id = setup_order_data()
+    order = {
+        "delivery_method": "PICKUP",
+        "items": [{"product_id": product_id, "quantity": 1}],
+        "comment": "  распилить   по 3 м <b>  ",
+    }
+
+    response = client.post("/api/v1/orders/", json=order, headers=headers)
+
+    assert response.status_code == 200
+    # Лишние пробелы убраны, HTML в сообщении бота экранирован
+    assert response.json()["comment"] == "распилить по 3 м <b>"
+    db = SessionLocal()
+    text = build_order_message(load_order(db, response.json()["id"]), "Новый заказ")
+    db.close()
+    assert "распилить по 3 м &lt;b&gt;" in text
+
+    too_long = client.post("/api/v1/orders/", json={**order, "comment": "х" * 501}, headers=headers)
+    assert too_long.status_code == 422
+
+
+def test_order_without_comment(client: TestClient):
+    headers, product_id = setup_order_data()
+
+    response = client.post(
+        "/api/v1/orders/",
+        json={"delivery_method": "PICKUP", "items": [{"product_id": product_id, "quantity": 1}]},
+        headers=headers,
+    )
+
+    assert response.json()["comment"] is None

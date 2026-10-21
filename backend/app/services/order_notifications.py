@@ -145,10 +145,15 @@ def build_order_message(order: Order, title: str) -> str:
         "",
         f"💰 Итого: <b>{format_money(order.total_price)}</b>",
         delivery_line(order),
+        *comment_lines(order),
         f"📌 Статус: <b>{status_name(order.status, order.delivery_method)}</b>",
     ]
 
     return "\n".join(lines)
+
+
+def comment_lines(order: Order) -> list[str]:
+    return [f"💬 Комментарий: <i>{html.escape(order.comment)}</i>"] if order.comment else []
 
 
 def build_customer_message(order: Order, title: str) -> str:

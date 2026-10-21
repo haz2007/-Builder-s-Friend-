@@ -38,6 +38,12 @@ export default function OrderPrintSheet({ order }: { order: ApiOrder }) {
         </dd>
         <dt>{pickup ? "Получение" : "Адрес доставки"}</dt>
         <dd>{pickup ? "Самовывоз со склада" : order.delivery_address}</dd>
+        {order.comment && (
+          <>
+            <dt>Комментарий</dt>
+            <dd>{order.comment}</dd>
+          </>
+        )}
         <dt>Статус</dt>
         <dd>{orderStatusLabel(order.status, order.delivery_method)}</dd>
       </dl>

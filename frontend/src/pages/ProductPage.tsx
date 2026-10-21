@@ -2,6 +2,7 @@ import { ChevronRight, Package, ShoppingCart } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
+import MaterialCalculator from "../components/MaterialCalculator";
 import QuantityInput from "../components/QuantityInput";
 import VariantPicker from "../components/VariantPicker";
 import { parentCategory } from "../shop/categories";
@@ -159,6 +160,15 @@ export default function ProductPage() {
               </div>
             )}
 
+            <MaterialCalculator
+              product={product}
+              onTake={(piece, pieces) => {
+                selectVariant(product.id, piece.id);
+                setQuantity(pieces);
+                setAdded("");
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+            />
             <dl className="product-specs">
               {product.dimensions && (
                 <>

@@ -1,6 +1,6 @@
 from datetime import date, datetime, time, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
@@ -15,7 +15,7 @@ from ..models import (
     User,
 )
 from ..schemas import as_utc
-from ..services import reports
+from ..services import export, reports
 
 router = APIRouter(prefix="/api/v1/admin", tags=["Admin"])
 
@@ -342,3 +342,21 @@ def get_admin_reports(
         "monthly": reports.monthly_summary(db, date.today()),
         "customers": reports.repeat_customers(db),
     }
+
+
+@router.get("/orders/export")
+def export_orders(
+    period: str = Query("30d", pattern="^(7d|30d|90d|all|custom)$"),
+    date_from: date | None = Query(None),
+    date_to: date | None = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Заказы за период в Excel (.xlsx): лист заказов и лист проданных позиций."""
+    start, end = _date_range(period, date_from, date_to)
+    filename = f"orders_{date.today():%Y-%m-%d}.xlsx"
+    return Response(
+        content=export.orders_workbook(db, start, end),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

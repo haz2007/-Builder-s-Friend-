@@ -16,6 +16,7 @@ from app.models import Product, ProductVariant, User, is_piece_unit
 from app.routers.products import search_words
 from app.services import audit
 from app.services.order_notifications import format_money, format_quantity
+from app.services.search import suggestions
 from app.services.variant_service import sync_product_from_primary
 
 from .config import LOW_STOCK_LIMIT, user_states
@@ -72,7 +73,7 @@ def admin_stock_screen(chat_id, telegram_user_id, message_id=None):
         extra.append([{"text": "🗺 Открыть в Яндекс Картах", "url": store_info.YANDEX_MAPS_URL}])
     show_screen(
         chat_id, telegram_user_id, text,
-        inline([button("🔎 Найти товар", "a:find")], *rows, *extra, HOME_ROW),
+        inline([button("🔎 Найти товар", "a:find"), button("➕ Новый товар", "a:new")], *rows, *extra, HOME_ROW),
         message_id,
     )
 
@@ -96,8 +97,14 @@ def search_results_screen(chat_id, telegram_user_id, query: str):
             pattern = f"%{word}%"
             found = found.filter(Product.name.ilike(pattern) | Product.description.ilike(pattern))
         products = found.order_by(Product.name).limit(SEARCH_LIMIT + 1).all()
+        fuzzy = not products
+        if fuzzy:
+            # Опечатка: «досака» → похожие названия (pg_trgm)
+            products = [product for product, _ in suggestions(db, query, SEARCH_LIMIT)]
         rows = [product_button(product) for product in products[:SEARCH_LIMIT]]
-    if not products:
+    if fuzzy and products:
+        text = f"🔎 Точно «{html.escape(query)}» нет. Похожие товары:"
+    elif not products:
         text = f"По запросу «{html.escape(query)}» ничего не нашлось. Попробуй другое слово."
     else:
         text = f"🔎 <b>Найдено по запросу «{html.escape(query)}»</b>"
@@ -131,7 +138,7 @@ def product_screen(chat_id, telegram_user_id, product_id: int, message_id=None, 
             f"• {html.escape(variant.name)} — {format_money(variant.price)} за {html.escape(variant.unit)}"
             for variant in variants
         ]
-        rows = [[button("📥 Изменить остаток", f"a:setstock:{product.id}")]]
+        rows = [[button("📥 Изменить остаток", f"a:setstock:{product.id}"), button("📷 Фото", f"a:photo:{product.id}")]]
         rows += [
             [button(f"💰 Цена: {variant.name}", f"a:setprice:{variant.id}")]
             for variant in variants

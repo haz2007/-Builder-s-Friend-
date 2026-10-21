@@ -89,3 +89,25 @@ test("товар убирается из корзины кнопкой и вво
   await item.getByLabel("Количество", { exact: true }).press("Enter");
   await expect(page.getByRole("heading", { name: "Пока здесь пусто" })).toBeVisible();
 });
+
+test("гость оставляет заявку без регистрации, админ перезванивает", async ({ page }) => {
+  const guestPhone = `+7998${String(Date.now()).slice(-7)}`;
+  await addBoardToCart(page);
+  await page.getByRole("button", { name: "Оформить заказ" }).click();
+  await page.getByRole("button", { name: /перезвоните мне/ }).click();
+  await page.getByLabel("Как к вам обращаться?").fill("Гость Тестовый");
+  await page.getByLabel("Номер телефона").fill(guestPhone);
+  await page.getByRole("checkbox").check();
+  await page.getByRole("button", { name: "Жду звонка" }).click();
+  await expect(page.getByRole("heading", { name: "Перезвоним!" })).toBeVisible();
+
+  await page.goto("/admin");
+  await page.getByLabel("Почта или номер телефона").fill(ADMIN_EMAIL);
+  await page.getByLabel("Пароль").fill(ADMIN_PASSWORD);
+  await page.getByRole("button", { name: "Войти" }).click();
+  await page.getByRole("link", { name: /Заказы/ }).click();
+  const request = page.locator(".admin-callback").filter({ hasText: guestPhone });
+  await expect(request).toContainText("Доска обрезная 50×150×6000");
+  await request.getByRole("button", { name: "Перезвонили" }).click();
+  await expect(request).toHaveCount(0);
+});

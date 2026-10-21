@@ -123,9 +123,11 @@ class OrderCreate(BaseModel):
     # Доставка магазином или самовывоз (своя или нанятая машина)
     delivery_method: Literal["DELIVERY", "PICKUP"] = "DELIVERY"
     delivery_address: str = Field(default="", max_length=500)
+    comment: str = Field(default="", max_length=500)
 
     @model_validator(mode="after")
     def check_address(self):
+        self.comment = " ".join(self.comment.split())
         if self.delivery_method == "PICKUP":
             self.delivery_address = PICKUP_ADDRESS
         elif len(self.delivery_address.strip()) < 5:
@@ -193,6 +195,7 @@ class OrderResponse(BaseModel):
     delivery_method: str = "DELIVERY"
     customer_name: str
     customer_phone: str | None = None
+    comment: str | None = None
     # Нужен админке, чтобы сбросить пароль покупателю
     user_id: int | None = None
     created_at: UtcDatetime | None = None
@@ -231,6 +234,10 @@ class PasswordResetRequest(BaseModel):
 class PasswordChange(BaseModel):
     current_password: str = Field(min_length=1, max_length=128)
     new_password: str = Field(min_length=PASSWORD_MIN_LENGTH, max_length=128)
+
+
+class AccountDelete(BaseModel):
+    password: str = Field(min_length=1, max_length=128)
 
 
 class PasswordResetConfirm(BaseModel):
@@ -278,3 +285,53 @@ class TokenResponse(BaseModel):
 
 class ProductStockUpdate(BaseModel):
     stock_quantity: float = Field(ge=0)
+
+
+class CallbackItem(BaseModel):
+    variant_id: int = Field(gt=0)
+    quantity: int = Field(gt=0, le=100_000)
+
+
+class CallbackRequestCreate(BaseModel):
+    """Заявка «перезвоните мне»: телефон и, если есть, корзина."""
+
+    name: str = Field(min_length=2, max_length=100)
+    phone: str = Field(min_length=10, max_length=30)
+    comment: str = Field(default="", max_length=500)
+    items: list[CallbackItem] = Field(default_factory=list, max_length=50)
+    # Телефон и имя — персональные данные: без согласия заявку не принимаем
+    privacy_accepted: Literal[True]
+
+    @model_validator(mode="after")
+    def normalize(self):
+        digits = "".join(ch for ch in self.phone if ch.isdigit())
+        if len(digits) == 11 and digits[0] in "78":
+            digits = digits[1:]
+        if len(digits) != 10:
+            raise ValueError("Укажите номер телефона из 10 цифр, например +7 999 123-45-67")
+        self.phone = f"+7{digits}"
+        self.name = " ".join(self.name.split())
+        self.comment = " ".join(self.comment.split())
+        return self
+
+
+class CallbackRequestResponse(BaseModel):
+    id: int
+    name: str
+    phone: str
+    comment: str | None
+    cart_summary: str | None
+    cart_total: float | None
+    status: str
+    created_at: UtcDatetime
+    handled_at: UtcDatetime | None = None
+    handled_by_label: str | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ProductSuggestion(BaseModel):
+    id: int
+    name: str
+    # Похожесть 0…1 (word_similarity из pg_trgm)
+    score: float

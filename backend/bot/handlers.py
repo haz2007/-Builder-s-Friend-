@@ -3,6 +3,7 @@
 from collections.abc import Callable
 
 from .admin import (
+    admin_callback_done,
     admin_change_status,
     admin_order_screen,
     admin_orders_screen,
@@ -20,6 +21,15 @@ from .customer import (
     mark_notifications_read,
 )
 from .login import handle_login_message, login_prompt
+from .new_product import (
+    NEW_PRODUCT_STEPS,
+    choose_category,
+    choose_unit,
+    create_product,
+    handle_new_product_message,
+    new_product_prompt,
+    photo_change_prompt,
+)
 from .owner import (
     admin_add_prompt,
     admin_remove,
@@ -99,6 +109,9 @@ def handle_message(message: dict) -> None:
     if state and state["step"] in STOCK_STEPS and action is None:
         handle_stock_message(message, state)
         return
+    if state and state["step"] in NEW_PRODUCT_STEPS and action is None:
+        handle_new_product_message(message, state)
+        return
     if action is not None:
         user_states.pop(telegram_user_id, None)
         delete_message(chat_id, message["message_id"])
@@ -133,6 +146,9 @@ def handle_callback(callback: dict) -> None:
     state = user_states.get(telegram_user_id)
     if state and state["step"] in STOCK_STEPS:
         user_states.pop(telegram_user_id, None)
+    # Кнопки шагов нового товара (раздел, единица, «без фото») продолжают диалог
+    if state and state["step"] in NEW_PRODUCT_STEPS and not data.startswith(("a:newcat:", "a:newunit:", "a:newsave")):
+        user_states.pop(telegram_user_id, None)
 
     if data == "home":
         user_states.pop(telegram_user_id, None)
@@ -165,6 +181,16 @@ def handle_callback(callback: dict) -> None:
             admin_order_screen(chat_id, telegram_user_id, parse_int(parts[2]), parts[3], message_id)
         elif parts[1] == "stock":
             admin_stock_screen(chat_id, telegram_user_id, message_id)
+        elif parts[1] == "new":
+            new_product_prompt(chat_id, telegram_user_id, message_id)
+        elif parts[1] == "newcat" and len(parts) == 3:
+            choose_category(chat_id, telegram_user_id, parse_int(parts[2]), message_id)
+        elif parts[1] == "newunit" and len(parts) == 3:
+            choose_unit(chat_id, telegram_user_id, parse_int(parts[2], -1), message_id)
+        elif parts[1] == "newsave":
+            create_product(chat_id, telegram_user_id)
+        elif parts[1] == "photo" and len(parts) == 3:
+            photo_change_prompt(chat_id, telegram_user_id, parse_int(parts[2]), message_id)
         elif parts[1] == "find":
             find_product_prompt(chat_id, telegram_user_id, message_id)
         elif parts[1] == "prod" and len(parts) == 3:
@@ -173,6 +199,8 @@ def handle_callback(callback: dict) -> None:
             stock_prompt(chat_id, telegram_user_id, parse_int(parts[2]), message_id)
         elif parts[1] == "setprice" and len(parts) == 3:
             price_prompt(chat_id, telegram_user_id, parse_int(parts[2]), message_id)
+    elif parts[0] == "cb" and len(parts) == 3 and parts[1] == "done":
+        reply = admin_callback_done(chat_id, telegram_user_id, parse_int(parts[2]), message_id)
     elif parts[0] == "order" and len(parts) == 3:
         # Кнопки статуса: из уведомления меняем статус прямо в этом сообщении
         reply = admin_change_status(chat_id, telegram_user_id, parse_int(parts[1]), parts[2], message_id)

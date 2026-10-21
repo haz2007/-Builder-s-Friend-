@@ -17,6 +17,7 @@ from ..database import get_db
 from ..models import User
 from ..rate_limit import login_limiter, register_limiter, reset_confirm_limiter, reset_request_limiter
 from ..schemas import (
+    AccountDelete,
     LoginRequest,
     PasswordChange,
     PasswordResetConfirm,
@@ -25,7 +26,7 @@ from ..schemas import (
     UserRegister,
     UserResponse,
 )
-from ..services import password_reset
+from ..services import account, password_reset
 
 router = APIRouter(
     prefix="/api/v1/auth",
@@ -159,6 +160,23 @@ def change_password(
     user.password_hash = hash_password(data.new_password)
     db.commit()
     return {"detail": "Пароль изменён."}
+
+
+@router.post("/delete-account", dependencies=[Depends(login_limiter)])
+def delete_account(
+    data: AccountDelete,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Покупатель удаляет свой аккаунт сам; пароль — защита от чужих рук."""
+    if current_user.role != "CUSTOMER":
+        raise HTTPException(status_code=400, detail="Аккаунт администратора так удалить нельзя.")
+    if not verify_password(data.password, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="Пароль указан неверно.")
+    user = db.get(User, current_user.id)
+    assert user is not None
+    account.delete_customer(db, user)
+    return {"detail": "Аккаунт удалён."}
 
 
 RESET_SENT = (

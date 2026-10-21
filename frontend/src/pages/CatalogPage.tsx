@@ -10,6 +10,7 @@ import { useState } from "react";
 import { Link, NavLink, useParams, useSearchParams } from "react-router-dom";
 
 import ProductCard from "../components/ProductCard";
+import SearchSuggestions from "../components/SearchSuggestions";
 import {
   categoryWithChildrenIds,
   childCategories,
@@ -414,6 +415,7 @@ export default function CatalogPage() {
                 <Search size={30} />
                 <h3>Ничего не найдено</h3>
                 <p>Попробуйте изменить запрос, фильтры или выбрать другую категорию.</p>
+                <SearchSuggestions query={search} />
                 <button className="button button-dark" onClick={resetFilters}>
                   Сбросить фильтры
                 </button>

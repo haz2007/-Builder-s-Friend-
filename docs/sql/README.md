@@ -63,6 +63,34 @@ PostgreSQL сам индексирует только первичные клю�
   всех позиций, и одно последовательное чтение таблицы с хеш-соединением дешевле десятков
   тысяч обращений по индексу. Индекс по дате помог только отобрать заказы периода.
 
+## Поиск с опечатками — pg_trgm
+
+Обычный поиск по словам (`ILIKE`) не находит «досака». Тогда запрос сравнивается с
+названиями по триграммам: `word_similarity` ищет в названии место, больше всего похожее на
+запрос, а оператор `%>` с порогом `0,35` (только для этой транзакции, `SET LOCAL`) идёт по
+GIN-индексу.
+
+```sql
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX ix_products_name_trgm ON products USING gin (lower(name) gin_trgm_ops);
+
+SET LOCAL pg_trgm.word_similarity_threshold = 0.35;
+SELECT id, name, word_similarity('досака', lower(name)) AS score
+FROM products
+WHERE lower(name) %> 'досака' AND is_active = 1
+ORDER BY score DESC
+LIMIT 5;
+```
+
+```
+Bitmap Heap Scan on products
+  Recheck Cond: (lower((name)::text) %> 'досака'::text)
+  ->  Bitmap Index Scan on ix_products_name_trgm
+        Index Cond: (lower((name)::text) %> 'досака'::text)
+```
+
+Код — `backend/app/services/search.py`, тест плана запроса — `tests/test_fuzzy_search.py`.
+
 ## Деньги — NUMERIC, а не float
 
 `float` хранит десятичные дроби приближённо: `1.10 * 3 = 3.3000000000000003`.

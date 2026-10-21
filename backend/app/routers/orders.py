@@ -162,6 +162,7 @@ def create_order(
             total_price=0,
             delivery_address=order_data.delivery_address,
             delivery_method=order_data.delivery_method,
+            comment=order_data.comment or None,
         )
 
         db.add(order)

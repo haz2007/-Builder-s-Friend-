@@ -59,6 +59,8 @@ import type {
 } from "./shop/types";
 import { showFallbackImage } from "./shop/images";
 import { orderStatusLabel } from "./shop/orderStatus";
+import CallbackForm from "./components/CallbackForm";
+import DeleteAccount from "./components/DeleteAccount";
 import QuantityInput from "./components/QuantityInput";
 import ConsentCheckbox from "./components/ConsentCheckbox";
 
@@ -260,6 +262,7 @@ function App() {
   const [password, setPassword] = useState("");
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [orderComment, setOrderComment] = useState("");
   const [deliveryMethod, setDeliveryMethod] = useState<"DELIVERY" | "PICKUP">(
     "DELIVERY",
   );
@@ -267,6 +270,9 @@ function App() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
   const [checkoutSuccess, setCheckoutSuccess] = useState<number | null>(null);
+  // «Перезвоните мне» вместо регистрации
+  const [callbackMode, setCallbackMode] = useState(false);
+  const [callbackSuccess, setCallbackSuccess] = useState<number | null>(null);
 
   // Личный кабинет покупателя
   const [customer, setCustomer] = useState<Customer | null>(null);
@@ -882,6 +888,7 @@ function App() {
           })),
           delivery_method: deliveryMethod,
           delivery_address: deliveryMethod === "DELIVERY" ? deliveryAddress.trim() : "",
+          comment: orderComment.trim(),
         },
         accessToken,
       );
@@ -897,6 +904,7 @@ function App() {
       setAccountPhone(user.phone ?? phone.trim());
       setCheckoutSuccess(order.id);
       setCart({});
+      setOrderComment("");
 
       // Остатки пересчитывает сервер (штуки ↔ кубы), просто перечитываем каталог
       getProducts()
@@ -924,6 +932,8 @@ function App() {
     setCheckoutOpen(true);
     setCheckoutError("");
     setCheckoutSuccess(null);
+    setCallbackSuccess(null);
+    setCallbackMode(false);
   }
 
   const shop: ShopContextValue = {
@@ -1245,7 +1255,11 @@ function App() {
                 <h2>
                   {checkoutSuccess !== null
                     ? "Заказ оформлен"
-                    : "Оформление заказа"}
+                    : callbackSuccess !== null
+                      ? "Заявка принята"
+                      : callbackMode
+                        ? "Перезвоните мне"
+                        : "Оформление заказа"}
                 </h2>
               </div>
 
@@ -1288,6 +1302,36 @@ function App() {
                   Продолжить покупки
                 </button>
               </div>
+            ) : callbackSuccess !== null ? (
+              <div className="checkout-success">
+                <span className="checkout-success-icon">
+                  <Check size={32} />
+                </span>
+                <h3>Перезвоним!</h3>
+                <p>
+                  Заявка <strong>№{callbackSuccess}</strong> уже у менеджера. Позвоним в рабочее
+                  время — {WORKING_HOURS.toLowerCase()}.
+                </p>
+                <button
+                  className="button button-dark checkout-button"
+                  onClick={() => setCheckoutOpen(false)}
+                >
+                  Продолжить покупки
+                </button>
+              </div>
+            ) : callbackMode ? (
+              <CallbackForm
+                cart={cartEntries}
+                initialName={customerName}
+                initialComment={orderComment}
+                onDone={(requestId) => {
+                  setCallbackSuccess(requestId);
+                  setCallbackMode(false);
+                  setCart({});
+                  setOrderComment("");
+                }}
+                onCancel={() => setCallbackMode(false)}
+              />
             ) : (
               <form className="checkout-form" onSubmit={handleCheckout}>
                 {customer ? (
@@ -1309,6 +1353,14 @@ function App() {
                     <p className="checkout-description">
                       Войди в аккаунт или создай новый, чтобы отправить заказ.
                     </p>
+                    <button
+                      type="button"
+                      className="checkout-callback-offer"
+                      onClick={() => setCallbackMode(true)}
+                    >
+                      <Phone size={16} />
+                      Не хочу регистрироваться — перезвоните мне
+                    </button>
 
                     <div className="auth-tabs">
                       <button
@@ -1440,6 +1492,18 @@ function App() {
                   </p>
                 )}
 
+                <label className="checkout-field">
+                  <span>
+                    Комментарий к заказу <small className="checkout-optional">— необязательно</small>
+                  </span>
+                  <textarea
+                    value={orderComment}
+                    onChange={(event) => setOrderComment(event.target.value)}
+                    placeholder="Например: распилить по 3 м, привезти после 14:00"
+                    maxLength={500}
+                    rows={2}
+                  />
+                </label>
                 <div className="checkout-order-summary">
                   <span>Товаров в заказе: {cartCount}</span>
                   <strong>{formatPrice(cartTotal)}</strong>
@@ -1730,6 +1794,16 @@ function App() {
                     </button>
                   </form>
                 )}
+                {passwordFormOpen && (
+                  <DeleteAccount
+                    token={localStorage.getItem(TOKEN_KEY) ?? ""}
+                    onDeleted={() => {
+                      logoutCustomer();
+                      setPasswordFormOpen(false);
+                      setAccountNotice("Аккаунт удалён. Спасибо, что были с нами.");
+                    }}
+                  />
+                )}
 
                 <div className="account-orders-heading">
                   <div>
@@ -1815,6 +1889,10 @@ function App() {
                               : order.delivery_address}
                           </span>
                         </div>
+
+                        {order.comment && (
+                          <p className="account-order-comment">«{order.comment}»</p>
+                        )}
 
                         <div className="account-order-items">
                           {order.items.map((item) => {

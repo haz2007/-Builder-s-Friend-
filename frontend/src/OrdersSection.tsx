@@ -1,9 +1,10 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 
-import { getAdminOrders, getNewOrdersCount, resetUserPassword, updateOrderStatus } from "./api";
+import { downloadOrdersExcel, getAdminOrders, getNewOrdersCount, resetUserPassword, updateOrderStatus } from "./api";
 import type { ApiOrder, ApiProduct } from "./api";
 import { Icon } from "./AdminIcons";
+import CallbacksPanel from "./CallbacksPanel";
 import OrderPrintSheet from "./OrderPrintSheet";
 import { FILTER_STATUSES, orderStages, orderStatusLabel } from "./shop/orderStatus";
 
@@ -57,6 +58,20 @@ export default function OrdersSection({
   const [ordersLoading, setOrdersLoading] = useState(false);
 
   const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
+  const [exportPeriod, setExportPeriod] = useState("30d");
+  const [exporting, setExporting] = useState(false);
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      await downloadOrdersExcel(token, exportPeriod);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось выгрузить заказы.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   const [printOrder, setPrintOrder] = useState<ApiOrder | null>(null);
 
   // Бланк рисуется в этой же странице и печатается через window.print():
@@ -74,31 +89,21 @@ export default function OrdersSection({
   }, [printOrder]);
 
   async function loadOrders(currentToken = token) {
-
     if (!currentToken) return;
 
     setOrdersLoading(true);
 
     try {
-
       const loadedOrders = await getAdminOrders(currentToken);
 
       setOrders(loadedOrders);
-
     } catch (err) {
-
       setError(
-
         err instanceof Error ? err.message : "Не удалось загрузить заказы.",
-
       );
-
     } finally {
-
       setOrdersLoading(false);
-
     }
-
   }
 
   async function handleResetPassword(order: ApiOrder) {
@@ -121,13 +126,9 @@ export default function OrdersSection({
   }
 
   async function handleOrderStatusChange(
-
     orderId: number,
-
     status: string,
-
   ) {
-
     if (!token) return;
 
     setUpdatingOrderId(orderId);
@@ -137,7 +138,6 @@ export default function OrdersSection({
     setNotice("");
 
     try {
-
       await updateOrderStatus(orderId, status, token);
 
       await loadOrders(token);
@@ -147,121 +147,90 @@ export default function OrdersSection({
       setNewOrdersCount(count);
 
       setNotice(`Статус заказа №${orderId} обновлён.`);
-
     } catch (err) {
-
       setError(
-
         err instanceof Error
-
           ? err.message
-
           : "Не удалось изменить статус заказа.",
-
       );
-
     } finally {
-
       setUpdatingOrderId(null);
-
     }
-
   }
 
   const visibleOrders = orders.filter(
-
     (order) => orderFilter === "ALL" || order.status === orderFilter,
-
   );
 
   return (
     <>
+      <CallbacksPanel token={token} onError={setError} />
         <section className="admin-card">
-
           <div className="admin-list-heading">
-
             <div>
-
               <h2>Заказы покупателей</h2>
-
               <p>Всего заказов: {orders.length}</p>
-
             </div>
-
             <div className="admin-row-actions">
-
               <select
-
                 value={orderFilter}
 
                 onChange={(event) => setOrderFilter(event.target.value)}
 
                 aria-label="Фильтр заказов по статусу"
-
               >
-
                 <option value="ALL">Все заказы</option>
-
                 {FILTER_STATUSES.map((status) => (
-
                   <option key={status.value} value={status.value}>
-
                     {status.label}
-
                   </option>
-
                 ))}
-
               </select>
-
               <button
-
                 type="button"
-
                 className="admin-btn admin-btn-outline"
-
                 disabled={ordersLoading}
 
                 onClick={() => void loadOrders()}
 
               >
-
                 <Icon name="refresh" />
-
                 {ordersLoading ? "Обновляем..." : "Обновить"}
-
               </button>
-
+              <select
+                value={exportPeriod}
+                onChange={(event) => setExportPeriod(event.target.value)}
+                aria-label="Период выгрузки"
+              >
+                <option value="30d">За 30 дней</option>
+                <option value="90d">За 90 дней</option>
+                <option value="all">За всё время</option>
+              </select>
+              <button
+                type="button"
+                className="admin-btn admin-btn-outline"
+                disabled={exporting}
+                onClick={() => void handleExport()}
+                title="Файл для учёта: заказы и проданные позиции"
+              >
+                <Icon name="download" />
+                {exporting ? "Готовим файл..." : "Скачать Excel"}
+              </button>
             </div>
-
           </div>
-
           {ordersLoading && orders.length === 0 ? (
-
             <p>Загружаем заказы...</p>
-
           ) : visibleOrders.length === 0 ? (
-
             <p>Заказов с таким статусом пока нет.</p>
-
           ) : (
-
             <div className="admin-order-list">
-
               {visibleOrders.map((order) => (
-
                 <article className="admin-order-card" key={order.id}>
-
                   <div className="admin-order-heading">
-
                     <div>
-
                       <h3>Заказ №{order.id}</h3>
-
                       <span className={`admin-status admin-status-${order.status.toLowerCase()}`}>
-
                         {orderStatusLabel(order.status, order.delivery_method)}
-
                       </span>
                       {order.delivery_method === "PICKUP" && (
                         <span className="admin-status admin-status-pickup">Самовывоз</span>
@@ -275,7 +244,6 @@ export default function OrdersSection({
                         <Icon name="print" size={14} />
                         Печать
                       </button>
-
                       {order.status === "CANCELLED" ? (
                         <div className="admin-order-cancelled-track">
                           <span className="admin-order-cancelled-dot" />
@@ -307,17 +275,11 @@ export default function OrdersSection({
                             })}
                         </div>
                       )}
-
                     </div>
-
                     <strong>
-
                       {Number(order.total_price).toLocaleString("ru-RU")} ₽
-
                     </strong>
-
                   </div>
-
                   <p>
                     <strong>Покупатель:</strong>{" "}
                     {order.customer_name || "Имя не указано"}
@@ -335,7 +297,6 @@ export default function OrdersSection({
                       </button>
                     )}
                   </p>
-
                   <p>
                     <strong>
                       {order.delivery_method === "PICKUP" ? "Получение:" : "Адрес доставки:"}
@@ -344,57 +305,41 @@ export default function OrdersSection({
                       ? "Самовывоз со склада"
                       : order.delivery_address || "Не указан"}
                   </p>
+                  {order.comment && (
+                    <p className="admin-order-comment">
+                      <strong>Комментарий:</strong> {order.comment}
+                    </p>
+                  )}
 
                   <div>
-
                     <strong>Состав заказа</strong>
-
                     <div className="admin-order-items">
-
                       {order.items.map((item) => {
-
                         const product = products.find(
-
                           (entry) => entry.id === item.product_id,
-
                         );
 
                         return (
-
                           <div className="admin-order-item" key={item.id}>
-
                             <span>
-
                               {item.product_name ?? product?.name ?? `Товар №${item.product_id}`}
 
                               {item.variant_name && item.variant_name !== item.unit && ` (${item.variant_name})`} ×{" "}
 
                               {item.quantity} {item.unit}
-
                             </span>
-
                             <span>
-
                               {(
-
                                 Number(item.price) * item.quantity
-
                               ).toLocaleString("ru-RU")}{" "}
 
                               ₽
-
                             </span>
-
                           </div>
-
                         );
-
                       })}
-
                     </div>
-
                   </div>
-
                   <div className="admin-order-status-control">
                     {(order.allowed_statuses ?? []).length === 0 ? (
                       <span className="admin-order-final">
@@ -439,57 +384,33 @@ export default function OrdersSection({
                     )}
                     {updatingOrderId === order.id && <span>Сохраняем статус...</span>}
                   </div>
-
                   {order.status_history?.length > 0 && (
-
                     <details className="admin-order-history">
-
                       <summary>История статусов</summary>
-
                       <ul>
-
                         {order.status_history.map((history) => (
-
                           <li key={history.id}>
-
                             <strong>
-
                               {orderStatusLabel(history.status, order.delivery_method)}
-
                             </strong>
-
                             {history.changed_by && (
                               <em className="admin-history-actor">{history.changed_by}</em>
                             )}
 
                             <span>
-
                               {new Date(history.created_at).toLocaleString(
-
                                 "ru-RU",
-
                               )}
-
                             </span>
-
                           </li>
-
                         ))}
-
                       </ul>
-
                     </details>
-
                   )}
-
                 </article>
-
               ))}
-
             </div>
-
           )}
-
         </section>
       {/* Бланк — прямо в body: всё остальное при печати скрыто */}
       {printOrder && createPortal(<OrderPrintSheet order={printOrder} />, document.body)}
