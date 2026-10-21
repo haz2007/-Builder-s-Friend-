@@ -5402,19 +5402,6 @@ a.category-tab {
 }
 
 /* Удаление аккаунта в личном кабинете */
-.account-delete-link {
-  justify-self: start;
-  margin: -4px 0 8px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: #a63a2c;
-  font: inherit;
-  font-size: 12px;
-  text-decoration: underline;
-  cursor: pointer;
-}
-
 .account-delete {
   display: grid;
   gap: 10px;
@@ -5436,9 +5423,32 @@ a.category-tab {
   gap: 8px;
 }
 
+/* Кнопки удаления — та же форма, что у остальных кнопок сайта, в красном тоне */
+.account-delete-button {
+  gap: 8px;
+  border-color: #e7c3bb;
+  background: #fff;
+  color: #a63a2c;
+}
+
+.account-delete-button:hover {
+  border-color: #a63a2c;
+  background: #fdf5f3;
+}
+
 .account-delete-confirm {
+  flex: 1;
+  gap: 8px;
   background: #a63a2c;
   color: #fff;
+}
+
+.account-delete-confirm:hover:not(:disabled) {
+  background: #8f3024;
+}
+
+.account-delete-actions .button-light {
+  border-color: #e6dfd8;
 }
 
 /* ---------- Личный кабинет — отдельная страница ---------- */
@@ -5556,10 +5566,6 @@ a.category-tab {
   margin: 0;
   color: #2d241d;
   font-size: 17px;
-}
-
-.account-settings .account-delete-link {
-  margin-top: 12px;
 }
 
 @media (max-width: 600px) {

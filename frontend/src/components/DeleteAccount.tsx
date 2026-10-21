@@ -1,3 +1,4 @@
+import { Trash2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
 import { deleteAccount } from "../api";
@@ -30,7 +31,8 @@ export default function DeleteAccount({ token, onDeleted }: { token: string; onD
     return (
       <div className="account-delete-intro">
         <p>Телефон и привязка к Telegram удалятся, войти будет нельзя.</p>
-        <button type="button" className="account-delete-link" onClick={() => setOpen(true)}>
+        <button type="button" className="button account-delete-button" onClick={() => setOpen(true)}>
+          <Trash2 size={16} />
           Удалить аккаунт
         </button>
       </div>
@@ -61,9 +63,10 @@ export default function DeleteAccount({ token, onDeleted }: { token: string; onD
       )}
       <div className="account-delete-actions">
         <button type="submit" className="button account-delete-confirm" disabled={sending}>
+          <Trash2 size={16} />
           {sending ? "Удаляем..." : "Удалить навсегда"}
         </button>
-        <button type="button" className="button button-dark" onClick={() => setOpen(false)}>
+        <button type="button" className="button button-light" onClick={() => setOpen(false)}>
           Отмена
         </button>
       </div>
