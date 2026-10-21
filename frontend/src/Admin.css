@@ -867,3 +867,6 @@ label.admin-btn { margin: 0; }
   .admin-btn { min-height: 42px; }
   .admin-btn-sm { min-height: 38px; }
 }
+
+/* Пока проверяется вход — логотип и подпись по центру, без формы */
+.admin-page-loading { display: grid; place-content: center; justify-items: center; gap: 14px; color: var(--admin-muted); font-size: 14px; }

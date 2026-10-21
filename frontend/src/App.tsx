@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { Link, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   Check,
@@ -75,8 +75,6 @@ type Customer = {
 
 const TOKEN_KEY = "wood_commerce_token";
 const CART_KEY = "wood_commerce_cart";
-// Тот же ключ, что в Admin.tsx: вход админа через сайт открывает панель без второго входа
-const ADMIN_TOKEN_KEY = "wood_admin_token";
 const FAVORITES_KEY = "wood_commerce_favorites";
 
 function loadFavorites(): number[] {
@@ -302,6 +300,15 @@ function App() {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [accountOpen, setAccountOpen] = useState(false);
   const [accountMode, setAccountMode] = useState<"login" | "orders">("login");
+
+  // Из /admin без входа отправляют на главную с просьбой открыть окно входа
+  useEffect(() => {
+    const state = location.state as { openLogin?: boolean } | null;
+    if (!state?.openLogin) return;
+    setAccountMode("login");
+    setAccountOpen(true);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.state, location.pathname, navigate]);
   // Смена пароля в кабинете (например, после временного пароля от магазина)
   const [accountTab, setAccountTab] = useState<"orders" | "favorites" | "notifications" | "settings">("orders");
   const [currentPassword, setCurrentPassword] = useState("");
@@ -382,7 +389,7 @@ function App() {
 
         if (cancelled) return;
 
-        if (user.role !== "CUSTOMER") {
+        if (user.role !== "CUSTOMER" && user.role !== "ADMIN") {
           localStorage.removeItem(TOKEN_KEY);
           return;
         }
@@ -708,9 +715,10 @@ function App() {
       const user = await getCurrentUser(auth.access_token);
 
       if (user.role === "ADMIN") {
-        // Админ вошёл через обычную форму сайта — сразу в панель управления.
-        // Токен админки живёт в sessionStorage, как при входе на /admin
-        sessionStorage.setItem(ADMIN_TOKEN_KEY, auth.access_token);
+        // Вход один на весь сайт: админ — тот же аккаунт, только вместо
+        // личного кабинета у него панель управления
+        localStorage.setItem(TOKEN_KEY, auth.access_token);
+        setCustomer({ id: user.id, phone: user.phone ?? accountPhone.trim(), role: user.role });
         setAccountPassword("");
         setAccountOpen(false);
         navigate("/admin");
@@ -785,6 +793,11 @@ function App() {
     setAccountNotice("");
 
     const token = localStorage.getItem(TOKEN_KEY);
+
+    if (token && customer?.role === "ADMIN") {
+      navigate("/admin");
+      return;
+    }
 
     if (token && customer) {
       // Вошедший покупатель — на страницу кабинета, а не во всплывающую панель
@@ -1006,7 +1019,9 @@ function App() {
     { key: "settings", label: "Настройки", icon: <Settings size={17} /> },
   ] as const;
 
-  const accountPage = customer ? (
+  const accountPage = customer?.role === "ADMIN" ? (
+    <Navigate to="/admin" replace />
+  ) : customer ? (
     <section className="page-section account-page">
       <div className="container">
         <h1>Личный кабинет</h1>
@@ -1450,7 +1465,7 @@ function App() {
               title="Личный кабинет"
             >
               <UserRound size={19} />
-              <span>{customer ? "Кабинет" : "Войти"}</span>
+              <span>{customer?.role === "ADMIN" ? "Панель" : customer ? "Кабинет" : "Войти"}</span>
             </button>
 
             <button

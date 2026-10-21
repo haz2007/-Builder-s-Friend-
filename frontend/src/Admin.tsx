@@ -1,7 +1,7 @@
-import { useEffect, useState, type FormEvent } from "react";
-import { NavLink, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Navigate, NavLink, useNavigate, useParams } from "react-router-dom";
 
-import { getAdminOrders, getAdminProducts, getCategories, getCurrentUser, getNewOrdersCount, loginUser } from "./api";
+import { getAdminOrders, getAdminProducts, getCategories, getCurrentUser, getNewOrdersCount } from "./api";
 import type { ApiCategory, ApiOrder, ApiProduct, AuthUser } from "./api";
 
 import "./Admin.css";
@@ -11,11 +11,12 @@ import { Icon } from "./AdminIcons";
 import AnalyticsSection from "./AnalyticsSection";
 import CategoriesSection from "./CategoriesSection";
 import { LogoMark } from "./components/Logo";
-import PhoneInput from "./components/PhoneInput";
 import OrdersSection from "./OrdersSection";
 import ProductsSection from "./ProductsSection";
 
-const TOKEN_KEY = "wood_admin_token";
+// Тот же токен, что у сайта: отдельного входа в админку нет — админ входит
+// на сайте, и «Личный кабинет» ведёт его сюда
+const TOKEN_KEY = "wood_commerce_token";
 
 const ADMIN_SECTIONS = [
   // short — подпись в нижней панели на телефоне
@@ -34,9 +35,8 @@ function Admin() {
     ? (params["*"] as string)
     : "analytics";
 
-  const [token, setToken] = useState(
-    () => sessionStorage.getItem(TOKEN_KEY) ?? "",
-  );
+  const navigate = useNavigate();
+  const [token] = useState(() => localStorage.getItem(TOKEN_KEY) ?? "");
 
   const [user, setUser] = useState<AuthUser | null>(null);
 
@@ -45,12 +45,6 @@ function Admin() {
   const [categories, setCategories] = useState<ApiCategory[]>([]);
 
   const [orders, setOrders] = useState<ApiOrder[]>([]);
-
-  const [login, setLogin] = useState("");
-
-  const [password, setPassword] = useState("");
-
-  const [loading, setLoading] = useState(false);
 
   const [orderFilter, setOrderFilter] = useState("ALL");
 
@@ -96,18 +90,10 @@ function Admin() {
       try {
         await loadData(token);
       } catch (err) {
+        // Не админ или сессия истекла — обратно на сайт, там и войти
         if (!cancelled) {
-          sessionStorage.removeItem(TOKEN_KEY);
-
-          setToken("");
-
-          setUser(null);
-
-          setError(
-            err instanceof Error
-              ? err.message
-              : "Не удалось проверить доступ.",
-          );
+          console.error("Нет доступа к панели:", err);
+          navigate("/", { replace: true, state: { openLogin: true } });
         }
       }
     }
@@ -117,7 +103,7 @@ function Admin() {
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [token, navigate]);
 
   useEffect(() => {
     if (!token || !user) return;
@@ -159,87 +145,24 @@ function Admin() {
     };
   }, [token, user]);
 
-  async function handleLogin(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    setLoading(true);
-
-    setError("");
-
-    setNotice("");
-
-    try {
-      const auth = await loginUser({ phone: login.trim(), password });
-
-      await loadData(auth.access_token);
-
-      sessionStorage.setItem(TOKEN_KEY, auth.access_token);
-
-      setToken(auth.access_token);
-
-      setPassword("");
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Не удалось войти в панель.",
-      );
-    } finally {
-      setLoading(false);
-    }
+  function logout() {
+    // Выход общий с сайтом: токен один. Страница уходит на главную целиком,
+    // поэтому состояние панели чистить не нужно
+    localStorage.removeItem(TOKEN_KEY);
+    window.location.assign("/");
   }
 
-  function logout() {
-    sessionStorage.removeItem(TOKEN_KEY);
-
-    setToken("");
-
-    setUser(null);
-
-    setProducts([]);
-
-    setCategories([]);
-
-    setOrders([]);
-
-    setNewOrdersCount(0);
-
-    setError("");
-
-    setNotice("");
+  if (!token) {
+    // Не вошли — на главную, где сразу откроется окно входа
+    return <Navigate to="/" replace state={{ openLogin: true }} />;
   }
 
   if (!user) {
     return (
-      <main className="admin-page">
-        <form className="admin-login" onSubmit={handleLogin}>
-          <a className="admin-back" href="/">
-            ← Вернуться в магазин
-          </a>
-          <LogoMark size={44} />
-          <span className="admin-eyebrow">ДРУГ СТРОИТЕЛЯ</span>
-          <h1>Вход для администратора</h1>
-          <p>Войди по номеру телефона аккаунта администратора — как на сайте.</p>
-          <label>
-            Номер телефона
-            <PhoneInput value={login} onChange={setLogin} autoComplete="username" required />
-          </label>
-          <label>
-            Пароль
-            <input
-              type="password"
-              value={password}
-
-              onChange={(event) => setPassword(event.target.value)}
-
-              autoComplete="current-password"
-              required
-            />
-          </label>
-          {error && <p className="admin-error">{error}</p>}
-
-          <button className="admin-btn admin-btn-primary" disabled={loading}>
-            {loading ? "Проверяем доступ..." : "Войти"}
-          </button>
-        </form>
+      // Пока проверяем вход — только спокойный экран загрузки, без формы
+      <main className="admin-page admin-page-loading" aria-busy="true">
+        <LogoMark size={44} />
+        <p>Открываем панель управления…</p>
       </main>
     );
   }

@@ -8,6 +8,15 @@ const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? "e2e-admin-pass";
 const phone = `+7999${String(Date.now()).slice(-7)}`;
 let orderNumber = "";
 
+async function loginAsAdmin(page: Page) {
+  await page.goto("/");
+  await page.getByTitle("Личный кабинет").click();
+  await page.getByLabel("Номер телефона").fill(ADMIN_PHONE);
+  await page.getByLabel("Пароль").fill(ADMIN_PASSWORD);
+  await page.getByRole("button", { name: "Войти в аккаунт" }).click();
+  await expect(page.getByRole("heading", { name: "Управление магазином" })).toBeVisible();
+}
+
 async function addBoardToCart(page: Page) {
   await page.goto("/");
   await page.getByLabel("Поиск по каталогу").fill("доски 50х150");
@@ -46,11 +55,7 @@ test.describe.serial("покупка и обработка заказа", () => 
   });
 
   test("администратор подтверждает заказ", async ({ page }) => {
-    await page.goto("/admin");
-    await page.getByLabel("Номер телефона").fill(ADMIN_PHONE);
-    await page.getByLabel("Пароль").fill(ADMIN_PASSWORD);
-    await page.getByRole("button", { name: "Войти" }).click();
-    await expect(page.getByRole("heading", { name: "Управление магазином" })).toBeVisible();
+    await loginAsAdmin(page);
 
     await page.getByRole("link", { name: /Заказы/ }).click();
     const card = page.locator(".admin-order-card").filter({ hasText: `Заказ №${orderNumber}` });
@@ -101,10 +106,7 @@ test("гость оставляет заявку без регистрации, 
   await page.getByRole("button", { name: "Жду звонка" }).click();
   await expect(page.getByRole("heading", { name: "Перезвоним!" })).toBeVisible();
 
-  await page.goto("/admin");
-  await page.getByLabel("Номер телефона").fill(ADMIN_PHONE);
-  await page.getByLabel("Пароль").fill(ADMIN_PASSWORD);
-  await page.getByRole("button", { name: "Войти" }).click();
+  await loginAsAdmin(page);
   await page.getByRole("link", { name: /Заказы/ }).click();
   const request = page.locator(".admin-callback").filter({ hasText: guestPhone });
   await expect(request).toContainText("Доска обрезная 50×150×6000");
@@ -153,4 +155,11 @@ test("администратор входит через обычную форм
 
   await expect(page).toHaveURL(/\/admin$/);
   await expect(page.getByRole("heading", { name: "Управление магазином" })).toBeVisible();
+});
+
+test("в /admin без входа нет отдельной формы — открывается вход на сайте", async ({ page }) => {
+  await page.goto("/admin");
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.locator(".account-panel")).toBeVisible();
+  await expect(page.getByText("Вход для администратора")).toHaveCount(0);
 });

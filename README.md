@@ -197,7 +197,7 @@ uvicorn app.main:app --reload
 ```bash
 cd frontend
 npm install
-npm run dev                     # http://localhost:5173, админка — /admin
+npm run dev                     # http://localhost:5173; админ входит на сайте → «Панель»
 ```
 
 **4. Telegram-бот** (нужен `TELEGRAM_BOT_TOKEN` в `backend/.env`)
