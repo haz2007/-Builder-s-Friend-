@@ -1,13 +1,13 @@
 import { ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
-import { LEGAL_OPERATOR, PHONES, STORE_LOCATION, STORE_NAME } from "../shop/contacts";
+import { PHONES, SELLER, STORE_LOCATION, STORE_NAME } from "../shop/contacts";
 
 const UPDATED = "21 октября 2026 г.";
 
 /** Политика обработки персональных данных (152-ФЗ). */
 export default function PrivacyPage() {
-  const operator = LEGAL_OPERATOR ?? `магазин «${STORE_NAME}»`;
+  const operator = `${SELLER.name} (ОГРНИП ${SELLER.ogrnip}, ИНН ${SELLER.inn}), магазин «${STORE_NAME}»`;
   const phones = PHONES.map((phone) => phone.display).join(", ");
 
   return (
@@ -27,7 +27,9 @@ export default function PrivacyPage() {
           Оператор персональных данных — {operator}
           {STORE_LOCATION ? `, адрес: ${STORE_LOCATION.address}` : ""}. Телефоны для
           вопросов о данных: {phones}. Политика действует в соответствии с Федеральным
-          законом № 152-ФЗ «О персональных данных».
+          законом № 152-ФЗ «О персональных данных». Согласие на обработку данных
+          оформляется отдельным документом —{" "}
+          <Link to="/consent">согласие на обработку персональных данных</Link>.
         </p>
 
         <h2>2. Какие данные мы получаем</h2>
@@ -50,8 +52,8 @@ export default function PrivacyPage() {
 
         <h2>4. Основание</h2>
         <p>
-          Ваше согласие, которое вы даёте при регистрации, и исполнение договора
-          купли-продажи, когда вы оформляете заказ.
+          Ваше <Link to="/consent">согласие</Link>, которое вы даёте при регистрации,
+          и исполнение договора купли-продажи, когда вы оформляете заказ.
         </p>
 
         <h2>5. Кому передаём</h2>

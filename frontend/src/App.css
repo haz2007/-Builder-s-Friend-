@@ -5137,6 +5137,10 @@ a.category-tab {
 .checkout-consent input { flex: 0 0 auto; width: 18px; height: 18px; margin-top: 1px; accent-color: #3a2a1f; }
 .checkout-consent a { color: #8a5a22; }
 
-.footer-privacy { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+/* Реквизиты продавца в подвале — видны и на телефоне */
+.footer-legal { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 20px; margin-top: 18px; padding-top: 14px; border-top: 1px solid rgb(255 255 255 / 8%); color: #9d948b; font-size: 11px; }
+.footer-legal-links { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.footer-legal a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.footer-legal a:hover { color: #e6ded6; }
 
 .link-button { padding: 0; border: 0; color: #8a5a22; background: none; font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }

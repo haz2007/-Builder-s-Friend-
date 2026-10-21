@@ -41,9 +41,10 @@ import "./App.css";
 import Logo from "./components/Logo";
 import CatalogPage from "./pages/CatalogPage";
 import HomePage from "./pages/HomePage";
+import ConsentPage from "./pages/ConsentPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import ProductPage from "./pages/ProductPage";
-import { PHONES, WORKING_HOURS, YANDEX_REVIEW_URL, YEARS_ON_MARKET } from "./shop/contacts";
+import { PHONES, SELLER, WORKING_HOURS, YANDEX_REVIEW_URL, YEARS_ON_MARKET } from "./shop/contacts";
 import { formatPrice, pluralize } from "./shop/format";
 import { ShopContext } from "./shop/ShopContext";
 import type {
@@ -54,6 +55,7 @@ import type {
 } from "./shop/types";
 import { showFallbackImage } from "./shop/images";
 import { orderStatusLabel } from "./shop/orderStatus";
+import ConsentCheckbox from "./components/ConsentCheckbox";
 
 type Customer = {
   id: number;
@@ -981,6 +983,7 @@ function App() {
           <Route path="/catalog/:categoryId" element={<CatalogPage />} />
           <Route path="/product/:productId" element={<ProductPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/consent" element={<ConsentPage />} />
           <Route path="*" element={<CatalogPage />} />
         </Routes>
       </main>
@@ -998,10 +1001,17 @@ function App() {
               </a>
             ))}
           </span>
-          <Link to="/privacy" className="footer-note footer-privacy">
-            Политика конфиденциальности
-          </Link>
           <span className="copyright">© 2026 Друг Строителя</span>
+        </div>
+        {/* Реквизиты продавца — обязательны для дистанционной продажи */}
+        <div className="container footer-legal">
+          <span>
+            {SELLER.name} · ОГРНИП {SELLER.ogrnip} · ИНН {SELLER.inn}
+          </span>
+          <span className="footer-legal-links">
+            <Link to="/privacy">Политика конфиденциальности</Link>
+            <Link to="/consent">Согласие на обработку данных</Link>
+          </span>
         </div>
       </footer>
 
@@ -1276,20 +1286,7 @@ function App() {
                     </label>
 
                     {authMode === "register" && (
-                      <label className="checkout-consent">
-                        <input
-                          type="checkbox"
-                          checked={privacyAccepted}
-                          onChange={(event) => setPrivacyAccepted(event.target.checked)}
-                          required
-                        />
-                        <span>
-                          Соглашаюсь на обработку персональных данных по{" "}
-                          <Link to="/privacy" target="_blank" rel="noopener">
-                            политике конфиденциальности
-                          </Link>
-                        </span>
-                      </label>
+                      <ConsentCheckbox checked={privacyAccepted} onChange={setPrivacyAccepted} />
                     )}
                   </>
                 )}
@@ -1485,20 +1482,7 @@ function App() {
                 </label>
 
                 {accountAuthMode === "register" && (
-                  <label className="checkout-consent">
-                    <input
-                      type="checkbox"
-                      checked={accountPrivacyAccepted}
-                      onChange={(event) => setAccountPrivacyAccepted(event.target.checked)}
-                      required
-                    />
-                    <span>
-                      Соглашаюсь на обработку персональных данных по{" "}
-                      <Link to="/privacy" target="_blank" rel="noopener">
-                        политике конфиденциальности
-                      </Link>
-                    </span>
-                  </label>
+                  <ConsentCheckbox checked={accountPrivacyAccepted} onChange={setAccountPrivacyAccepted} />
                 )}
 
                 {accountError && (
