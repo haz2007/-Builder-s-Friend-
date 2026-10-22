@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import { PHONES, STORE_LOCATION, WORKING_HOURS } from "../shop/contacts";
 
-/** Карта склада с маршрутом в Яндекс.Картах, 2ГИС и Google Maps. */
+/** Карта склада с маршрутом в Яндекс Картах, 2ГИС и Google Картах. */
 export default function StoreMap() {
   // Карта Яндекса грузится по нажатию: без неё главная быстрее, и до клика
   // посетителю не ставятся сторонние cookie
@@ -17,7 +17,7 @@ export default function StoreMap() {
   const routes = [
     { name: "Яндекс Карты", href: yandexUrl },
     { name: "2ГИС", href: `https://2gis.ru/routeSearch/rsType/car/to/${point}` },
-    { name: "Google Maps", href: `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}` },
+    { name: "Google Карты", href: `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}` },
   ];
 
   return (

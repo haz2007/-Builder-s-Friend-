@@ -41,7 +41,7 @@ flowchart LR
 
     relay["Посредник<br/>Cloudflare Worker"]
     telegram["Telegram Bot API"]
-    maps["Яндекс Карты, 2ГИС,<br/>Google Maps"]
+    maps["Яндекс Карты, 2ГИС,<br/>Google Карты"]
 
     customer -- "браузер" --> caddy
     admin -- "браузер (вход на сайте)" --> caddy
@@ -344,7 +344,7 @@ flowchart TB
     shop["<b>Друг Строителя</b><br/><small>сайт, админ-панель, API<br/>и Telegram-бот</small>"]
 
     telegram["<b>Telegram</b><br/><small>уведомления и кнопки<br/>смены статуса</small>"]
-    maps["<b>Яндекс Карты · 2ГИС · Google Maps</b><br/><small>карта склада, маршрут, отзывы</small>"]
+    maps["<b>Яндекс Карты · 2ГИС · Google Карты</b><br/><small>карта склада, маршрут, отзывы</small>"]
     le["<b>Let's Encrypt</b><br/><small>HTTPS-сертификат</small>"]
     cf["<b>Cloudflare Workers</b><br/><small>посредник до Telegram</small>"]
 

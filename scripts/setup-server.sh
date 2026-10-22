@@ -56,15 +56,20 @@ ufw --force enable >/dev/null
 ufw status | sed 's/^/    /'
 
 echo "==> Ежедневный бэкап"
-chmod +x "$PROJECT_DIR/scripts/backup.sh" "$PROJECT_DIR/scripts/restore.sh" "$PROJECT_DIR/scripts/healthcheck.sh"
+chmod +x "$PROJECT_DIR/scripts/backup.sh" "$PROJECT_DIR/scripts/restore.sh" "$PROJECT_DIR/scripts/healthcheck.sh" \
+  "$PROJECT_DIR/scripts/purge-expired.sh"
 CRON_LINE="30 3 * * * $PROJECT_DIR/scripts/backup.sh >> /var/log/wood-backup.log 2>&1"
 HEALTH_LINE="*/5 * * * * $PROJECT_DIR/scripts/healthcheck.sh >> /var/log/wood-health.log 2>&1"
+# Сроки хранения персональных данных (152-ФЗ): после ночного бэкапа
+PURGE_LINE="45 3 * * * $PROJECT_DIR/scripts/purge-expired.sh >> /var/log/wood-purge.log 2>&1"
 # На новом сервере crontab пуст: «crontab -l» и grep без совпадений не должны
 # останавливать скрипт (set -o pipefail)
-EXISTING_CRON="$(crontab -l 2>/dev/null | grep -v 'scripts/backup.sh' | grep -v 'scripts/healthcheck.sh' || true)"
-printf '%s\n%s\n%s\n' "$EXISTING_CRON" "$CRON_LINE" "$HEALTH_LINE" | sed '/^$/d' | crontab -
+EXISTING_CRON="$(crontab -l 2>/dev/null | grep -v 'scripts/backup.sh' | grep -v 'scripts/healthcheck.sh' \
+  | grep -v 'scripts/purge-expired.sh' || true)"
+printf '%s\n%s\n%s\n%s\n' "$EXISTING_CRON" "$CRON_LINE" "$HEALTH_LINE" "$PURGE_LINE" | sed '/^$/d' | crontab -
 echo "    $CRON_LINE"
 echo "    $HEALTH_LINE"
+echo "    $PURGE_LINE"
 
 echo
 echo "Готово. Дальше: заполни .env.production и запусти проект (см. DEPLOY.md)."

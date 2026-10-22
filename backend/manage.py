@@ -13,6 +13,10 @@
 
 Назначить владельца магазина (он сможет добавлять других админов):
     .venv/bin/python manage.py set-owner +79991234567
+
+Удалить данные с истёкшим сроком хранения (на сервере — раз в сутки по cron,
+scripts/purge-expired.sh):
+    .venv/bin/python manage.py purge-expired
 """
 
 import sys
@@ -75,6 +79,20 @@ def set_owner(login: str) -> None:
         db.close()
 
 
+def purge_expired() -> None:
+    from app.services.retention import purge_expired as purge
+
+    db = SessionLocal()
+    try:
+        counts = purge(db)
+        print(
+            f"Готово: сообщений Telegram — {counts['outbox']}, заявок на звонок — "
+            f"{counts['callbacks']}, заказов без контактов — {counts['orders']}"
+        )
+    finally:
+        db.close()
+
+
 if __name__ == "__main__":
     if sys.argv[1:] == ["init-db"]:
         init_db()
@@ -82,6 +100,8 @@ if __name__ == "__main__":
         migrate()
     elif sys.argv[1:] == ["export-openapi"]:
         export_openapi()
+    elif sys.argv[1:] == ["purge-expired"]:
+        purge_expired()
     elif len(sys.argv) == 3 and sys.argv[1] == "set-owner":
         set_owner(sys.argv[2])
     else:

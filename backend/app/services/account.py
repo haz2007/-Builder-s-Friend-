@@ -3,7 +3,9 @@
 Телефон, привязка Telegram, уведомления и коды сброса удаляются сразу.
 Если заказы были, их записи остаются для учёта (закон об учёте требует
 хранить сведения о продажах), но войти в аккаунт и узнать по нему
-телефон больше нельзя: сам аккаунт обезличивается.
+телефон больше нельзя: сам аккаунт обезличивается. В выданных и отменённых
+заказах сразу стираются имя, адрес и комментарий; в незавершённых — когда
+они завершатся (ежедневная очистка, services/retention.py).
 """
 
 import secrets
@@ -13,6 +15,7 @@ from sqlalchemy.orm import Session
 from ..auth import hash_password
 from ..models import Notification, Order, PasswordResetCode, TelegramAccountLink, User
 from . import audit
+from .retention import wipe_finished_order_contacts
 
 
 def delete_customer(db: Session, user: User) -> bool:
@@ -30,6 +33,7 @@ def delete_customer(db: Session, user: User) -> bool:
         user.privacy_accepted_at = None
         # Случайный пароль, которого никто не знает: вход закрыт навсегда
         user.password_hash = hash_password(secrets.token_urlsafe(32))
+        wipe_finished_order_contacts(db, [user.id])
     else:
         db.delete(user)
     db.commit()

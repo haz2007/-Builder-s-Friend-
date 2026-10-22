@@ -30,6 +30,8 @@ const ACTION_LABELS: Record<string, string> = {
   "admin.removed": "Снят админ",
   "user.role": "Роль",
   "password.reset": "Сброс пароля",
+  "user.deleted": "Аккаунт удалён",
+  "data.purged": "Удаление по сроку",
 };
 
 const shortDate = (iso: string) =>

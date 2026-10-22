@@ -50,7 +50,10 @@ sudo bash scripts/setup-server.sh
 - swap 2 ГБ (`SWAP_SIZE=4G` — чтобы изменить);
 - Docker и Docker Compose;
 - файрвол: открыты только SSH, 80 и 443;
-- ежедневный бэкап в 03:30 (`scripts/backup.sh`, лог — `/var/log/wood-backup.log`).
+- ежедневный бэкап в 03:30 (`scripts/backup.sh`, лог — `/var/log/wood-backup.log`);
+- в 03:45 — удаление данных с истёкшим сроком хранения (`scripts/purge-expired.sh`, лог —
+  `/var/log/wood-purge.log`): копии сообщений Telegram старше 7 дней, заявки на звонок через
+  30 дней после звонка, контакты в завершённых заказах удалённых аккаунтов (BR-46).
 
 ## 3. Запуск
 
