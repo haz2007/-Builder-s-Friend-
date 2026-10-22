@@ -17,10 +17,8 @@ import { pluralize } from "../shop/format";
 import { useShop } from "../shop/ShopContext";
 import { usePageTitle } from "../shop/usePageTitle";
 
-const STORY_PHOTO =
-  "https://images.unsplash.com/photo-1787422429897-ad354751e61c?auto=format&fit=crop&w=1200&q=80";
-const DELIVERY_PHOTO =
-  "https://images.unsplash.com/photo-1543510425-1eccdf3ae819?auto=format&fit=crop&w=1100&q=80";
+const STORY_PHOTO = "/photos/story.webp";
+const DELIVERY_PHOTO = "/photos/delivery.webp";
 
 const STEPS = [
   {
@@ -72,7 +70,7 @@ export default function HomePage() {
         <div className="container home-hero-inner">
           <div className="home-hero-copy">
             <span className="home-eyebrow">
-              Семейный магазин пиломатериалов · {YEARS_ON_MARKET} лет на рынке
+              Семейный магазин пиломатериалов · {YEARS_ON_MARKET} лет опыта
             </span>
             <h1>
               Доска и брус <span>поштучно и кубами</span>
@@ -96,7 +94,7 @@ export default function HomePage() {
                 <strong>
                   <CountUp value={YEARS_ON_MARKET} /> лет
                 </strong>
-                <span>на рынке пиломатериалов</span>
+                <span>опыта в пиломатериалах</span>
               </li>
               <li>
                 <strong>{products.length ? <CountUp value={products.length} /> : "—"}</strong>
@@ -206,7 +204,7 @@ export default function HomePage() {
             <span className="home-eyebrow">О магазине</span>
             <h2>С досок всё начиналось</h2>
             <p>
-              «Друг Строителя» — семейное дело, на рынке уже {YEARS_ON_MARKET} лет.
+              «Друг Строителя» — семейное дело: наша семья работает с пиломатериалами уже {YEARS_ON_MARKET} лет.
               Начинали с обрезной доски и бруса, потом добавили крепёж, вагонку и листовые материалы —
               всё, за чем строители приезжали к нам и спрашивали «а это есть?».
             </p>

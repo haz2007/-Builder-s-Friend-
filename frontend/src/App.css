@@ -273,7 +273,7 @@ textarea:focus-visible {
 
 .hero-photo {
   /* Штабеля обрезной доски — с этого начинался магазин (Unsplash) */
-  background-image: url("https://images.unsplash.com/photo-1422246654994-34520d5a0340?auto=format&fit=crop&w=2000&q=85");
+  background-image: url("/photos/hero-lumber.webp");
   background-position: center 56%;
   background-size: cover;
   transform: scale(1.015);
@@ -4488,13 +4488,13 @@ a.category-tab {
 
 .home-hero-photo {
   /* Склад пиломатериалов: ровные штабеля обрезной доски (Unsplash) */
-  background: url("https://images.unsplash.com/photo-1706027554829-50c444350e43?auto=format&fit=crop&w=1600&q=70") center 40% / cover;
+  background: url("/photos/warehouse-1600.webp") center 40% / cover;
 }
 
 /* На телефоне фону хватает 800 px: картинка в несколько раз легче */
 @media (max-width: 700px) {
   .home-hero-photo {
-    background-image: url("https://images.unsplash.com/photo-1706027554829-50c444350e43?auto=format&fit=crop&w=800&q=70");
+    background-image: url("/photos/warehouse-800.webp");
   }
 }
 
@@ -5706,5 +5706,75 @@ a.category-tab {
   .eyebrow,
   .product-price small {
     font-size: 11px;
+  }
+}
+
+/* Баннер cookie: Метрика — только после согласия */
+.cookie-banner {
+  position: fixed;
+  z-index: 95;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  left: 16px;
+  max-width: 440px;
+  padding: 18px 20px;
+  border: 1px solid #e7e1db;
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--brand-text);
+  box-shadow: 0 12px 40px rgba(33, 28, 24, 0.18);
+  animation: sticky-cart-appear 0.2s ease-out;
+}
+
+.cookie-banner-raised {
+  bottom: calc(96px + env(safe-area-inset-bottom));
+}
+
+.cookie-banner p {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.cookie-banner a {
+  color: #8a5a22;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cookie-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.cookie-banner-actions .button {
+  min-height: 42px;
+}
+
+.footer-cookie-button {
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: none;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.footer-cookie-button:hover {
+  color: #e6ded6;
+}
+
+@media (max-width: 600px) {
+  .cookie-banner {
+    right: 12px;
+    left: 12px;
+    max-width: none;
+  }
+
+  .cookie-banner-actions .button {
+    flex: 1;
   }
 }

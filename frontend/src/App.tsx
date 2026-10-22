@@ -60,9 +60,17 @@ import type {
   ShopContextValue,
 } from "./shop/types";
 import { showFallbackImage } from "./shop/images";
-import { startMetrika, trackPageView } from "./shop/metrika";
+import {
+  clearMetrikaCookies,
+  readCookieChoice,
+  saveCookieChoice,
+  startMetrika,
+  trackPageView,
+} from "./shop/metrika";
+import type { CookieChoice } from "./shop/metrika";
 import { orderStatusLabel } from "./shop/orderStatus";
 import CallbackForm from "./components/CallbackForm";
+import CookieBanner from "./components/CookieBanner";
 import DeleteAccount from "./components/DeleteAccount";
 import PhoneInput from "./components/PhoneInput";
 import QuantityInput from "./components/QuantityInput";
@@ -118,10 +126,10 @@ function loadCart(): Record<number, number> {
 const PASSWORD_MIN_LENGTH = 8;
 
 const productImages = [
-  "https://images.unsplash.com/photo-1513467655676-561b7d489a88?auto=format&fit=crop&w=900&q=85",
-  "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=900&q=85",
-  "https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?auto=format&fit=crop&w=900&q=85",
-  "https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=900&q=85",
+  "/photos/boards-1.webp",
+  "/photos/boards-2.webp",
+  "/photos/boards-3.webp",
+  "/photos/boards-4.webp",
 ];
 
 function formatDate(date: string) {
@@ -293,16 +301,32 @@ function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Метрика: запуск один раз и просмотр на каждом переходе
+  // Метрика — только после «Принять» в баннере cookie: запуск один раз
+  // и просмотр на каждом переходе
+  const [cookieChoice, setCookieChoice] = useState<CookieChoice | null>(() => readCookieChoice());
+  const [cookieBannerOpen, setCookieBannerOpen] = useState(() => readCookieChoice() === null);
   const previousUrl = useRef<string | undefined>(undefined);
   useEffect(() => {
+    if (cookieChoice !== "accepted") return;
     startMetrika();
     const url = location.pathname + location.search;
     // title обновляется в эффекте страницы — даём ему примениться
     const timer = window.setTimeout(() => trackPageView(url, previousUrl.current), 0);
     previousUrl.current = window.location.href;
     return () => window.clearTimeout(timer);
-  }, [location.pathname, location.search]);
+  }, [location.pathname, location.search, cookieChoice]);
+
+  function chooseCookies(choice: CookieChoice) {
+    saveCookieChoice(choice);
+    setCookieBannerOpen(false);
+    if (choice === "declined" && cookieChoice === "accepted") {
+      // Метрика уже загружена в этой вкладке — убираем её cookie и перезагружаем
+      clearMetrikaCookies();
+      window.location.reload();
+      return;
+    }
+    setCookieChoice(choice);
+  }
 
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
@@ -1403,7 +1427,7 @@ function App() {
           </span>
 
           <div className="topbar-right">
-            <span>{YEARS_ON_MARKET} лет на рынке пиломатериалов</span>
+            <span>{YEARS_ON_MARKET} лет опыта в пиломатериалах</span>
             {PHONES.map((phone) => (
               <a key={phone.href} href={phone.href} className="topbar-phone">
                 <Phone size={13} />
@@ -1545,9 +1569,14 @@ function App() {
             <Link to="/delivery">Доставка и возврат</Link>
             <Link to="/privacy">Политика конфиденциальности</Link>
             <Link to="/consent">Согласие на обработку данных</Link>
+            <button type="button" className="footer-cookie-button" onClick={() => setCookieBannerOpen(true)}>
+              Настройки cookie
+            </button>
           </span>
         </div>
       </footer>
+
+      {cookieBannerOpen && <CookieBanner onChoose={chooseCookies} raised={cartCount > 0} />}
 
       {cartCount > 0 && !cartOpen && !checkoutOpen && !accountOpen && (
         <div className="sticky-cart-bar">

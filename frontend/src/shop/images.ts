@@ -1,7 +1,7 @@
 import type { SyntheticEvent } from "react";
 
-const FALLBACK_IMAGE =
-  "https://images.unsplash.com/photo-1513467655676-561b7d489a88?auto=format&fit=crop&w=900&q=85";
+// Фото с Unsplash лежат на нашем сервере: браузер посетителя не ходит на зарубежный сайт
+const FALLBACK_IMAGE = "/photos/boards-1.webp";
 
 /**
  * Картинка нужной ширины. У Unsplash (пробные фото) ширина задаётся в адресе:

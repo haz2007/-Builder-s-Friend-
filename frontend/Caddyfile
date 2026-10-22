@@ -10,12 +10,8 @@
 	handle /uploads/* {
 		reverse_proxy backend:8000
 	}
-	handle /docs* {
-		reverse_proxy backend:8000
-	}
-	handle /openapi.json {
-		reverse_proxy backend:8000
-	}
+	# Swagger (/docs, /openapi.json) наружу не отдаём: карта API — лишняя
+	# подсказка атакующему. Спецификация лежит в docs/api/openapi.json
 	# Карта сайта для Яндекс Вебмастера — её собирает бэкенд по товарам и разделам
 	handle /sitemap.xml {
 		rewrite * /api/v1/seo/sitemap.xml?host={hostport}&scheme={scheme}
@@ -42,6 +38,12 @@
 	header {
 		X-Content-Type-Options nosniff
 		Referrer-Policy strict-origin-when-cross-origin
+		# Браузер ходит на сайт только по HTTPS (по HTTP заголовок игнорируется)
+		Strict-Transport-Security "max-age=31536000"
+		# Встраивать сайт в чужие страницы нельзя (защита от кликджекинга);
+		# исключение — Яндекс Метрика: Вебвизор показывает записи во фрейме
+		Content-Security-Policy "frame-ancestors 'self' https://*.yandex.ru https://*.yandex.com https://*.yandex.by https://*.yandex.kz https://*.yandex.uz https://*.yandex.com.tr https://*.ya.ru https://metrika.yandex https://metrica.yandex https://*.webvisor.com"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
 		-Server
 	}
 }

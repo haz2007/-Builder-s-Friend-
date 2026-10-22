@@ -8,6 +8,12 @@ const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? "e2e-admin-pass";
 const phone = `+7999${String(Date.now()).slice(-7)}`;
 let orderNumber = "";
 
+// Баннер cookie проверяется в cookie.spec.ts; здесь выбор уже сделан,
+// чтобы баннер не перекрывал кнопки
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("wood_commerce_cookie_choice", "declined"));
+});
+
 async function loginAsAdmin(page: Page) {
   await page.goto("/");
   await page.getByTitle("Личный кабинет").click();
@@ -130,7 +136,7 @@ test("кабинет: избранное и удаление аккаунта", 
   await page.getByRole("button", { name: /Избранное/ }).click();
   await expect(page.locator(".account-favorites .product-card")).toHaveCount(1);
 
-  await page.getByRole("button", { name: /Настройки/ }).click();
+  await page.getByRole("button", { name: "Настройки", exact: true }).click();
   await page.getByRole("button", { name: "Удалить аккаунт" }).click();
   await page.getByLabel("Пароль для подтверждения").fill("e2e-delete-pass");
   await page.getByRole("button", { name: "Удалить навсегда" }).click();
