@@ -13,6 +13,7 @@ import CategoriesSection from "./CategoriesSection";
 import { LogoMark } from "./components/Logo";
 import OrdersSection from "./OrdersSection";
 import ProductsSection from "./ProductsSection";
+import { formatPhone } from "./shop/phone";
 
 // Тот же токен, что у сайта: отдельного входа в админку нет — админ входит
 // на сайте, и «Личный кабинет» ведёт его сюда
@@ -171,25 +172,37 @@ function Admin() {
     // ym-hide-content — на случай, если Метрика всё же есть на странице
     <main className="admin-page ym-hide-content">
       <div className="admin-container">
-        <header className="admin-header">
-          <div className="admin-header-main">
-            <a className="admin-back" href="/">
-              ← Открыть магазин
-            </a>
-            <LogoMark size={40} />
-            <span className="admin-eyebrow">ПАНЕЛЬ УПРАВЛЕНИЯ</span>
-            <h1>Управление магазином</h1>
-            <p>Вы вошли как {user.phone ?? user.email ?? "Администратор"}</p>
+        {/* Одна строка: кто мы, новые заказы, магазин и выход */}
+        <header className="admin-topbar">
+          <div className="admin-topbar-brand">
+            <LogoMark size={38} />
+            <div>
+              <span className="admin-topbar-store">Друг Строителя</span>
+              <h1>Управление магазином</h1>
+            </div>
           </div>
-          <aside className="admin-header-summary">
-            <span className="admin-eyebrow">СВОДКА</span>
-            <strong>Новые заказы: {newOrdersCount}</strong>
-            <p>Счётчик и список заказов обновляются каждые 15 секунд.</p>
-          </aside>
-          <button className="admin-btn admin-btn-ghost admin-logout" onClick={logout}>
-            <Icon name="logout" />
-            Выйти
-          </button>
+          <div className="admin-topbar-actions">
+            <NavLink
+              to="/admin/orders"
+              className={newOrdersCount > 0 ? "admin-new-orders has-new" : "admin-new-orders"}
+              title="Счётчик и список заказов обновляются каждые 15 секунд"
+            >
+              <span className="admin-new-orders-dot" aria-hidden="true" />
+              Новые заказы
+              <strong>{newOrdersCount}</strong>
+            </NavLink>
+            <a className="admin-btn admin-btn-sm admin-btn-outline" href="/" title="Открыть магазин">
+              <Icon name="store" />
+              <span className="admin-topbar-label">Магазин</span>
+            </a>
+            <span className="admin-topbar-user" title="Вы вошли как">
+              {user.phone ? formatPhone(user.phone) : user.email ?? "Администратор"}
+            </span>
+            <button className="admin-btn admin-btn-sm admin-btn-ghost" onClick={logout} title="Выйти">
+              <Icon name="logout" />
+              <span className="admin-topbar-label">Выйти</span>
+            </button>
+          </div>
         </header>
         <div className="admin-layout">
         <nav className="admin-sidebar" aria-label="Разделы админки">
