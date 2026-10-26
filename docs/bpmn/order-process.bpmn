@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_order" targetNamespace="https://github.com/haz2007/-Builder-s-Friend-">
+  <bpmn:collaboration id="Collaboration_order">
+    <bpmn:participant id="Participant_shop" name="Магазин «Друг Строителя»: заказ от поиска до выдачи" processRef="Process_order" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_order" name="Заказ пиломатериалов" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_order">
+      <bpmn:lane id="Lane_customer" name="Покупатель">
+        <bpmn:flowNodeRef>Start</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>FindProduct</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GwSelf</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Callback</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>PlaceOrder</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Receive</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndDone</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_site" name="Сайт и Telegram-бот">
+        <bpmn:flowNodeRef>CheckStock</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GwStock</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Reserve</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>NotifyAdmins</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Restock</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndCancelled</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>MarkDone</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_admin" name="Администратор магазина">
+        <bpmn:flowNodeRef>CallBack</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Confirm</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GwConfirm</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Cancel</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Pack</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GwMethod</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Deliver</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Pickup</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GwMerge</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="Start" name="Нужен материал">
+      <bpmn:outgoing>F1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="FindProduct" name="Найти товар, посчитать количество">
+      <bpmn:incoming>F1</bpmn:incoming>
+      <bpmn:incoming>F10</bpmn:incoming>
+      <bpmn:outgoing>F2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="GwSelf" name="Оформит заказ сам?">
+      <bpmn:incoming>F2</bpmn:incoming>
+      <bpmn:outgoing>F3</bpmn:outgoing>
+      <bpmn:outgoing>F4</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="Callback" name="Оставить заявку «Перезвоните мне»">
+      <bpmn:incoming>F4</bpmn:incoming>
+      <bpmn:outgoing>F5</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="PlaceOrder" name="Оформить заказ: доставка или самовывоз">
+      <bpmn:incoming>F3</bpmn:incoming>
+      <bpmn:incoming>F6</bpmn:incoming>
+      <bpmn:outgoing>F7</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Receive" name="Получить заказ">
+      <bpmn:incoming>F24</bpmn:incoming>
+      <bpmn:outgoing>F25</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:endEvent id="EndDone" name="Заказ получен">
+      <bpmn:incoming>F25</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:serviceTask id="CheckStock" name="Проверить остатки всех позиций">
+      <bpmn:incoming>F7</bpmn:incoming>
+      <bpmn:outgoing>F8</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="GwStock" name="Хватает на складе?">
+      <bpmn:incoming>F8</bpmn:incoming>
+      <bpmn:outgoing>F9</bpmn:outgoing>
+      <bpmn:outgoing>F10</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="Reserve" name="Списать со склада, заказ «Новый»">
+      <bpmn:incoming>F9</bpmn:incoming>
+      <bpmn:outgoing>F11</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sendTask id="NotifyAdmins" name="Уведомить админов в Telegram">
+      <bpmn:incoming>F11</bpmn:incoming>
+      <bpmn:outgoing>F12</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:serviceTask id="Restock" name="Вернуть товар на склад">
+      <bpmn:incoming>F16</bpmn:incoming>
+      <bpmn:outgoing>F17</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="EndCancelled" name="Заказ отменён">
+      <bpmn:incoming>F17</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sendTask id="MarkDone" name="«Выдан», уведомить, попросить отзыв">
+      <bpmn:incoming>F23</bpmn:incoming>
+      <bpmn:outgoing>F24</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:userTask id="CallBack" name="Перезвонить, помочь подобрать материал">
+      <bpmn:incoming>F5</bpmn:incoming>
+      <bpmn:outgoing>F6</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Confirm" name="Позвонить покупателю, подтвердить заказ">
+      <bpmn:incoming>F12</bpmn:incoming>
+      <bpmn:outgoing>F13</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="GwConfirm" name="Заказ в силе?">
+      <bpmn:incoming>F13</bpmn:incoming>
+      <bpmn:outgoing>F14</bpmn:outgoing>
+      <bpmn:outgoing>F15</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="Cancel" name="Отменить заказ">
+      <bpmn:incoming>F15</bpmn:incoming>
+      <bpmn:outgoing>F16</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Pack" name="Собрать заказ">
+      <bpmn:incoming>F14</bpmn:incoming>
+      <bpmn:outgoing>F18</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="GwMethod" name="Способ получения?">
+      <bpmn:incoming>F18</bpmn:incoming>
+      <bpmn:outgoing>F19</bpmn:outgoing>
+      <bpmn:outgoing>F20</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="Deliver" name="Отвезти на объект">
+      <bpmn:incoming>F19</bpmn:incoming>
+      <bpmn:outgoing>F21</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Pickup" name="Выдать со склада">
+      <bpmn:incoming>F20</bpmn:incoming>
+      <bpmn:outgoing>F22</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="GwMerge">
+      <bpmn:incoming>F21</bpmn:incoming>
+      <bpmn:incoming>F22</bpmn:incoming>
+      <bpmn:outgoing>F23</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="F1" sourceRef="Start" targetRef="FindProduct" />
+    <bpmn:sequenceFlow id="F2" sourceRef="FindProduct" targetRef="GwSelf" />
+    <bpmn:sequenceFlow id="F3" name="да" sourceRef="GwSelf" targetRef="PlaceOrder" />
+    <bpmn:sequenceFlow id="F4" name="нет" sourceRef="GwSelf" targetRef="Callback" />
+    <bpmn:sequenceFlow id="F5" sourceRef="Callback" targetRef="CallBack" />
+    <bpmn:sequenceFlow id="F6" sourceRef="CallBack" targetRef="PlaceOrder" />
+    <bpmn:sequenceFlow id="F7" sourceRef="PlaceOrder" targetRef="CheckStock" />
+    <bpmn:sequenceFlow id="F8" sourceRef="CheckStock" targetRef="GwStock" />
+    <bpmn:sequenceFlow id="F9" name="да" sourceRef="GwStock" targetRef="Reserve" />
+    <bpmn:sequenceFlow id="F10" name="нет — показать, чего не хватает" sourceRef="GwStock" targetRef="FindProduct" />
+    <bpmn:sequenceFlow id="F11" sourceRef="Reserve" targetRef="NotifyAdmins" />
+    <bpmn:sequenceFlow id="F12" sourceRef="NotifyAdmins" targetRef="Confirm" />
+    <bpmn:sequenceFlow id="F13" sourceRef="Confirm" targetRef="GwConfirm" />
+    <bpmn:sequenceFlow id="F14" name="да" sourceRef="GwConfirm" targetRef="Pack" />
+    <bpmn:sequenceFlow id="F15" name="нет" sourceRef="GwConfirm" targetRef="Cancel" />
+    <bpmn:sequenceFlow id="F16" sourceRef="Cancel" targetRef="Restock" />
+    <bpmn:sequenceFlow id="F17" sourceRef="Restock" targetRef="EndCancelled" />
+    <bpmn:sequenceFlow id="F18" sourceRef="Pack" targetRef="GwMethod" />
+    <bpmn:sequenceFlow id="F19" name="доставка" sourceRef="GwMethod" targetRef="Deliver" />
+    <bpmn:sequenceFlow id="F20" name="самовывоз" sourceRef="GwMethod" targetRef="Pickup" />
+    <bpmn:sequenceFlow id="F21" sourceRef="Deliver" targetRef="GwMerge" />
+    <bpmn:sequenceFlow id="F22" sourceRef="Pickup" targetRef="GwMerge" />
+    <bpmn:sequenceFlow id="F23" sourceRef="GwMerge" targetRef="MarkDone" />
+    <bpmn:sequenceFlow id="F24" sourceRef="MarkDone" targetRef="Receive" />
+    <bpmn:sequenceFlow id="F25" sourceRef="Receive" targetRef="EndDone" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_order">
+    <bpmndi:BPMNPlane id="Plane_order" bpmnElement="Collaboration_order">
+      <bpmndi:BPMNShape id="Participant_shop_di" bpmnElement="Participant_shop" isHorizontal="true">
+        <dc:Bounds x="100" y="80" width="1900" height="720" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_customer_di" bpmnElement="Lane_customer" isHorizontal="true">
+        <dc:Bounds x="130" y="80" width="1870" height="260" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_site_di" bpmnElement="Lane_site" isHorizontal="true">
+        <dc:Bounds x="130" y="340" width="1870" height="200" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_admin_di" bpmnElement="Lane_admin" isHorizontal="true">
+        <dc:Bounds x="130" y="540" width="1870" height="260" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_di" bpmnElement="Start">
+        <dc:Bounds x="200" y="132" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="178" y="172" width="80" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="FindProduct_di" bpmnElement="FindProduct">
+        <dc:Bounds x="280" y="110" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GwSelf_di" bpmnElement="GwSelf" isMarkerVisible="true">
+        <dc:Bounds x="450" y="125" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="425" y="95" width="100" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Callback_di" bpmnElement="Callback">
+        <dc:Bounds x="415" y="230" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="PlaceOrder_di" bpmnElement="PlaceOrder">
+        <dc:Bounds x="560" y="110" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Receive_di" bpmnElement="Receive">
+        <dc:Bounds x="1730" y="110" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndDone_di" bpmnElement="EndDone">
+        <dc:Bounds x="1880" y="132" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1858" y="172" width="80" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="CheckStock_di" bpmnElement="CheckStock">
+        <dc:Bounds x="740" y="400" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GwStock_di" bpmnElement="GwStock" isMarkerVisible="true">
+        <dc:Bounds x="880" y="415" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="855" y="470" width="100" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Reserve_di" bpmnElement="Reserve">
+        <dc:Bounds x="980" y="400" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="NotifyAdmins_di" bpmnElement="NotifyAdmins">
+        <dc:Bounds x="1130" y="400" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Restock_di" bpmnElement="Restock">
+        <dc:Bounds x="1440" y="400" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndCancelled_di" bpmnElement="EndCancelled">
+        <dc:Bounds x="1580" y="422" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1558" y="462" width="80" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="MarkDone_di" bpmnElement="MarkDone">
+        <dc:Bounds x="1730" y="400" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="CallBack_di" bpmnElement="CallBack">
+        <dc:Bounds x="415" y="570" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Confirm_di" bpmnElement="Confirm">
+        <dc:Bounds x="1130" y="570" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GwConfirm_di" bpmnElement="GwConfirm" isMarkerVisible="true">
+        <dc:Bounds x="1280" y="585" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1255" y="555" width="100" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Cancel_di" bpmnElement="Cancel">
+        <dc:Bounds x="1380" y="690" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Pack_di" bpmnElement="Pack">
+        <dc:Bounds x="1380" y="570" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GwMethod_di" bpmnElement="GwMethod" isMarkerVisible="true">
+        <dc:Bounds x="1530" y="585" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1505" y="555" width="100" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Deliver_di" bpmnElement="Deliver">
+        <dc:Bounds x="1650" y="570" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Pickup_di" bpmnElement="Pickup">
+        <dc:Bounds x="1650" y="690" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GwMerge_di" bpmnElement="GwMerge" isMarkerVisible="true">
+        <dc:Bounds x="1800" y="585" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="F1_di" bpmnElement="F1">
+        <di:waypoint x="236" y="150" />
+        <di:waypoint x="280" y="150" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F2_di" bpmnElement="F2">
+        <di:waypoint x="400" y="150" />
+        <di:waypoint x="450" y="150" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F3_di" bpmnElement="F3">
+        <di:waypoint x="500" y="150" />
+        <di:waypoint x="560" y="150" />
+        <bpmndi:BPMNLabel><dc:Bounds x="504" y="132" width="62" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F4_di" bpmnElement="F4">
+        <di:waypoint x="475" y="175" />
+        <di:waypoint x="475" y="230" />
+        <bpmndi:BPMNLabel><dc:Bounds x="481" y="195" width="62" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F5_di" bpmnElement="F5">
+        <di:waypoint x="475" y="310" />
+        <di:waypoint x="475" y="570" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F6_di" bpmnElement="F6">
+        <di:waypoint x="535" y="610" />
+        <di:waypoint x="620" y="610" />
+        <di:waypoint x="620" y="190" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F7_di" bpmnElement="F7">
+        <di:waypoint x="680" y="150" />
+        <di:waypoint x="800" y="150" />
+        <di:waypoint x="800" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F8_di" bpmnElement="F8">
+        <di:waypoint x="860" y="440" />
+        <di:waypoint x="880" y="440" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F9_di" bpmnElement="F9">
+        <di:waypoint x="930" y="440" />
+        <di:waypoint x="980" y="440" />
+        <bpmndi:BPMNLabel><dc:Bounds x="934" y="422" width="62" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F10_di" bpmnElement="F10">
+        <di:waypoint x="905" y="415" />
+        <di:waypoint x="905" y="95" />
+        <di:waypoint x="340" y="95" />
+        <di:waypoint x="340" y="110" />
+        <bpmndi:BPMNLabel><dc:Bounds x="911" y="290" width="120" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F11_di" bpmnElement="F11">
+        <di:waypoint x="1100" y="440" />
+        <di:waypoint x="1130" y="440" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F12_di" bpmnElement="F12">
+        <di:waypoint x="1190" y="480" />
+        <di:waypoint x="1190" y="570" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F13_di" bpmnElement="F13">
+        <di:waypoint x="1250" y="610" />
+        <di:waypoint x="1280" y="610" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F14_di" bpmnElement="F14">
+        <di:waypoint x="1330" y="610" />
+        <di:waypoint x="1380" y="610" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1334" y="592" width="62" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F15_di" bpmnElement="F15">
+        <di:waypoint x="1305" y="635" />
+        <di:waypoint x="1305" y="730" />
+        <di:waypoint x="1380" y="730" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1311" y="675" width="62" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F16_di" bpmnElement="F16">
+        <di:waypoint x="1500" y="730" />
+        <di:waypoint x="1515" y="730" />
+        <di:waypoint x="1515" y="480" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F17_di" bpmnElement="F17">
+        <di:waypoint x="1560" y="440" />
+        <di:waypoint x="1580" y="440" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F18_di" bpmnElement="F18">
+        <di:waypoint x="1500" y="610" />
+        <di:waypoint x="1530" y="610" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F19_di" bpmnElement="F19">
+        <di:waypoint x="1580" y="610" />
+        <di:waypoint x="1650" y="610" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1584" y="592" width="62" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F20_di" bpmnElement="F20">
+        <di:waypoint x="1555" y="635" />
+        <di:waypoint x="1555" y="730" />
+        <di:waypoint x="1650" y="730" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1561" y="675" width="62" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F21_di" bpmnElement="F21">
+        <di:waypoint x="1770" y="610" />
+        <di:waypoint x="1800" y="610" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F22_di" bpmnElement="F22">
+        <di:waypoint x="1770" y="730" />
+        <di:waypoint x="1825" y="730" />
+        <di:waypoint x="1825" y="635" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F23_di" bpmnElement="F23">
+        <di:waypoint x="1825" y="585" />
+        <di:waypoint x="1825" y="480" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F24_di" bpmnElement="F24">
+        <di:waypoint x="1790" y="400" />
+        <di:waypoint x="1790" y="190" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F25_di" bpmnElement="F25">
+        <di:waypoint x="1850" y="150" />
+        <di:waypoint x="1880" y="150" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -512,7 +512,7 @@ flowchart TB
 
 ## 13. Бизнес-процесс: от заказа до выдачи
 
-Дорожки — кто выполняет шаг. Вариант BPMN в виде блок-схемы.
+Дорожки — кто выполняет шаг. Упрощённая блок-схема; тот же процесс в настоящей нотации BPMN 2.0 — [docs/bpmn/order-process.bpmn](bpmn/order-process.bpmn) (картинка — [order-process.svg](bpmn/order-process.svg)).
 
 ```mermaid
 flowchart LR
