@@ -452,39 +452,6 @@
   "caption": "50×250×6000"
  },
  {
-  "slug": "doska-osina-50x100x6000",
-  "kind": "lumber",
-  "params": {
-   "t": 50,
-   "w": 100,
-   "len": 6000,
-   "aspen": true
-  },
-  "caption": "50×100×6000"
- },
- {
-  "slug": "doska-osina-50x150x6000",
-  "kind": "lumber",
-  "params": {
-   "t": 50,
-   "w": 150,
-   "len": 6000,
-   "aspen": true
-  },
-  "caption": "50×150×6000"
- },
- {
-  "slug": "doska-osina-50x200x6000",
-  "kind": "lumber",
-  "params": {
-   "t": 50,
-   "w": 200,
-   "len": 6000,
-   "aspen": true
-  },
-  "caption": "50×200×6000"
- },
- {
   "slug": "opryskivatel-zhuk-12",
   "kind": "sprayer",
   "params": {
