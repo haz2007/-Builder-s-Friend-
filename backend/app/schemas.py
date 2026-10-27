@@ -21,6 +21,9 @@ class CategoryBase(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     # None — категория верхнего уровня
     parent_id: int | None = None
+
+
+class CategoryInput(CategoryBase):
     # Порядок в магазине (меньше — выше); не прислали — не меняем
     position: int | None = Field(default=None, ge=0, le=1000)
 

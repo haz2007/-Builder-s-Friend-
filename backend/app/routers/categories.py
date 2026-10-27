@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from ..auth import require_admin
 from ..database import get_db
 from ..models import Category, Product, User
-from ..schemas import CategoryBase, CategoryResponse
+from ..schemas import CategoryInput, CategoryResponse
 from ..services import audit
 
 router = APIRouter(prefix="/api/v1/categories", tags=["Categories"])
@@ -65,7 +65,7 @@ def get_category(category_id: int, db: Session = Depends(get_db)):
 
 @router.post("/", response_model=CategoryResponse)
 def create_category(
-    category: CategoryBase,
+    category: CategoryInput,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
@@ -90,7 +90,7 @@ def create_category(
 @router.patch("/{category_id}", response_model=CategoryResponse)
 def update_category(
     category_id: int,
-    category_data: CategoryBase,
+    category_data: CategoryInput,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):

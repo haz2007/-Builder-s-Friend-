@@ -790,7 +790,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CategoryBase"
+                "$ref": "#/components/schemas/CategoryInput"
               }
             }
           },
@@ -893,7 +893,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CategoryBase"
+                "$ref": "#/components/schemas/CategoryInput"
               }
             }
           }
@@ -2988,7 +2988,7 @@
         ],
         "title": "CallbackRequestResponse"
       },
-      "CategoryBase": {
+      "CategoryInput": {
         "properties": {
           "name": {
             "type": "string",
@@ -3025,7 +3025,7 @@
         "required": [
           "name"
         ],
-        "title": "CategoryBase"
+        "title": "CategoryInput"
       },
       "CategoryResponse": {
         "properties": {
@@ -3046,20 +3046,20 @@
             ],
             "title": "Parent Id"
           },
-          "position": {
-            "type": "integer",
-            "title": "Position"
-          },
           "id": {
             "type": "integer",
             "title": "Id"
+          },
+          "position": {
+            "type": "integer",
+            "title": "Position"
           }
         },
         "type": "object",
         "required": [
           "name",
-          "position",
-          "id"
+          "id",
+          "position"
         ],
         "title": "CategoryResponse"
       },
