@@ -1,7 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
-import { PHONES, SELLER, STORE_LOCATION, WORKING_HOURS } from "../shop/contacts";
+import { EMAIL, PHONES, SELLER, STORE_LOCATION, WORKING_HOURS } from "../shop/contacts";
 import { usePageTitle } from "../shop/usePageTitle";
 
 /**
@@ -75,7 +75,7 @@ export default function DeliveryReturnsPage() {
 
         <h2>Как оформить возврат</h2>
         <p>
-          Позвоните или напишите по телефонам: {phones}. Продавец — {SELLER.name}, ОГРНИП{" "}
+          Позвоните или напишите по телефонам: {phones}, или на e-mail {EMAIL}. Продавец — {SELLER.name}, ОГРНИП{" "}
           {SELLER.ogrnip}, ИНН {SELLER.inn}.
         </p>
       </div>

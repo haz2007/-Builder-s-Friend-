@@ -1,4 +1,4 @@
-import { ArrowRight, Box, ClipboardCheck, Phone, Ruler, Send, Truck, Warehouse } from "lucide-react";
+import { ArrowRight, Box, ClipboardCheck, Mail, Phone, Ruler, Send, Truck, Warehouse } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 import CountUp from "../components/CountUp";
@@ -11,7 +11,7 @@ import {
   topLevelCategories,
 } from "../shop/categories";
 import { showFallbackImage } from "../shop/images";
-import { CLOSE_HOUR, OPEN_HOUR, PHONES, STORE_LOCATION, TELEGRAM_BOT_URL, YEARS_ON_MARKET } from "../shop/contacts";
+import { CLOSE_HOUR, EMAIL, OPEN_HOUR, PHONES, STORE_LOCATION, TELEGRAM_BOT_URL, YEARS_ON_MARKET } from "../shop/contacts";
 import { storeStatus } from "../shop/hours";
 import { pluralize } from "../shop/format";
 import { useShop } from "../shop/ShopContext";
@@ -273,6 +273,9 @@ export default function HomePage() {
               rel="noreferrer"
             >
               <Send size={18} /> Написать в Telegram
+            </a>
+            <a className="home-button home-button-outline" href={`mailto:${EMAIL}`}>
+              <Mail size={18} /> {EMAIL}
             </a>
           </div>
         </div>

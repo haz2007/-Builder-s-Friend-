@@ -1,10 +1,10 @@
 import { ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
-import { PHONES, SELLER, STORE_LOCATION, STORE_NAME } from "../shop/contacts";
+import { EMAIL, PHONES, SELLER, STORE_LOCATION, STORE_NAME } from "../shop/contacts";
 import { usePageTitle } from "../shop/usePageTitle";
 
-const UPDATED = "23 октября 2026 г.";
+const UPDATED = "27 октября 2026 г.";
 
 /** Политика обработки персональных данных (152-ФЗ). */
 export default function PrivacyPage() {
@@ -28,7 +28,7 @@ export default function PrivacyPage() {
         <p>
           Оператор персональных данных — {operator}
           {STORE_LOCATION ? `, адрес: ${STORE_LOCATION.address}` : ""}. Телефоны для
-          вопросов о данных: {phones}. Политика действует в соответствии с Федеральным
+          вопросов о данных: {phones}, e-mail: {EMAIL}. Политика действует в соответствии с Федеральным
           законом № 152-ФЗ «О персональных данных». Согласие на обработку данных
           оформляется отдельным документом —{" "}
           <Link to="/consent">согласие на обработку персональных данных</Link>.
@@ -134,7 +134,7 @@ export default function PrivacyPage() {
           Вы можете узнать, какие данные о вас хранятся, исправить их, удалить аккаунт
           или отозвать согласие. Удалить аккаунт можно и самостоятельно — в личном кабинете,
           раздел «Настройки» → «Удалить аккаунт». По остальным вопросам позвоните или напишите
-          нам по телефонам: {phones}.
+          нам по телефонам: {phones} или на e-mail {EMAIL}.
           Отзыв согласия не отменяет уже оформленных заказов.
         </p>
 

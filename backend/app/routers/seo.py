@@ -58,6 +58,7 @@ def store_schema(base: str) -> dict[str, Any]:
         "image": f"{base}/og-image.jpg",
         "description": DEFAULT_DESCRIPTION,
         "telephone": store_info.PHONES,
+        "email": store_info.EMAIL,
         "openingHours": "Mo-Su 09:00-19:00",
         "priceRange": "₽₽",
     }

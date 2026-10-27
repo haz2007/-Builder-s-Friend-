@@ -50,7 +50,7 @@ import ConsentPage from "./pages/ConsentPage";
 import DeliveryReturnsPage from "./pages/DeliveryReturnsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import ProductPage from "./pages/ProductPage";
-import { PHONES, SELLER, WORKING_HOURS, YANDEX_REVIEW_URL, YEARS_ON_MARKET } from "./shop/contacts";
+import { EMAIL, PHONES, SELLER, WORKING_HOURS, YANDEX_REVIEW_URL, YEARS_ON_MARKET } from "./shop/contacts";
 import { formatPrice, pluralize } from "./shop/format";
 import { ShopContext } from "./shop/ShopContext";
 import type {
@@ -1574,7 +1574,8 @@ function App() {
         {/* Реквизиты продавца — обязательны для дистанционной продажи */}
         <div className="container footer-legal">
           <span>
-            {SELLER.name} · ОГРНИП {SELLER.ogrnip} · ИНН {SELLER.inn}
+            {SELLER.name} · ОГРНИП {SELLER.ogrnip} · ИНН {SELLER.inn} ·{" "}
+            <a href={`mailto:${EMAIL}`}>{EMAIL}</a>
           </span>
           <span className="footer-legal-links">
             <Link to="/delivery">Доставка и возврат</Link>

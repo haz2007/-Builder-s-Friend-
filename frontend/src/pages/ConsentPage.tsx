@@ -1,7 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
-import { PHONES, SELLER, STORE_LOCATION, STORE_NAME } from "../shop/contacts";
+import { EMAIL, PHONES, SELLER, STORE_LOCATION, STORE_NAME } from "../shop/contacts";
 import { usePageTitle } from "../shop/usePageTitle";
 
 const UPDATED = "22 октября 2026 г.";
@@ -37,7 +37,7 @@ export default function ConsentPage() {
         <h2>Оператор</h2>
         <p>
           {SELLER.name}, ОГРНИП {SELLER.ogrnip}, ИНН {SELLER.inn}
-          {STORE_LOCATION ? `, адрес: ${STORE_LOCATION.address}` : ""}. Телефоны: {phones}.
+          {STORE_LOCATION ? `, адрес: ${STORE_LOCATION.address}` : ""}. Телефоны: {phones}, e-mail: {EMAIL}.
         </p>
 
         <h2>Какие данные</h2>
@@ -80,7 +80,7 @@ export default function ConsentPage() {
           Согласие действует до удаления моего аккаунта (если я не регистрировался — до
           достижения целей обработки) или до его отзыва. Отозвать
           согласие можно в любой момент: кнопкой «Удалить аккаунт» в личном кабинете
-          (раздел «Настройки») или позвонив либо написав оператору по телефонам: {phones}. После отзыва оператор прекращает обработку и удаляет данные, кроме
+          (раздел «Настройки») или позвонив либо написав оператору по телефонам: {phones} или на e-mail {EMAIL}. После отзыва оператор прекращает обработку и удаляет данные, кроме
           сведений, которые он обязан хранить по закону (например, о заказах для
           бухгалтерского и налогового учёта). Отзыв согласия не отменяет уже оформленных
           заказов.

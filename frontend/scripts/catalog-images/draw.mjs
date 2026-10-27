@@ -483,7 +483,6 @@ export function sealant() {
 /* ---------- Крепёж ---------- */
 
 function screwShape(len, { color = "yellow", fine = false, head = "csk", tip = "sharp" } = {}) {
-  const stops = color === "yellow" ? ZINC_YELLOW : color === "black" ? BLACK_STEEL : METAL;
   const r = 12;
   const id = `sc_${color}`;
   let thread = "";

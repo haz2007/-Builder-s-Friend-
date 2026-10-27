@@ -92,6 +92,7 @@ def contacts_screen(chat_id: int, telegram_user_id: int, message_id=None):
         f"📞 <b>{store_info.STORE_NAME}</b>",
         "",
         *[f"☎️ {phone}" for phone in store_info.PHONES],
+        f"✉️ {store_info.EMAIL}",
         f"🕘 {store_info.WORKING_HOURS}",
     ]
     if store_info.ADDRESS:

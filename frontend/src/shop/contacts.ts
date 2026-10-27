@@ -4,6 +4,9 @@ export const PHONES = [
   { display: "+7 901 768-03-67", href: "tel:+79017680367" },
 ];
 
+/** Почта магазина: адрес электронной почты на сайте обязателен (149-ФЗ, ст. 10) */
+export const EMAIL = "builders.friend.himki@gmail.com";
+
 export const YEARS_ON_MARKET = 30;
 
 export const STORE_NAME = "Друг Строителя";
