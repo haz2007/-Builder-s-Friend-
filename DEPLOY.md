@@ -114,6 +114,28 @@ docker compose -f docker-compose.prod.yml --env-file .env.production --profile b
 
 Миграции базы применяются автоматически при старте backend.
 
+### Автоматическая выкатка
+
+После зелёного CI на `main` задача «Выкатка на сервер» сама отправляет код на сервер
+по SSH. Там его принимает `scripts/deploy.sh`: бэкап базы (`backups/db_predeploy_*`),
+распаковка кода, пересборка контейнеров, проверка `/api/v1/health`. Журнал —
+`/var/log/builders-friend-deploy.log`.
+
+Настройка (один раз):
+
+```bash
+# на своём компьютере — отдельный ключ только для выкатки
+ssh-keygen -t ed25519 -N "" -C github-actions-deploy -f ~/.ssh/builders_friend_ci
+# на сервере — ключ может запустить только deploy.sh, больше ничего
+echo "restrict,command=\"/opt/builders-friend/scripts/deploy.sh\" $(cat ~/.ssh/builders_friend_ci.pub)" \
+  | ssh root@сервер 'cat >> /root/.ssh/authorized_keys'
+```
+
+Закрытый ключ `~/.ssh/builders_friend_ci` — в секрет репозитория `DEPLOY_SSH_KEY`
+(GitHub → Settings → Secrets and variables → Actions). Пока секрета нет, CI выкатку
+пропускает. Публичный ключ сервера записан в `.github/workflows/ci.yml` (`DEPLOY_HOST_KEY`);
+если сервер переустановят, его нужно обновить: `ssh-keyscan -t ed25519 <IP>`.
+
 ## 5. Бэкапы и восстановление
 
 ```bash

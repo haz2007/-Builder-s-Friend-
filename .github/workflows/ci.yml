@@ -7,7 +7,8 @@ on:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Новый пуш в PR отменяет старую проверку, а на main — нет: иначе можно оборвать выкатку
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   backend:
@@ -123,3 +124,30 @@ jobs:
           POSTGRES_PASSWORD: ci
           SECRET_KEY: ci
         run: docker compose -f docker-compose.prod.yml build
+
+  deploy:
+    name: Выкатка на сервер
+    needs: [backend, frontend, e2e, docker]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy
+      cancel-in-progress: false
+    env:
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      # Публичный ключ сервера (не секрет): защищает от подмены сервера
+      DEPLOY_HOST_KEY: "132.243.190.59 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO8sDOm2X0Ji1rWRByITGwvCJ6Ws/d39ozxuJyV0DS+t"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ключ для выкатки не задан
+        if: env.DEPLOY_SSH_KEY == ''
+        run: echo "::notice::Секрет DEPLOY_SSH_KEY не задан — выкатка пропущена"
+      - name: Код на сервер (scripts/deploy.sh)
+        if: env.DEPLOY_SSH_KEY != ''
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          printf '%s\n' "$DEPLOY_HOST_KEY" > ~/.ssh/known_hosts
+          git archive --format=tar HEAD | ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes \
+            -o ServerAliveInterval=30 root@132.243.190.59 "commit ${GITHUB_SHA::7}"
