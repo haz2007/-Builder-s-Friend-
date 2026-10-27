@@ -9,7 +9,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "catalog:images": "node scripts/catalog-images/render.mjs"
   },
   "dependencies": {
     "@fontsource/dm-sans": "^5.3.0",

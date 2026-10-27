@@ -189,8 +189,27 @@ function adminHeaders(token: string) {
   return { Authorization: `Bearer ${token}` };
 }
 
+// API отдаёт не больше 100 товаров за раз: забираем каталог страницами
+const PAGE_SIZE = 100;
+
+async function getAllProductPages(
+  query: string,
+  options: RequestInit = {},
+): Promise<ApiProduct[]> {
+  const products: ApiProduct[] = [];
+
+  for (let offset = 0; ; offset += PAGE_SIZE) {
+    const page = await request<ApiProduct[]>(
+      `/api/v1/products/?${query}&limit=${PAGE_SIZE}&offset=${offset}`,
+      options,
+    );
+    products.push(...page);
+    if (page.length < PAGE_SIZE) return products;
+  }
+}
+
 export function getProducts(): Promise<ApiProduct[]> {
-  return request<ApiProduct[]>("/api/v1/products/?limit=100");
+  return getAllProductPages("is_active=1");
 }
 
 export function getCategories(): Promise<ApiCategory[]> {
@@ -379,15 +398,13 @@ export function cancelOrder(
 }
 
 export async function getAdminProducts(token: string): Promise<ApiProduct[]> {
-  const activeProducts = await request<ApiProduct[]>(
-    "/api/v1/products/?is_active=1&limit=100",
-    { headers: adminHeaders(token) },
-  );
+  const activeProducts = await getAllProductPages("is_active=1", {
+    headers: adminHeaders(token),
+  });
 
-  const inactiveProducts = await request<ApiProduct[]>(
-    "/api/v1/products/?is_active=0&limit=100",
-    { headers: adminHeaders(token) },
-  );
+  const inactiveProducts = await getAllProductPages("is_active=0", {
+    headers: adminHeaders(token),
+  });
 
   return [...activeProducts, ...inactiveProducts];
 }

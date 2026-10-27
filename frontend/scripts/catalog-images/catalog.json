@@ -1,0 +1,1248 @@
+[
+ {
+  "slug": "ondutis-b-70",
+  "kind": "roll",
+  "params": {
+   "band": "#a51d22",
+   "title": "ОНДУТИС",
+   "big": "B",
+   "sub": "70 м²"
+  }
+ },
+ {
+  "slug": "ondutis-a-70",
+  "kind": "roll",
+  "params": {
+   "band": "#d4232a",
+   "title": "ОНДУТИС",
+   "big": "A",
+   "sub": "70 м²"
+  }
+ },
+ {
+  "slug": "ondutis-am-70",
+  "kind": "roll",
+  "params": {
+   "band": "#7a1418",
+   "title": "ОНДУТИС",
+   "big": "AM",
+   "sub": "70 м²"
+  }
+ },
+ {
+  "slug": "anker-100",
+  "kind": "anchorBolt",
+  "params": {
+   "len": 100
+  },
+  "caption": "100 мм"
+ },
+ {
+  "slug": "anker-10x40",
+  "kind": "anchorBolt",
+  "params": {
+   "len": 40
+  },
+  "caption": "10×40 мм"
+ },
+ {
+  "slug": "anker-120",
+  "kind": "anchorBolt",
+  "params": {
+   "len": 120
+  },
+  "caption": "120 мм"
+ },
+ {
+  "slug": "anker-150",
+  "kind": "anchorBolt",
+  "params": {
+   "len": 150
+  },
+  "caption": "150 мм"
+ },
+ {
+  "slug": "anker-180",
+  "kind": "anchorBolt",
+  "params": {
+   "len": 180
+  },
+  "caption": "180 мм"
+ },
+ {
+  "slug": "anker-50",
+  "kind": "anchorBolt",
+  "params": {
+   "len": 50
+  },
+  "caption": "50 мм"
+ },
+ {
+  "slug": "anker-65",
+  "kind": "anchorBolt",
+  "params": {
+   "len": 65
+  },
+  "caption": "65 мм"
+ },
+ {
+  "slug": "anker-77",
+  "kind": "anchorBolt",
+  "params": {
+   "len": 77
+  },
+  "caption": "77 мм"
+ },
+ {
+  "slug": "anker-8x40",
+  "kind": "anchorBolt",
+  "params": {
+   "len": 40
+  },
+  "caption": "8×40 мм"
+ },
+ {
+  "slug": "anker-85",
+  "kind": "anchorBolt",
+  "params": {
+   "len": 85
+  },
+  "caption": "85 мм"
+ },
+ {
+  "slug": "anker-97",
+  "kind": "anchorBolt",
+  "params": {
+   "len": 97
+  },
+  "caption": "97 мм"
+ },
+ {
+  "slug": "brus-100x100x6000",
+  "kind": "lumber",
+  "params": {
+   "t": 100,
+   "w": 100,
+   "len": 6000,
+   "aspen": false
+  },
+  "caption": "100×100×6000"
+ },
+ {
+  "slug": "brus-100x150x6000",
+  "kind": "lumber",
+  "params": {
+   "t": 100,
+   "w": 150,
+   "len": 6000,
+   "aspen": false
+  },
+  "caption": "100×150×6000"
+ },
+ {
+  "slug": "brus-100x200x6000",
+  "kind": "lumber",
+  "params": {
+   "t": 100,
+   "w": 200,
+   "len": 6000,
+   "aspen": false
+  },
+  "caption": "100×200×6000"
+ },
+ {
+  "slug": "brus-150x150x6000",
+  "kind": "lumber",
+  "params": {
+   "t": 150,
+   "w": 150,
+   "len": 6000,
+   "aspen": false
+  },
+  "caption": "150×150×6000"
+ },
+ {
+  "slug": "brus-150x200x6000",
+  "kind": "lumber",
+  "params": {
+   "t": 150,
+   "w": 200,
+   "len": 6000,
+   "aspen": false
+  },
+  "caption": "150×200×6000"
+ },
+ {
+  "slug": "brus-200x200x6000",
+  "kind": "lumber",
+  "params": {
+   "t": 200,
+   "w": 200,
+   "len": 6000,
+   "aspen": false
+  },
+  "caption": "200×200×6000"
+ },
+ {
+  "slug": "brusok-25x40x3000",
+  "kind": "lumber",
+  "params": {
+   "t": 25,
+   "w": 40,
+   "len": 3000,
+   "aspen": false
+  },
+  "caption": "25×40×3000"
+ },
+ {
+  "slug": "brusok-25x50x3000",
+  "kind": "lumber",
+  "params": {
+   "t": 25,
+   "w": 50,
+   "len": 3000,
+   "aspen": false
+  },
+  "caption": "25×50×3000"
+ },
+ {
+  "slug": "brusok-40x40x3000",
+  "kind": "lumber",
+  "params": {
+   "t": 40,
+   "w": 40,
+   "len": 3000,
+   "aspen": false
+  },
+  "caption": "40×40×3000"
+ },
+ {
+  "slug": "brusok-40x50x3000",
+  "kind": "lumber",
+  "params": {
+   "t": 40,
+   "w": 50,
+   "len": 3000,
+   "aspen": false
+  },
+  "caption": "40×50×3000"
+ },
+ {
+  "slug": "brusok-50x50x3000",
+  "kind": "lumber",
+  "params": {
+   "t": 50,
+   "w": 50,
+   "len": 3000,
+   "aspen": false
+  },
+  "caption": "50×50×3000"
+ },
+ {
+  "slug": "valik-malyarnyi",
+  "kind": "roller"
+ },
+ {
+  "slug": "vedro-stroitelnoe",
+  "kind": "bucket"
+ },
+ {
+  "slug": "gaika-m10",
+  "kind": "nuts",
+  "params": {
+   "m": 10
+  },
+  "caption": "М10"
+ },
+ {
+  "slug": "gaika-m12",
+  "kind": "nuts",
+  "params": {
+   "m": 12
+  },
+  "caption": "М12"
+ },
+ {
+  "slug": "gaika-m14",
+  "kind": "nuts",
+  "params": {
+   "m": 14
+  },
+  "caption": "М14"
+ },
+ {
+  "slug": "gaika-m8",
+  "kind": "nuts",
+  "params": {
+   "m": 8
+  },
+  "caption": "М8"
+ },
+ {
+  "slug": "gvozdi-stroitelnye-120-mm",
+  "kind": "nails",
+  "params": {
+   "len": 120
+  },
+  "caption": "120 мм"
+ },
+ {
+  "slug": "geotekstil-100-g-m",
+  "kind": "roll",
+  "params": {
+   "band": "#5b7f3a",
+   "title": "ГЕОТЕКСТИЛЬ",
+   "big": "100",
+   "sub": "г/м²",
+   "fluffy": true
+  }
+ },
+ {
+  "slug": "geotekstil-200-g-m",
+  "kind": "roll",
+  "params": {
+   "band": "#3f6128",
+   "title": "ГЕОТЕКСТИЛЬ",
+   "big": "200",
+   "sub": "г/м²",
+   "fluffy": true
+  }
+ },
+ {
+  "slug": "germetik-silikonovyi",
+  "kind": "sealant"
+ },
+ {
+  "slug": "gorelka-gazovaya",
+  "kind": "gasTorch"
+ },
+ {
+  "slug": "petli-dvernye",
+  "kind": "hinge"
+ },
+ {
+  "slug": "disk-125",
+  "kind": "cutDisc",
+  "params": {
+   "d": 125
+  },
+  "caption": "125 мм"
+ },
+ {
+  "slug": "disk-180",
+  "kind": "cutDisc",
+  "params": {
+   "d": 180
+  },
+  "caption": "180 мм"
+ },
+ {
+  "slug": "disk-230",
+  "kind": "cutDisc",
+  "params": {
+   "d": 230
+  },
+  "caption": "230 мм"
+ },
+ {
+  "slug": "disk-250",
+  "kind": "cutDisc",
+  "params": {
+   "d": 250
+  },
+  "caption": "250 мм"
+ },
+ {
+  "slug": "doska-25x100x6000",
+  "kind": "lumber",
+  "params": {
+   "t": 25,
+   "w": 100,
+   "len": 6000,
+   "aspen": false
+  },
+  "caption": "25×100×6000"
+ },
+ {
+  "slug": "doska-25x150x6000",
+  "kind": "lumber",
+  "params": {
+   "t": 25,
+   "w": 150,
+   "len": 6000,
+   "aspen": false
+  },
+  "caption": "25×150×6000"
+ },
+ {
+  "slug": "doska-40x100x6000",
+  "kind": "lumber",
+  "params": {
+   "t": 40,
+   "w": 100,
+   "len": 6000,
+   "aspen": false
+  },
+  "caption": "40×100×6000"
+ },
+ {
+  "slug": "doska-40x150x6000",
+  "kind": "lumber",
+  "params": {
+   "t": 40,
+   "w": 150,
+   "len": 6000,
+   "aspen": false
+  },
+  "caption": "40×150×6000"
+ },
+ {
+  "slug": "doska-40x200x6000",
+  "kind": "lumber",
+  "params": {
+   "t": 40,
+   "w": 200,
+   "len": 6000,
+   "aspen": false
+  },
+  "caption": "40×200×6000"
+ },
+ {
+  "slug": "doska-50x100x6000",
+  "kind": "lumber",
+  "params": {
+   "t": 50,
+   "w": 100,
+   "len": 6000,
+   "aspen": false
+  },
+  "caption": "50×100×6000"
+ },
+ {
+  "slug": "doska-50x150x6000",
+  "kind": "lumber",
+  "params": {
+   "t": 50,
+   "w": 150,
+   "len": 6000,
+   "aspen": false
+  },
+  "caption": "50×150×6000"
+ },
+ {
+  "slug": "doska-50x200x6000",
+  "kind": "lumber",
+  "params": {
+   "t": 50,
+   "w": 200,
+   "len": 6000,
+   "aspen": false
+  },
+  "caption": "50×200×6000"
+ },
+ {
+  "slug": "doska-50x250x6000",
+  "kind": "lumber",
+  "params": {
+   "t": 50,
+   "w": 250,
+   "len": 6000,
+   "aspen": false
+  },
+  "caption": "50×250×6000"
+ },
+ {
+  "slug": "doska-osina-50x100x6000",
+  "kind": "lumber",
+  "params": {
+   "t": 50,
+   "w": 100,
+   "len": 6000,
+   "aspen": true
+  },
+  "caption": "50×100×6000"
+ },
+ {
+  "slug": "doska-osina-50x150x6000",
+  "kind": "lumber",
+  "params": {
+   "t": 50,
+   "w": 150,
+   "len": 6000,
+   "aspen": true
+  },
+  "caption": "50×150×6000"
+ },
+ {
+  "slug": "doska-osina-50x200x6000",
+  "kind": "lumber",
+  "params": {
+   "t": 50,
+   "w": 200,
+   "len": 6000,
+   "aspen": true
+  },
+  "caption": "50×200×6000"
+ },
+ {
+  "slug": "opryskivatel-zhuk-12",
+  "kind": "sprayer",
+  "params": {
+   "litres": 12
+  }
+ },
+ {
+  "slug": "opryskivatel-zhuk-5",
+  "kind": "sprayer",
+  "params": {
+   "litres": 5
+  }
+ },
+ {
+  "slug": "opryskivatel-zhuk-8",
+  "kind": "sprayer",
+  "params": {
+   "litres": 8
+  }
+ },
+ {
+  "slug": "zamok-navesnoi",
+  "kind": "padlock"
+ },
+ {
+  "slug": "izolenta",
+  "kind": "tape",
+  "params": {
+   "kind": "insulation"
+  }
+ },
+ {
+  "slug": "izonit-a-35",
+  "kind": "roll",
+  "params": {
+   "band": "#d08a00",
+   "title": "ИЗОНИТ",
+   "big": "A",
+   "sub": "35 м²"
+  }
+ },
+ {
+  "slug": "izonit-a-70",
+  "kind": "roll",
+  "params": {
+   "band": "#d08a00",
+   "title": "ИЗОНИТ",
+   "big": "A",
+   "sub": "70 м²"
+  }
+ },
+ {
+  "slug": "izonit-am-70",
+  "kind": "roll",
+  "params": {
+   "band": "#d08a00",
+   "title": "ИЗОНИТ",
+   "big": "AM",
+   "sub": "70 м²"
+  }
+ },
+ {
+  "slug": "izonit-b-70",
+  "kind": "roll",
+  "params": {
+   "band": "#d08a00",
+   "title": "ИЗОНИТ",
+   "big": "B",
+   "sub": "70 м²"
+  }
+ },
+ {
+  "slug": "izospan-bfix-35",
+  "kind": "roll",
+  "params": {
+   "band": "#8e44ad",
+   "title": "ИЗОСПАН",
+   "big": "Bfix",
+   "sub": "35 м²"
+  }
+ },
+ {
+  "slug": "izospan-d-70",
+  "kind": "roll",
+  "params": {
+   "band": "#c0392b",
+   "title": "ИЗОСПАН",
+   "big": "D",
+   "sub": "70 м²"
+  }
+ },
+ {
+  "slug": "izospan-dfix-70",
+  "kind": "roll",
+  "params": {
+   "band": "#d35400",
+   "title": "ИЗОСПАН",
+   "big": "Dfix",
+   "sub": "70 м²"
+  }
+ },
+ {
+  "slug": "izospan-a-35",
+  "kind": "roll",
+  "params": {
+   "band": "#2f6db5",
+   "title": "ИЗОСПАН",
+   "big": "A",
+   "sub": "35 м²"
+  }
+ },
+ {
+  "slug": "izospan-a-70",
+  "kind": "roll",
+  "params": {
+   "band": "#2f6db5",
+   "title": "ИЗОСПАН",
+   "big": "A",
+   "sub": "70 м²"
+  }
+ },
+ {
+  "slug": "izospan-am-35",
+  "kind": "roll",
+  "params": {
+   "band": "#1f8a70",
+   "title": "ИЗОСПАН",
+   "big": "AM",
+   "sub": "35 м²"
+  }
+ },
+ {
+  "slug": "izospan-am-70",
+  "kind": "roll",
+  "params": {
+   "band": "#1f8a70",
+   "title": "ИЗОСПАН",
+   "big": "AM",
+   "sub": "70 м²"
+  }
+ },
+ {
+  "slug": "izospan-b-35",
+  "kind": "roll",
+  "params": {
+   "band": "#6a4fb5",
+   "title": "ИЗОСПАН",
+   "big": "B",
+   "sub": "35 м²"
+  }
+ },
+ {
+  "slug": "izospan-b-70",
+  "kind": "roll",
+  "params": {
+   "band": "#6a4fb5",
+   "title": "ИЗОСПАН",
+   "big": "B",
+   "sub": "70 м²"
+  }
+ },
+ {
+  "slug": "izospan-bfix-70",
+  "kind": "roll",
+  "params": {
+   "band": "#8e44ad",
+   "title": "ИЗОСПАН",
+   "big": "Bfix",
+   "sub": "70 м²"
+  }
+ },
+ {
+  "slug": "karandash-stroitelnyi",
+  "kind": "pencil"
+ },
+ {
+  "slug": "kist-malyarnaya",
+  "kind": "brush"
+ },
+ {
+  "slug": "perfolenta-montazhnaya",
+  "kind": "tape",
+  "params": {
+   "kind": "perforated"
+  }
+ },
+ {
+  "slug": "lenta-malyarnaya",
+  "kind": "tape",
+  "params": {
+   "kind": "masking"
+  }
+ },
+ {
+  "slug": "molotok",
+  "kind": "hammer"
+ },
+ {
+  "slug": "pena-montazhnaya",
+  "kind": "foamCan"
+ },
+ {
+  "slug": "obz-10",
+  "kind": "canister",
+  "params": {
+   "litres": 10,
+   "label": "#3f8a4a",
+   "title": "ОБЗ",
+   "cap": "#2f6a37"
+  }
+ },
+ {
+  "slug": "obz-20",
+  "kind": "canister",
+  "params": {
+   "litres": 20,
+   "label": "#3f8a4a",
+   "title": "ОБЗ",
+   "cap": "#2f6a37"
+  }
+ },
+ {
+  "slug": "obz-5",
+  "kind": "canister",
+  "params": {
+   "litres": 5,
+   "label": "#3f8a4a",
+   "title": "ОБЗ",
+   "cap": "#2f6a37"
+  }
+ },
+ {
+  "slug": "ogneopal-10",
+  "kind": "canister",
+  "params": {
+   "litres": 10,
+   "label": "#c0392b",
+   "title": "ОГНЕОПАЛ",
+   "cap": "#8e2a1f"
+  }
+ },
+ {
+  "slug": "ogneopal-20",
+  "kind": "canister",
+  "params": {
+   "litres": 20,
+   "label": "#c0392b",
+   "title": "ОГНЕОПАЛ",
+   "cap": "#8e2a1f"
+  }
+ },
+ {
+  "slug": "ogneopal-5",
+  "kind": "canister",
+  "params": {
+   "litres": 5,
+   "label": "#c0392b",
+   "title": "ОГНЕОПАЛ",
+   "cap": "#8e2a1f"
+  }
+ },
+ {
+  "slug": "penoplast-pps-13-100-mm",
+  "kind": "foamBoard",
+  "params": {
+   "thickness": 100
+  },
+  "caption": "ППС-13 · 100 мм"
+ },
+ {
+  "slug": "penoplast-pps-16-100-mm",
+  "kind": "foamBoard",
+  "params": {
+   "thickness": 100
+  },
+  "caption": "ППС-16 · 100 мм"
+ },
+ {
+  "slug": "penoplast-pps-16-50-mm",
+  "kind": "foamBoard",
+  "params": {
+   "thickness": 50
+  },
+  "caption": "ППС-16 · 50 мм"
+ },
+ {
+  "slug": "perchatki-rabochie",
+  "kind": "glove"
+ },
+ {
+  "slug": "nozhovka-po-derevu",
+  "kind": "saw"
+ },
+ {
+  "slug": "pistolet-dlya-montazhnoi-peny",
+  "kind": "foamGun"
+ },
+ {
+  "slug": "stepler-stroitelnyi",
+  "kind": "stapleGun"
+ },
+ {
+  "slug": "remen-styazhnoi",
+  "kind": "strap"
+ },
+ {
+  "slug": "ruletka",
+  "kind": "tapeMeasure"
+ },
+ {
+  "slug": "ruchka-dlya-valika",
+  "kind": "rollerPole"
+ },
+ {
+  "slug": "samorez-zheltyi-35",
+  "kind": "screws",
+  "params": {
+   "len": 35,
+   "color": "yellow",
+   "fine": false
+  },
+  "caption": "35 мм"
+ },
+ {
+  "slug": "samorez-zheltyi-41",
+  "kind": "screws",
+  "params": {
+   "len": 41,
+   "color": "yellow",
+   "fine": false
+  },
+  "caption": "41 мм"
+ },
+ {
+  "slug": "samorez-zheltyi-51",
+  "kind": "screws",
+  "params": {
+   "len": 51,
+   "color": "yellow",
+   "fine": false
+  },
+  "caption": "51 мм"
+ },
+ {
+  "slug": "samorez-zheltyi-64",
+  "kind": "screws",
+  "params": {
+   "len": 64,
+   "color": "yellow",
+   "fine": false
+  },
+  "caption": "64 мм"
+ },
+ {
+  "slug": "samorez-zheltyi-70",
+  "kind": "screws",
+  "params": {
+   "len": 70,
+   "color": "yellow",
+   "fine": false
+  },
+  "caption": "70 мм"
+ },
+ {
+  "slug": "samorez-zheltyi-76",
+  "kind": "screws",
+  "params": {
+   "len": 76,
+   "color": "yellow",
+   "fine": false
+  },
+  "caption": "76 мм"
+ },
+ {
+  "slug": "samorez-zheltyi-90",
+  "kind": "screws",
+  "params": {
+   "len": 90,
+   "color": "yellow",
+   "fine": false
+  },
+  "caption": "90 мм"
+ },
+ {
+  "slug": "samorez-metall-25",
+  "kind": "screws",
+  "params": {
+   "len": 25,
+   "color": "black",
+   "fine": true
+  },
+  "caption": "25 мм"
+ },
+ {
+  "slug": "samorez-metall-35",
+  "kind": "screws",
+  "params": {
+   "len": 35,
+   "color": "black",
+   "fine": true
+  },
+  "caption": "35 мм"
+ },
+ {
+  "slug": "samorez-metall-41",
+  "kind": "screws",
+  "params": {
+   "len": 41,
+   "color": "black",
+   "fine": true
+  },
+  "caption": "41 мм"
+ },
+ {
+  "slug": "samorez-metall-51",
+  "kind": "screws",
+  "params": {
+   "len": 51,
+   "color": "black",
+   "fine": true
+  },
+  "caption": "51 мм"
+ },
+ {
+  "slug": "samorez-chernyi-127",
+  "kind": "screws",
+  "params": {
+   "len": 127,
+   "color": "black",
+   "fine": false
+  },
+  "caption": "127 мм"
+ },
+ {
+  "slug": "samorez-chernyi-25",
+  "kind": "screws",
+  "params": {
+   "len": 25,
+   "color": "black",
+   "fine": false
+  },
+  "caption": "25 мм"
+ },
+ {
+  "slug": "samorez-chernyi-35",
+  "kind": "screws",
+  "params": {
+   "len": 35,
+   "color": "black",
+   "fine": false
+  },
+  "caption": "35 мм"
+ },
+ {
+  "slug": "samorez-chernyi-41",
+  "kind": "screws",
+  "params": {
+   "len": 41,
+   "color": "black",
+   "fine": false
+  },
+  "caption": "41 мм"
+ },
+ {
+  "slug": "samorez-chernyi-51",
+  "kind": "screws",
+  "params": {
+   "len": 51,
+   "color": "black",
+   "fine": false
+  },
+  "caption": "51 мм"
+ },
+ {
+  "slug": "samorez-chernyi-64",
+  "kind": "screws",
+  "params": {
+   "len": 64,
+   "color": "black",
+   "fine": false
+  },
+  "caption": "64 мм"
+ },
+ {
+  "slug": "samorez-chernyi-70",
+  "kind": "screws",
+  "params": {
+   "len": 70,
+   "color": "black",
+   "fine": false
+  },
+  "caption": "70 мм"
+ },
+ {
+  "slug": "samorez-chernyi-76",
+  "kind": "screws",
+  "params": {
+   "len": 76,
+   "color": "black",
+   "fine": false
+  },
+  "caption": "76 мм"
+ },
+ {
+  "slug": "samorez-chernyi-80",
+  "kind": "screws",
+  "params": {
+   "len": 80,
+   "color": "black",
+   "fine": false
+  },
+  "caption": "80 мм"
+ },
+ {
+  "slug": "samorez-chernyi-90",
+  "kind": "screws",
+  "params": {
+   "len": 90,
+   "color": "black",
+   "fine": false
+  },
+  "caption": "90 мм"
+ },
+ {
+  "slug": "sverlo-po-metallu",
+  "kind": "drillBit"
+ },
+ {
+  "slug": "skoby-dlya-steplera",
+  "kind": "staples"
+ },
+ {
+  "slug": "skotch-upakovochnyi",
+  "kind": "tape",
+  "params": {
+   "kind": "packing"
+  }
+ },
+ {
+  "slug": "topor",
+  "kind": "axe"
+ },
+ {
+  "slug": "fanera-fk-18-mm-1525-1525",
+  "kind": "plywood",
+  "params": {
+   "thickness": 18
+  },
+  "caption": "18 мм"
+ },
+ {
+  "slug": "shaiba-m10",
+  "kind": "washers",
+  "params": {
+   "m": 10
+  },
+  "caption": "М10"
+ },
+ {
+  "slug": "shaiba-m12",
+  "kind": "washers",
+  "params": {
+   "m": 12
+  },
+  "caption": "М12"
+ },
+ {
+  "slug": "shaiba-m14",
+  "kind": "washers",
+  "params": {
+   "m": 14
+  },
+  "caption": "М14"
+ },
+ {
+  "slug": "shaiba-m8",
+  "kind": "washers",
+  "params": {
+   "m": 8
+  },
+  "caption": "М8"
+ },
+ {
+  "slug": "shpatel",
+  "kind": "spatula"
+ },
+ {
+  "slug": "shpilka-m10",
+  "kind": "threadedRod",
+  "params": {
+   "m": 10
+  },
+  "caption": "М10 × 1 м"
+ },
+ {
+  "slug": "shpilka-m12",
+  "kind": "threadedRod",
+  "params": {
+   "m": 12
+  },
+  "caption": "М12 × 1 м"
+ },
+ {
+  "slug": "shpilka-m8",
+  "kind": "threadedRod",
+  "params": {
+   "m": 8
+  },
+  "caption": "М8 × 1 м"
+ },
+ {
+  "slug": "gluhar-100",
+  "kind": "screws",
+  "params": {
+   "len": 100,
+   "color": "metal",
+   "head": "hex"
+  },
+  "caption": "100 мм"
+ },
+ {
+  "slug": "gluhar-120",
+  "kind": "screws",
+  "params": {
+   "len": 120,
+   "color": "metal",
+   "head": "hex"
+  },
+  "caption": "120 мм"
+ },
+ {
+  "slug": "gluhar-130",
+  "kind": "screws",
+  "params": {
+   "len": 130,
+   "color": "metal",
+   "head": "hex"
+  },
+  "caption": "130 мм"
+ },
+ {
+  "slug": "gluhar-150",
+  "kind": "screws",
+  "params": {
+   "len": 150,
+   "color": "metal",
+   "head": "hex"
+  },
+  "caption": "150 мм"
+ },
+ {
+  "slug": "gluhar-40",
+  "kind": "screws",
+  "params": {
+   "len": 40,
+   "color": "metal",
+   "head": "hex"
+  },
+  "caption": "40 мм"
+ },
+ {
+  "slug": "gluhar-60",
+  "kind": "screws",
+  "params": {
+   "len": 60,
+   "color": "metal",
+   "head": "hex"
+  },
+  "caption": "60 мм"
+ },
+ {
+  "slug": "shchetka-100",
+  "kind": "wireBrush",
+  "params": {
+   "d": 100
+  },
+  "caption": "100 мм"
+ },
+ {
+  "slug": "shchetka-130",
+  "kind": "wireBrush",
+  "params": {
+   "d": 130
+  },
+  "caption": "130 мм"
+ },
+ {
+  "slug": "shchetka-150",
+  "kind": "wireBrush",
+  "params": {
+   "d": 150
+  },
+  "caption": "150 мм"
+ },
+ {
+  "slug": "shchetka-60",
+  "kind": "wireBrush",
+  "params": {
+   "d": 60
+  },
+  "caption": "60 мм"
+ },
+ {
+  "slug": "shchetka-80",
+  "kind": "wireBrush",
+  "params": {
+   "d": 80
+  },
+  "caption": "80 мм"
+ },
+ {
+  "slug": "shchetka-diskovaya-po-metallu",
+  "kind": "wireBrush",
+  "params": {
+   "d": 125,
+   "disc": true
+  }
+ },
+ {
+  "slug": "fanera-fk-10-mm-1525-1525",
+  "kind": "plywood",
+  "params": {
+   "thickness": 10
+  },
+  "caption": "10 мм"
+ },
+ {
+  "slug": "fanera-fk-12-mm-1525-1525",
+  "kind": "plywood",
+  "params": {
+   "thickness": 12
+  },
+  "caption": "12 мм"
+ },
+ {
+  "slug": "fanera-fsf-18-mm-1220-2440",
+  "kind": "plywood",
+  "params": {
+   "thickness": 18,
+   "ratio": 2,
+   "kind": "fsf"
+  },
+  "caption": "ФСФ · 18 мм"
+ },
+ {
+  "slug": "osb-3-9-mm-1250-2500",
+  "kind": "osb",
+  "params": {
+   "thickness": 9
+  },
+  "caption": "9 мм"
+ },
+ {
+  "slug": "osb-3-12-mm-1250-2500",
+  "kind": "osb",
+  "params": {
+   "thickness": 12
+  },
+  "caption": "12 мм"
+ }
+]

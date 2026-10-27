@@ -21,3 +21,14 @@ export function parentCategory(categories: ApiCategory[], category: ApiCategory)
     ? undefined
     : categories.find((item) => item.id === category.parent_id);
 }
+
+/** Только разделы, где есть товары (сами или в подразделах): пустые не показываем. */
+export function categoriesWithProducts(
+  categories: ApiCategory[],
+  products: { categoryIds: number[] }[],
+) {
+  const used = new Set(products.flatMap((product) => product.categoryIds));
+  return categories.filter((category) =>
+    categoryWithChildrenIds(categories, category.id).some((id) => used.has(id)),
+  );
+}
