@@ -705,9 +705,25 @@ textarea:focus-visible {
 
 .product-image-wrap {
   position: relative;
-  height: 215px;
+  /* Как у самих картинок каталога: на любой ширине товар виден целиком */
+  aspect-ratio: 4 / 3;
   overflow: hidden;
   background: #eae4de;
+}
+
+/* Размер доски поверх фото — текстом, а не в картинке: так он читается на любом экране */
+.product-size {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  padding: 4px 10px;
+  border: 1px solid #e3d9ce;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #4a3a2c;
+  font-size: 12px;
+  font-weight: 700;
+  pointer-events: none;
 }
 
 .product-image {
@@ -2313,8 +2329,11 @@ textarea:focus-visible {
     gap: 14px;
   }
 
-  .product-image-wrap {
-    height: clamp(135px, 32vw, 210px);
+  .product-size {
+    bottom: 7px;
+    left: 7px;
+    padding: 3px 8px;
+    font-size: 11px;
   }
 
   .product-info {

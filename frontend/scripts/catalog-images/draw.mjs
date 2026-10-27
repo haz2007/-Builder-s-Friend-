@@ -1,6 +1,7 @@
-// Рисунки товаров каталога в одном стиле: светлый фон, мягкая тень,
-// предмет по центру, подпись с размером в углу. Каждая функция возвращает
-// фрагмент SVG 1200×900; frame() собирает из него готовую картинку.
+// Рисунки товаров каталога в одном стиле: светлый фон, мягкая тень, предмет
+// по центру. Размер товара сайт пишет поверх картинки сам: вшитую подпись
+// на узком экране обрезало. Каждая функция возвращает фрагмент SVG 1200×900;
+// frame() собирает из него готовую картинку.
 
 const W = 1200;
 const H = 900;
@@ -40,18 +41,7 @@ function shadow(cx, cy, rx, ry, opacity = 0.26) {
   return `<ellipse cx="${f(cx)}" cy="${f(cy)}" rx="${f(rx)}" ry="${f(ry)}" fill="#2b1d10" opacity="${opacity}" filter="url(#blur)"/>`;
 }
 
-function badge(text) {
-  if (!text) return "";
-  const width = 40 + text.length * 25;
-  return `<g transform="translate(${W - 48 - width},${H - 118})">
-    <rect width="${width}" height="70" rx="35" fill="#ffffff" opacity="0.92"/>
-    <rect width="${width}" height="70" rx="35" fill="none" stroke="#d9cfc4" stroke-width="2"/>
-    <text x="${width / 2}" y="47" text-anchor="middle" font-family="Manrope, Arial, sans-serif"
-      font-weight="700" font-size="38" fill="#4a3a2c">${text}</text>
-  </g>`;
-}
-
-export function frame(body, caption, fontCss = "") {
+export function frame(body, fontCss = "") {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <defs>
     <style>${fontCss}</style>
@@ -61,7 +51,6 @@ export function frame(body, caption, fontCss = "") {
   </defs>
   <rect width="${W}" height="${H}" fill="url(#bg)"/>
   ${body}
-  ${badge(caption)}
 </svg>`;
 }
 

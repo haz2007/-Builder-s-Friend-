@@ -25,7 +25,7 @@ const page = await browser.newPage();
 await page.setContent("<canvas id=c width=1200 height=900></canvas>");
 
 // Первый рисунок с текстом иногда опережает загрузку шрифта: прогреваем его заранее
-const warm = draw.frame(draw.roll({ title: "ПРОГРЕВ", big: "A", sub: "70" }), "1", fontCss);
+const warm = draw.frame(draw.roll({ title: "ПРОГРЕВ", big: "A", sub: "70" }), fontCss);
 await page.evaluate(async (src) => {
   const img = new Image();
   img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(src)));
@@ -36,7 +36,7 @@ await page.evaluate(async (src) => {
 for (const item of catalog) {
   if (only.size && !only.has(item.slug)) continue;
   const body = draw[item.kind](item.params ?? {});
-  const svg = draw.frame(body, item.caption ?? "", fontCss);
+  const svg = draw.frame(body, fontCss);
   const dataUrl = await page.evaluate(async (src) => {
     const img = new Image();
     img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(src)));

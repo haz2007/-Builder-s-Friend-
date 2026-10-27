@@ -34,88 +34,77 @@
   "kind": "anchorBolt",
   "params": {
    "len": 100
-  },
-  "caption": "100 мм"
+  }
  },
  {
   "slug": "anker-10x40",
   "kind": "anchorBolt",
   "params": {
    "len": 40
-  },
-  "caption": "10×40 мм"
+  }
  },
  {
   "slug": "anker-120",
   "kind": "anchorBolt",
   "params": {
    "len": 120
-  },
-  "caption": "120 мм"
+  }
  },
  {
   "slug": "anker-150",
   "kind": "anchorBolt",
   "params": {
    "len": 150
-  },
-  "caption": "150 мм"
+  }
  },
  {
   "slug": "anker-180",
   "kind": "anchorBolt",
   "params": {
    "len": 180
-  },
-  "caption": "180 мм"
+  }
  },
  {
   "slug": "anker-50",
   "kind": "anchorBolt",
   "params": {
    "len": 50
-  },
-  "caption": "50 мм"
+  }
  },
  {
   "slug": "anker-65",
   "kind": "anchorBolt",
   "params": {
    "len": 65
-  },
-  "caption": "65 мм"
+  }
  },
  {
   "slug": "anker-77",
   "kind": "anchorBolt",
   "params": {
    "len": 77
-  },
-  "caption": "77 мм"
+  }
  },
  {
   "slug": "anker-8x40",
   "kind": "anchorBolt",
   "params": {
    "len": 40
-  },
-  "caption": "8×40 мм"
+  }
  },
  {
   "slug": "anker-85",
   "kind": "anchorBolt",
   "params": {
    "len": 85
-  },
-  "caption": "85 мм"
+  }
  },
  {
   "slug": "anker-97",
   "kind": "anchorBolt",
   "params": {
    "len": 97
-  },
-  "caption": "97 мм"
+  }
  },
  {
   "slug": "brus-100x100x6000",
@@ -125,8 +114,7 @@
    "w": 100,
    "len": 6000,
    "aspen": false
-  },
-  "caption": "100×100×6000"
+  }
  },
  {
   "slug": "brus-100x150x6000",
@@ -136,8 +124,7 @@
    "w": 150,
    "len": 6000,
    "aspen": false
-  },
-  "caption": "100×150×6000"
+  }
  },
  {
   "slug": "brus-100x200x6000",
@@ -147,8 +134,7 @@
    "w": 200,
    "len": 6000,
    "aspen": false
-  },
-  "caption": "100×200×6000"
+  }
  },
  {
   "slug": "brus-150x150x6000",
@@ -158,8 +144,7 @@
    "w": 150,
    "len": 6000,
    "aspen": false
-  },
-  "caption": "150×150×6000"
+  }
  },
  {
   "slug": "brus-150x200x6000",
@@ -169,8 +154,7 @@
    "w": 200,
    "len": 6000,
    "aspen": false
-  },
-  "caption": "150×200×6000"
+  }
  },
  {
   "slug": "brus-200x200x6000",
@@ -180,8 +164,7 @@
    "w": 200,
    "len": 6000,
    "aspen": false
-  },
-  "caption": "200×200×6000"
+  }
  },
  {
   "slug": "brusok-25x40x3000",
@@ -191,8 +174,7 @@
    "w": 40,
    "len": 3000,
    "aspen": false
-  },
-  "caption": "25×40×3000"
+  }
  },
  {
   "slug": "brusok-25x50x3000",
@@ -202,8 +184,7 @@
    "w": 50,
    "len": 3000,
    "aspen": false
-  },
-  "caption": "25×50×3000"
+  }
  },
  {
   "slug": "brusok-40x40x3000",
@@ -213,8 +194,7 @@
    "w": 40,
    "len": 3000,
    "aspen": false
-  },
-  "caption": "40×40×3000"
+  }
  },
  {
   "slug": "brusok-40x50x3000",
@@ -224,8 +204,7 @@
    "w": 50,
    "len": 3000,
    "aspen": false
-  },
-  "caption": "40×50×3000"
+  }
  },
  {
   "slug": "brusok-50x50x3000",
@@ -235,8 +214,7 @@
    "w": 50,
    "len": 3000,
    "aspen": false
-  },
-  "caption": "50×50×3000"
+  }
  },
  {
   "slug": "valik-malyarnyi",
@@ -251,40 +229,35 @@
   "kind": "nuts",
   "params": {
    "m": 10
-  },
-  "caption": "М10"
+  }
  },
  {
   "slug": "gaika-m12",
   "kind": "nuts",
   "params": {
    "m": 12
-  },
-  "caption": "М12"
+  }
  },
  {
   "slug": "gaika-m14",
   "kind": "nuts",
   "params": {
    "m": 14
-  },
-  "caption": "М14"
+  }
  },
  {
   "slug": "gaika-m8",
   "kind": "nuts",
   "params": {
    "m": 8
-  },
-  "caption": "М8"
+  }
  },
  {
   "slug": "gvozdi-stroitelnye-120-mm",
   "kind": "nails",
   "params": {
    "len": 120
-  },
-  "caption": "120 мм"
+  }
  },
  {
   "slug": "geotekstil-100-g-m",
@@ -325,32 +298,28 @@
   "kind": "cutDisc",
   "params": {
    "d": 125
-  },
-  "caption": "125 мм"
+  }
  },
  {
   "slug": "disk-180",
   "kind": "cutDisc",
   "params": {
    "d": 180
-  },
-  "caption": "180 мм"
+  }
  },
  {
   "slug": "disk-230",
   "kind": "cutDisc",
   "params": {
    "d": 230
-  },
-  "caption": "230 мм"
+  }
  },
  {
   "slug": "disk-250",
   "kind": "cutDisc",
   "params": {
    "d": 250
-  },
-  "caption": "250 мм"
+  }
  },
  {
   "slug": "doska-25x100x6000",
@@ -360,8 +329,7 @@
    "w": 100,
    "len": 6000,
    "aspen": false
-  },
-  "caption": "25×100×6000"
+  }
  },
  {
   "slug": "doska-25x150x6000",
@@ -371,8 +339,7 @@
    "w": 150,
    "len": 6000,
    "aspen": false
-  },
-  "caption": "25×150×6000"
+  }
  },
  {
   "slug": "doska-40x100x6000",
@@ -382,8 +349,7 @@
    "w": 100,
    "len": 6000,
    "aspen": false
-  },
-  "caption": "40×100×6000"
+  }
  },
  {
   "slug": "doska-40x150x6000",
@@ -393,8 +359,7 @@
    "w": 150,
    "len": 6000,
    "aspen": false
-  },
-  "caption": "40×150×6000"
+  }
  },
  {
   "slug": "doska-40x200x6000",
@@ -404,8 +369,7 @@
    "w": 200,
    "len": 6000,
    "aspen": false
-  },
-  "caption": "40×200×6000"
+  }
  },
  {
   "slug": "doska-50x100x6000",
@@ -415,8 +379,7 @@
    "w": 100,
    "len": 6000,
    "aspen": false
-  },
-  "caption": "50×100×6000"
+  }
  },
  {
   "slug": "doska-50x150x6000",
@@ -426,8 +389,7 @@
    "w": 150,
    "len": 6000,
    "aspen": false
-  },
-  "caption": "50×150×6000"
+  }
  },
  {
   "slug": "doska-50x200x6000",
@@ -437,8 +399,7 @@
    "w": 200,
    "len": 6000,
    "aspen": false
-  },
-  "caption": "50×200×6000"
+  }
  },
  {
   "slug": "doska-50x250x6000",
@@ -448,8 +409,7 @@
    "w": 250,
    "len": 6000,
    "aspen": false
-  },
-  "caption": "50×250×6000"
+  }
  },
  {
   "slug": "opryskivatel-zhuk-12",
@@ -718,24 +678,21 @@
   "kind": "foamBoard",
   "params": {
    "thickness": 100
-  },
-  "caption": "ППС-13 · 100 мм"
+  }
  },
  {
   "slug": "penoplast-pps-16-100-mm",
   "kind": "foamBoard",
   "params": {
    "thickness": 100
-  },
-  "caption": "ППС-16 · 100 мм"
+  }
  },
  {
   "slug": "penoplast-pps-16-50-mm",
   "kind": "foamBoard",
   "params": {
    "thickness": 50
-  },
-  "caption": "ППС-16 · 50 мм"
+  }
  },
  {
   "slug": "perchatki-rabochie",
@@ -772,8 +729,7 @@
    "len": 35,
    "color": "yellow",
    "fine": false
-  },
-  "caption": "35 мм"
+  }
  },
  {
   "slug": "samorez-zheltyi-41",
@@ -782,8 +738,7 @@
    "len": 41,
    "color": "yellow",
    "fine": false
-  },
-  "caption": "41 мм"
+  }
  },
  {
   "slug": "samorez-zheltyi-51",
@@ -792,8 +747,7 @@
    "len": 51,
    "color": "yellow",
    "fine": false
-  },
-  "caption": "51 мм"
+  }
  },
  {
   "slug": "samorez-zheltyi-64",
@@ -802,8 +756,7 @@
    "len": 64,
    "color": "yellow",
    "fine": false
-  },
-  "caption": "64 мм"
+  }
  },
  {
   "slug": "samorez-zheltyi-70",
@@ -812,8 +765,7 @@
    "len": 70,
    "color": "yellow",
    "fine": false
-  },
-  "caption": "70 мм"
+  }
  },
  {
   "slug": "samorez-zheltyi-76",
@@ -822,8 +774,7 @@
    "len": 76,
    "color": "yellow",
    "fine": false
-  },
-  "caption": "76 мм"
+  }
  },
  {
   "slug": "samorez-zheltyi-90",
@@ -832,8 +783,7 @@
    "len": 90,
    "color": "yellow",
    "fine": false
-  },
-  "caption": "90 мм"
+  }
  },
  {
   "slug": "samorez-metall-25",
@@ -842,8 +792,7 @@
    "len": 25,
    "color": "black",
    "fine": true
-  },
-  "caption": "25 мм"
+  }
  },
  {
   "slug": "samorez-metall-35",
@@ -852,8 +801,7 @@
    "len": 35,
    "color": "black",
    "fine": true
-  },
-  "caption": "35 мм"
+  }
  },
  {
   "slug": "samorez-metall-41",
@@ -862,8 +810,7 @@
    "len": 41,
    "color": "black",
    "fine": true
-  },
-  "caption": "41 мм"
+  }
  },
  {
   "slug": "samorez-metall-51",
@@ -872,8 +819,7 @@
    "len": 51,
    "color": "black",
    "fine": true
-  },
-  "caption": "51 мм"
+  }
  },
  {
   "slug": "samorez-chernyi-127",
@@ -882,8 +828,7 @@
    "len": 127,
    "color": "black",
    "fine": false
-  },
-  "caption": "127 мм"
+  }
  },
  {
   "slug": "samorez-chernyi-25",
@@ -892,8 +837,7 @@
    "len": 25,
    "color": "black",
    "fine": false
-  },
-  "caption": "25 мм"
+  }
  },
  {
   "slug": "samorez-chernyi-35",
@@ -902,8 +846,7 @@
    "len": 35,
    "color": "black",
    "fine": false
-  },
-  "caption": "35 мм"
+  }
  },
  {
   "slug": "samorez-chernyi-41",
@@ -912,8 +855,7 @@
    "len": 41,
    "color": "black",
    "fine": false
-  },
-  "caption": "41 мм"
+  }
  },
  {
   "slug": "samorez-chernyi-51",
@@ -922,8 +864,7 @@
    "len": 51,
    "color": "black",
    "fine": false
-  },
-  "caption": "51 мм"
+  }
  },
  {
   "slug": "samorez-chernyi-64",
@@ -932,8 +873,7 @@
    "len": 64,
    "color": "black",
    "fine": false
-  },
-  "caption": "64 мм"
+  }
  },
  {
   "slug": "samorez-chernyi-70",
@@ -942,8 +882,7 @@
    "len": 70,
    "color": "black",
    "fine": false
-  },
-  "caption": "70 мм"
+  }
  },
  {
   "slug": "samorez-chernyi-76",
@@ -952,8 +891,7 @@
    "len": 76,
    "color": "black",
    "fine": false
-  },
-  "caption": "76 мм"
+  }
  },
  {
   "slug": "samorez-chernyi-80",
@@ -962,8 +900,7 @@
    "len": 80,
    "color": "black",
    "fine": false
-  },
-  "caption": "80 мм"
+  }
  },
  {
   "slug": "samorez-chernyi-90",
@@ -972,8 +909,7 @@
    "len": 90,
    "color": "black",
    "fine": false
-  },
-  "caption": "90 мм"
+  }
  },
  {
   "slug": "sverlo-po-metallu",
@@ -999,40 +935,35 @@
   "kind": "plywood",
   "params": {
    "thickness": 18
-  },
-  "caption": "18 мм"
+  }
  },
  {
   "slug": "shaiba-m10",
   "kind": "washers",
   "params": {
    "m": 10
-  },
-  "caption": "М10"
+  }
  },
  {
   "slug": "shaiba-m12",
   "kind": "washers",
   "params": {
    "m": 12
-  },
-  "caption": "М12"
+  }
  },
  {
   "slug": "shaiba-m14",
   "kind": "washers",
   "params": {
    "m": 14
-  },
-  "caption": "М14"
+  }
  },
  {
   "slug": "shaiba-m8",
   "kind": "washers",
   "params": {
    "m": 8
-  },
-  "caption": "М8"
+  }
  },
  {
   "slug": "shpatel",
@@ -1043,24 +974,21 @@
   "kind": "threadedRod",
   "params": {
    "m": 10
-  },
-  "caption": "М10 × 1 м"
+  }
  },
  {
   "slug": "shpilka-m12",
   "kind": "threadedRod",
   "params": {
    "m": 12
-  },
-  "caption": "М12 × 1 м"
+  }
  },
  {
   "slug": "shpilka-m8",
   "kind": "threadedRod",
   "params": {
    "m": 8
-  },
-  "caption": "М8 × 1 м"
+  }
  },
  {
   "slug": "gluhar-100",
@@ -1069,8 +997,7 @@
    "len": 100,
    "color": "metal",
    "head": "hex"
-  },
-  "caption": "100 мм"
+  }
  },
  {
   "slug": "gluhar-120",
@@ -1079,8 +1006,7 @@
    "len": 120,
    "color": "metal",
    "head": "hex"
-  },
-  "caption": "120 мм"
+  }
  },
  {
   "slug": "gluhar-130",
@@ -1089,8 +1015,7 @@
    "len": 130,
    "color": "metal",
    "head": "hex"
-  },
-  "caption": "130 мм"
+  }
  },
  {
   "slug": "gluhar-150",
@@ -1099,8 +1024,7 @@
    "len": 150,
    "color": "metal",
    "head": "hex"
-  },
-  "caption": "150 мм"
+  }
  },
  {
   "slug": "gluhar-40",
@@ -1109,8 +1033,7 @@
    "len": 40,
    "color": "metal",
    "head": "hex"
-  },
-  "caption": "40 мм"
+  }
  },
  {
   "slug": "gluhar-60",
@@ -1119,48 +1042,42 @@
    "len": 60,
    "color": "metal",
    "head": "hex"
-  },
-  "caption": "60 мм"
+  }
  },
  {
   "slug": "shchetka-100",
   "kind": "wireBrush",
   "params": {
    "d": 100
-  },
-  "caption": "100 мм"
+  }
  },
  {
   "slug": "shchetka-130",
   "kind": "wireBrush",
   "params": {
    "d": 130
-  },
-  "caption": "130 мм"
+  }
  },
  {
   "slug": "shchetka-150",
   "kind": "wireBrush",
   "params": {
    "d": 150
-  },
-  "caption": "150 мм"
+  }
  },
  {
   "slug": "shchetka-60",
   "kind": "wireBrush",
   "params": {
    "d": 60
-  },
-  "caption": "60 мм"
+  }
  },
  {
   "slug": "shchetka-80",
   "kind": "wireBrush",
   "params": {
    "d": 80
-  },
-  "caption": "80 мм"
+  }
  },
  {
   "slug": "shchetka-diskovaya-po-metallu",
@@ -1175,16 +1092,14 @@
   "kind": "plywood",
   "params": {
    "thickness": 10
-  },
-  "caption": "10 мм"
+  }
  },
  {
   "slug": "fanera-fk-12-mm-1525-1525",
   "kind": "plywood",
   "params": {
    "thickness": 12
-  },
-  "caption": "12 мм"
+  }
  },
  {
   "slug": "fanera-fsf-18-mm-1220-2440",
@@ -1193,23 +1108,20 @@
    "thickness": 18,
    "ratio": 2,
    "kind": "fsf"
-  },
-  "caption": "ФСФ · 18 мм"
+  }
  },
  {
   "slug": "osb-3-9-mm-1250-2500",
   "kind": "osb",
   "params": {
    "thickness": 9
-  },
-  "caption": "9 мм"
+  }
  },
  {
   "slug": "osb-3-12-mm-1250-2500",
   "kind": "osb",
   "params": {
    "thickness": 12
-  },
-  "caption": "12 мм"
+  }
  }
 ]

@@ -47,6 +47,12 @@ export default function ProductCard({ product, priority = false }: { product: Pr
 
         {product.badge && <span className="product-badge">{product.badge}</span>}
 
+        {product.dimensions && (
+          <span className="product-size">
+            {product.dimensions.thickness}×{product.dimensions.width}×{product.dimensions.length}
+          </span>
+        )}
+
         <button
           className={`favorite-button ${isFavorite ? "is-favorite" : ""}`}
           aria-label={isFavorite ? "Убрать из избранного" : "Добавить в избранное"}
