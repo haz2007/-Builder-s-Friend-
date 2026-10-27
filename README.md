@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <a href="https://builders-friend.duckdns.org"><b>🌐 Открыть сайт</b></a>
+  <a href="https://builders-friend.ru"><b>🌐 Открыть сайт</b></a>
   &nbsp;·&nbsp;
   <a href="docs/diagrams.md">Диаграммы</a>
   &nbsp;·&nbsp;

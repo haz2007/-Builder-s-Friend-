@@ -495,7 +495,7 @@ flowchart TB
 
     le["Let's Encrypt"]
     cf["Cloudflare Worker"]
-    dns["DNS: duckdns.org<br/>(потом домен .ru)"]
+    dns["DNS reg.ru: builders-friend.ru<br/>(www и старый duckdns — редирект)"]
 
     db --- vol_db
     api --- vol_up

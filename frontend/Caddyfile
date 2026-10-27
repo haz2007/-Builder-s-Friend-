@@ -1,7 +1,13 @@
 # SITE_ADDRESS — домен (например builders-friend.ru): Caddy сам получит
 # сертификат Let's Encrypt. Для проверки без домена — ":80".
+# Несколько адресов через запятую: "builders-friend.ru, www.builders-friend.ru,
+# builders-friend.duckdns.org" — тогда PRIMARY_HOST=builders-friend.ru, и все
+# остальные адреса постоянно перенаправляются на него.
 {$SITE_ADDRESS::80} {
 	encode zstd gzip
+
+	@secondary expression `"{$PRIMARY_HOST:}" != "" && {host} != "{$PRIMARY_HOST:}"`
+	redir @secondary https://{$PRIMARY_HOST:}{uri} permanent
 
 	# API и загруженные фото — на бэкенд
 	handle /api/* {
