@@ -48,7 +48,11 @@ def validate_parent(db: Session, parent_id: int | None, category_id: int | None 
 
 @router.get("/", response_model=list[CategoryResponse])
 def get_categories(db: Session = Depends(get_db)):
-    return db.query(Category).order_by(Category.parent_id.isnot(None), Category.name).all()
+    return (
+        db.query(Category)
+        .order_by(Category.parent_id.isnot(None), Category.position, Category.name)
+        .all()
+    )
 
 
 @router.get("/{category_id}", response_model=CategoryResponse)
@@ -72,6 +76,8 @@ def create_category(
     validate_parent(db, category.parent_id)
 
     new_category = Category(name=category.name, parent_id=category.parent_id)
+    if category.position is not None:
+        new_category.position = category.position
     db.add(new_category)
     db.flush()
     audit.record(db, current_user, "category.created", "category", new_category.id,
@@ -106,6 +112,9 @@ def update_category(
     if "parent_id" in category_data.model_fields_set:
         validate_parent(db, category_data.parent_id, category_id)
         category.parent_id = category_data.parent_id
+
+    if category_data.position is not None:
+        category.position = category_data.position
 
     if (old_name, old_parent) != (category.name, category.parent_id):
         detail = f"«{old_name}» → «{category.name}»" if old_name != category.name else f"«{category.name}»"

@@ -144,6 +144,9 @@ class Category(Base):
         index=True,
     )
 
+    # Порядок в магазине: меньше — выше (пиломатериалы первыми), при равенстве — по алфавиту
+    position: Mapped[int] = mapped_column(Integer, default=100, server_default="100")
+
     products: Mapped[list["Product"]] = relationship(back_populates="category")
     parent: Mapped["Category | None"] = relationship(remote_side=[id], back_populates="children")
     children: Mapped[list["Category"]] = relationship(back_populates="parent", order_by="Category.name")

@@ -59,7 +59,7 @@ import type {
   ProductVariant,
   ShopContextValue,
 } from "./shop/types";
-import { categoriesWithProducts } from "./shop/categories";
+import { categoriesWithProducts, sortByCategoryPriority } from "./shop/categories";
 import { showFallbackImage } from "./shop/images";
 import {
   clearMetrikaCookies,
@@ -1048,8 +1048,13 @@ function App() {
     [apiCategories, products],
   );
 
+  const shopProducts = useMemo(
+    () => sortByCategoryPriority(products, apiCategories),
+    [products, apiCategories],
+  );
+
   const shop: ShopContextValue = {
-    products,
+    products: shopProducts,
     categories: shopCategories,
     loading,
     loadError,

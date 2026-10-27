@@ -15,7 +15,13 @@ export function getImageUrl(
   return `${API_ORIGIN}${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`;
 }
 
-export type ApiCategory = { id: number; name: string; parent_id: number | null };
+export type ApiCategory = {
+  id: number;
+  name: string;
+  parent_id: number | null;
+  // Порядок в магазине: API уже отдаёт разделы отсортированными
+  position?: number;
+};
 
 export type ApiProductVariant = {
   id: number;

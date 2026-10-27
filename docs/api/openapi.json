@@ -3006,6 +3006,19 @@
               }
             ],
             "title": "Parent Id"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
           }
         },
         "type": "object",
@@ -3033,6 +3046,10 @@
             ],
             "title": "Parent Id"
           },
+          "position": {
+            "type": "integer",
+            "title": "Position"
+          },
           "id": {
             "type": "integer",
             "title": "Id"
@@ -3041,6 +3058,7 @@
         "type": "object",
         "required": [
           "name",
+          "position",
           "id"
         ],
         "title": "CategoryResponse"

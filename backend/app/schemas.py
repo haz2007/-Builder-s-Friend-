@@ -21,10 +21,13 @@ class CategoryBase(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     # None — категория верхнего уровня
     parent_id: int | None = None
+    # Порядок в магазине (меньше — выше); не прислали — не меняем
+    position: int | None = Field(default=None, ge=0, le=1000)
 
 
 class CategoryResponse(CategoryBase):
     id: int
+    position: int
 
     model_config = ConfigDict(from_attributes=True)
 

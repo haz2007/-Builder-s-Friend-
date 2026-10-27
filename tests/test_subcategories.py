@@ -85,3 +85,26 @@ def test_cannot_delete_category_with_subcategories(client: TestClient):
     response = client.delete(f"/api/v1/categories/{lumber['id']}", headers=headers)
 
     assert response.status_code == 409
+
+
+def test_categories_follow_position_then_name(client: TestClient):
+    headers = admin_headers()
+    tools = create_category(client, headers, "Инструмент").json()
+    lumber = create_category(client, headers, "Пиломатериалы").json()
+    beams = create_category(client, headers, "Брус", lumber["id"]).json()
+    boards = create_category(client, headers, "Доска", lumber["id"]).json()
+
+    # Без позиции — по алфавиту
+    names = [c["name"] for c in client.get("/api/v1/categories/").json()]
+    assert names == ["Инструмент", "Пиломатериалы", "Брус", "Доска"]
+
+    client.patch(f"/api/v1/categories/{lumber['id']}", json={"name": "Пиломатериалы", "position": 10},
+                 headers=headers)
+    client.patch(f"/api/v1/categories/{boards['id']}", json={"name": "Доска", "position": 10}, headers=headers)
+    names = [c["name"] for c in client.get("/api/v1/categories/").json()]
+    assert names == ["Пиломатериалы", "Инструмент", "Доска", "Брус"]
+
+    # Переименование без позиции порядок не сбрасывает
+    response = client.patch(f"/api/v1/categories/{lumber['id']}", json={"name": "Лес"}, headers=headers)
+    assert response.json()["position"] == 10
+    assert tools["position"] == 100 and beams["position"] == 100
