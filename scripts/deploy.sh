@@ -40,7 +40,10 @@ main() {
   tar -C "$tmp" -cf - . | tar -x -C "$project_dir"
   docker compose -f docker-compose.prod.yml --env-file .env.production --profile bot \
     up -d --build --remove-orphans
+  # Диск на сервере 10 ГБ: старые образы и кэш сборки копятся с каждой выкаткой
+  # и однажды довели диск до 90%. Кэш держим до 500 МБ, чтобы сборка не замедлялась
   docker image prune -f >/dev/null
+  docker builder prune -f --keep-storage 500MB >/dev/null
 
   # Тот же адрес проверки, что и в scripts/healthcheck.sh: настоящий домен через сам сервер
   set -a; source .env.production; set +a
