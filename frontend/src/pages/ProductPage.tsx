@@ -9,7 +9,7 @@ import { parentCategory } from "../shop/categories";
 import { formatPrice, formatQuantity } from "../shop/format";
 import { useShop } from "../shop/ShopContext";
 import { stockLabel } from "../shop/stock";
-import { showFallbackImage, sizedImage } from "../shop/images";
+import { isIllustration, showFallbackImage, sizedImage } from "../shop/images";
 import { usePageTitle } from "../shop/usePageTitle";
 
 export default function ProductPage() {
@@ -85,14 +85,19 @@ export default function ProductPage() {
         </nav>
 
         <div className="product-page-grid">
-          <div className="product-page-image">
-            <img
-              src={sizedImage(product.image, 1000)}
-              alt={product.name}
-              onError={showFallbackImage}
-              fetchPriority="high"
-            />
-          </div>
+          <figure className="product-page-figure">
+            <div className="product-page-image">
+              <img
+                src={sizedImage(product.image, 1000)}
+                alt={product.name}
+                onError={showFallbackImage}
+                fetchPriority="high"
+              />
+            </div>
+            {isIllustration(product.image) && (
+              <figcaption>Иллюстрация. Внешний вид и упаковка товара могут отличаться.</figcaption>
+            )}
+          </figure>
 
           <div className="product-page-info">
             <span className="product-category">{product.category}</span>

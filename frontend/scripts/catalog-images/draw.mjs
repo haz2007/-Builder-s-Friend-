@@ -2,6 +2,8 @@
 // по центру. Размер товара сайт пишет поверх картинки сам: вшитую подпись
 // на узком экране обрезало. Каждая функция возвращает фрагмент SVG 1200×900;
 // frame() собирает из него готовую картинку.
+// Надписи на рисунках — только по-русски (ст. 10.1 закона о защите прав потребителей);
+// латиница допустима лишь в названиях марок и типов товара: «Изоспан AM».
 
 const W = 1200;
 const H = 900;
@@ -252,8 +254,8 @@ export function osb({ thickness = 9 }) {
   <path d="${S.top}" fill="url(#oTop)"/>
   <g clip-path="url(#cTop)">${strands}</g>
   <g transform="${mat}" opacity="0.75">
-    <text x="0" y="0" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-weight="800" font-size="46" fill="#1f4f9a">OSB-3</text>
-    <text x="0" y="40" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-weight="700" font-size="24" fill="#1f4f9a">${thickness} mm · E1</text>
+    <text x="0" y="0" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-weight="800" font-size="46" fill="#1f4f9a">ОСП-3</text>
+    <text x="0" y="40" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-weight="700" font-size="24" fill="#1f4f9a">${thickness} мм</text>
   </g>
   <path d="${S.top}" fill="none" stroke="#9c7038" stroke-width="2" opacity="0.5"/>`;
 }
@@ -449,7 +451,7 @@ export function foamCan() {
   <path d="M600,214 L720,170 L870,120" stroke="#e7e2d8" stroke-width="10" fill="none" stroke-linecap="round"/>
   <path d="M600,214 L720,170 L870,120" stroke="#c9c2b4" stroke-width="2" fill="none"/>
   <rect x="540" y="430" width="120" height="70" rx="8" fill="#fff" opacity="0.9"/>
-  <text x="600" y="478" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-weight="800" font-size="34" fill="#c9561a">PU</text>`;
+  <text x="600" y="478" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-weight="800" font-size="30" fill="#c9561a">ПЕНА</text>`;
 }
 
 /** Картридж герметика. */
@@ -757,7 +759,7 @@ export function pencil() {
     <line x1="-400" y1="0" x2="260" y2="0" stroke="#8d1b14" stroke-width="2" opacity="0.4"/>
     <path d="M260,-32 L400,-8 L400,8 L260,32 Z" fill="url(#wood)"/>
     <path d="M372,-12 L410,-4 L410,4 L372,12 Z" fill="#2e2e2e"/>
-    <text x="-150" y="12" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-weight="800" font-size="30" fill="#ffd8d3" opacity="0.8">2H</text>
+    <text x="-150" y="12" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-weight="800" font-size="30" fill="#ffd8d3" opacity="0.8">2Т</text>
   </g>`;
 }
 
@@ -902,7 +904,7 @@ export function cutDisc({ d = 125 }) {
   <ellipse cx="600" cy="440" rx="${f(R * 0.45)}" ry="${f(R * 0.28)}" fill="#c9302a"/>
   <ellipse cx="600" cy="440" rx="${f(R * 0.2)}" ry="${f(R * 0.124)}" fill="#c9cfd6"/>
   <ellipse cx="600" cy="440" rx="${f(R * 0.11)}" ry="${f(R * 0.068)}" fill="#e9e3da"/>
-  <text x="600" y="${f(440 - R * 0.17)}" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-weight="800" font-size="26" fill="#fff" transform="scale(1,1)">METAL</text>`;
+  <text x="600" y="${f(440 - R * 0.17)}" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-weight="800" font-size="21" fill="#fff">ПО МЕТАЛЛУ</text>`;
 }
 
 /** Щётка для УШМ: чашечная или дисковая, со стальной проволокой. */
@@ -972,7 +974,7 @@ export function gasTorch() {
   <path d="M860,190 L930,152" stroke="#33373b" stroke-width="40" stroke-linecap="round"/>
   <rect x="560" y="280" width="80" height="36" rx="10" fill="#33373b" transform="rotate(-30 600 298)"/>
   <rect x="450" y="520" width="140" height="120" rx="8" fill="#fff" opacity="0.9"/>
-  <text x="520" y="595" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-weight="800" font-size="40" fill="#c32f22">GAS</text>`;
+  <text x="520" y="595" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-weight="800" font-size="40" fill="#c32f22">ГАЗ</text>`;
 }
 
 /** Навесной замок. */

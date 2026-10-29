@@ -13,6 +13,14 @@ export function sizedImage(url: string, width: number): string {
   return url.replace(/([?&])w=\d+/, `$1w=${width}`);
 }
 
+/**
+ * Рисунок из каталога (public/catalog), а не фото самого товара. Его подписываем
+ * «иллюстрацией»: упаковка на рисунке условная и может не совпадать с настоящей.
+ */
+export function isIllustration(url: string): boolean {
+  return url.includes("/catalog/");
+}
+
 /** Если файл фото пропал с сервера, показываем запасную картинку. */
 export function showFallbackImage(event: SyntheticEvent<HTMLImageElement>) {
   const image = event.currentTarget;

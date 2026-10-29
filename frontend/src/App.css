@@ -3978,6 +3978,16 @@ a.category-tab {
   aspect-ratio: 4 / 3;
 }
 
+.product-page-figure {
+  margin: 0;
+}
+
+.product-page-figure figcaption {
+  margin-top: 8px;
+  color: #8a7a6c;
+  font-size: 13px;
+}
+
 .product-page-image img {
   width: 100%;
   height: 100%;
