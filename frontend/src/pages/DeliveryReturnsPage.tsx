@@ -1,7 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
-import { EMAIL, PHONES, SELLER, STORE_LOCATION, WORKING_HOURS } from "../shop/contacts";
+import { DELIVERY_AREA, EMAIL, PHONES, SELLER, STORE_LOCATION, WORKING_HOURS } from "../shop/contacts";
 import { usePageTitle } from "../shop/usePageTitle";
 
 /**
@@ -40,6 +40,18 @@ export default function DeliveryReturnsPage() {
           Привозим заказ своим транспортом прямо на объект и помогаем выгрузить. Стоимость и
           время доставки обсуждаем по телефону, когда подтверждаем заказ, — они зависят от
           адреса и объёма.
+        </p>
+
+        <h2>Куда возим</h2>
+        <p>Чаще всего — в Химки и ближайшие города и районы, например:</p>
+        <ul className="delivery-area">
+          {DELIVERY_AREA.map((place) => (
+            <li key={place}>{place}</li>
+          ))}
+        </ul>
+        <p>
+          Вашего адреса нет в списке — позвоните, договоримся. Цена — по договорённости с
+          водителем, бесплатной доставки нет.
         </p>
 
         <h2>Самовывоз</h2>

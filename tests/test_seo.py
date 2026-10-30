@@ -49,6 +49,8 @@ def test_home_has_store_schema(client: TestClient):
     store = json_ld(text, "HardwareStore")
     assert store["telephone"] == ["+7 964 705-68-20", "+7 901 768-03-67"]
     assert store["geo"]["latitude"] == 55.976238
+    assert {"@type": "Place", "name": "Зеленоград"} in store["areaServed"]
+    assert "доставка в Зеленоград" in text
     assert 'og:image" content="https://builders-friend.ru/og-image.jpg"' in text
 
 

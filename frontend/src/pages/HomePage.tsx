@@ -11,7 +11,7 @@ import {
   topLevelCategories,
 } from "../shop/categories";
 import { showFallbackImage } from "../shop/images";
-import { CLOSE_HOUR, EMAIL, OPEN_HOUR, PHONES, STORE_LOCATION, TELEGRAM_BOT_URL, YEARS_ON_MARKET } from "../shop/contacts";
+import { CLOSE_HOUR, DELIVERY_AREA, EMAIL, OPEN_HOUR, PHONES, STORE_LOCATION, TELEGRAM_BOT_URL, YEARS_ON_MARKET } from "../shop/contacts";
 import { storeStatus } from "../shop/hours";
 import { pluralize } from "../shop/format";
 import { useShop } from "../shop/ShopContext";
@@ -232,6 +232,9 @@ export default function HomePage() {
               нашим транспортом прямо на объект, стоимость обсудим по телефону.
               Самовывоз — на своей или нанятой машине: подготовим заказ и
               поможем с погрузкой.
+            </p>
+            <p className="home-delivery-area">
+              <strong>Куда возим:</strong> {DELIVERY_AREA.join(", ")} и не только — другой адрес обсудим по телефону.
             </p>
             <ul className="home-delivery-list">
               <li><Truck size={18} /> Доставка своим транспортом</li>

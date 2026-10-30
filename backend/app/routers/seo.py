@@ -27,11 +27,16 @@ from ..services.variant_service import get_primary_variant
 router = APIRouter(prefix="/api/v1/seo", tags=["SEO"])
 
 DEFAULT_DESCRIPTION = (
-    "Обрезная доска, брус, фанера, ОСБ и крепёж. Поштучно и кубами, "
-    f"доставка на объект или самовывоз в Химках. {store_info.YEARS_ON_MARKET} лет опыта."
+    "Доска, брус, фанера, ОСБ и крепёж — поштучно и кубами. Самовывоз в Химках, "
+    f"доставка в Зеленоград, Сходню, Лобню, Долгопрудный. {store_info.YEARS_ON_MARKET} лет опыта."
 )
+# Короткий хвост описаний товаров и разделов
+DELIVERY_NOTE = "Доставка по Химкам, Зеленограду, Сходне и Лобне или самовывоз."
 STATIC_PAGES = {
-    "/delivery": ("Доставка и возврат", "Как мы привозим заказы, самовывоз со склада и правила возврата товара."),
+    "/delivery": (
+        "Доставка и возврат",
+        f"Доставка в {store_info.DELIVERY_AREA_TO}, Митино, Куркино и не только. Самовывоз, правила возврата.",
+    ),
     "/privacy": ("Политика конфиденциальности", "Как магазин обрабатывает и защищает персональные данные."),
     "/consent": ("Согласие на обработку персональных данных", "Текст согласия на обработку персональных данных."),
 }
@@ -75,6 +80,7 @@ def store_schema(base: str) -> dict[str, Any]:
         "email": store_info.EMAIL,
         "openingHours": "Mo-Su 09:00-19:00",
         "priceRange": "₽₽",
+        "areaServed": [{"@type": "Place", "name": name} for name in store_info.DELIVERY_AREA],
     }
     if store_info.ADDRESS:
         data["address"] = {
@@ -237,7 +243,7 @@ def seo_head(
             description = short(
                 f"{product.name}: {rubles(price)} за {unit}"
                 + (f". {product.description}" if product.description else "")
-                + ". Доставка или самовывоз в Химках."
+                + f". {DELIVERY_NOTE}"
             )
             crumbs = category_crumbs(product.category) + [(product.name, None)]
             return render_head(
@@ -263,7 +269,7 @@ def seo_head(
                 return render_head(title, DEFAULT_DESCRIPTION, url, image, index=False)
             description = (
                 f"{category.name} в Химках: {count} {plural(count, 'позиция', 'позиции', 'позиций')}, "
-                f"цены от {rubles(min_price)}. Наличие на складе, доставка на объект или самовывоз."
+                f"цены от {rubles(min_price)}. Наличие на складе. {DELIVERY_NOTE}"
             )
             crumbs = category_crumbs(category)
             crumbs[-1] = (category.name, None)
@@ -273,7 +279,7 @@ def seo_head(
         count = db.query(func.count(Product.id)).filter(Product.is_active == 1).scalar() or 0
         description = (
             f"{count} {plural(count, 'товар', 'товара', 'товаров')} для стройки: обрезная доска и брус, "
-            "фанера и ОСБ, крепёж, плёнки, инструмент. Цены и остатки на складе, доставка или самовывоз в Химках."
+            f"фанера и ОСБ, крепёж, плёнки, инструмент. Цены и остатки на складе. {DELIVERY_NOTE}"
         )
         return render_head(f"Каталог пиломатериалов и крепежа | {store}", short(description), url, image)
 
