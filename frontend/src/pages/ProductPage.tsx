@@ -1,4 +1,4 @@
-import { ChevronRight, Package, ShoppingCart } from "lucide-react";
+import { ChevronRight, Package, Phone, ShoppingCart } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
@@ -8,7 +8,7 @@ import VariantPicker from "../components/VariantPicker";
 import { parentCategory } from "../shop/categories";
 import { formatPrice, formatQuantity } from "../shop/format";
 import { useShop } from "../shop/ShopContext";
-import { stockLabel } from "../shop/stock";
+import { isOnOrder, orderByPhone, stockLabel } from "../shop/stock";
 import { isIllustration, showFallbackImage, sizedImage } from "../shop/images";
 import { usePageTitle } from "../shop/usePageTitle";
 
@@ -24,6 +24,7 @@ export default function ProductPage() {
     changeQuantity,
     maxAddable,
     openCart,
+    openCallUs,
   } = useShop();
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState("");
@@ -122,11 +123,7 @@ export default function ProductPage() {
                   <span>за 1 {variant.unit}</span>
                 </div>
 
-                <div
-                  className={`product-stock ${
-                    variant.stockQuantity > 0 ? "is-available" : "is-unavailable"
-                  }`}
-                >
+                <div className={`product-stock ${isOnOrder(variant) ? "is-on-order" : "is-available"}`}>
                   <span className="product-stock-dot" />
                   {stockLabel(product, variant)}
                 </div>
@@ -138,26 +135,35 @@ export default function ProductPage() {
                   </p>
                 )}
 
-                <div className="product-page-actions">
-                  <QuantityInput
-                    value={amount}
-                    max={available}
-                    onChange={setQuantity}
-                    large
-                    iconSize={16}
-                  />
+                {isOnOrder(variant) && inCart < 1 ? (
+                  <div className="product-page-actions">
+                    <button className="button button-primary" onClick={() => orderByPhone(product.name, openCallUs)}>
+                      <Phone size={18} />
+                      Заказать по телефону
+                    </button>
+                  </div>
+                ) : (
+                  <div className="product-page-actions">
+                    <QuantityInput
+                      value={amount}
+                      max={available}
+                      onChange={setQuantity}
+                      large
+                      iconSize={16}
+                    />
 
-                  <button
-                    className="button button-primary"
-                    onClick={addToCart}
-                    disabled={available < 1}
-                  >
-                    <ShoppingCart size={18} />
-                    {available < 1
-                      ? "Больше нет в наличии"
-                      : `В корзину · ${formatPrice(variant.price * amount)}`}
-                  </button>
-                </div>
+                    <button
+                      className="button button-primary"
+                      onClick={addToCart}
+                      disabled={available < 1}
+                    >
+                      <ShoppingCart size={18} />
+                      {available < 1
+                        ? "Больше нет в наличии"
+                        : `В корзину · ${formatPrice(variant.price * amount)}`}
+                    </button>
+                  </div>
+                )}
 
                 {(added || inCart > 0) && (
                   <p className="product-page-added">

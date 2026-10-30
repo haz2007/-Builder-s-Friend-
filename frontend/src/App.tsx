@@ -71,6 +71,7 @@ import {
 import type { CookieChoice } from "./shop/metrika";
 import { orderStatusLabel } from "./shop/orderStatus";
 import CallbackForm from "./components/CallbackForm";
+import CallUsDialog from "./components/CallUsDialog";
 import CookieBanner from "./components/CookieBanner";
 import DeleteAccount from "./components/DeleteAccount";
 import PhoneInput from "./components/PhoneInput";
@@ -345,6 +346,8 @@ function App() {
   const [checkoutSuccess, setCheckoutSuccess] = useState<number | null>(null);
   // «Перезвоните мне» вместо регистрации
   const [callbackMode, setCallbackMode] = useState(false);
+  // Окно «Заказать по телефону» (товар под заказ, «не нашли нужное»)
+  const [callUs, setCallUs] = useState<{ product?: string; callback?: boolean } | null>(null);
   const [callbackSuccess, setCallbackSuccess] = useState<number | null>(null);
 
   // Личный кабинет покупателя
@@ -1069,6 +1072,7 @@ function App() {
     maxAddable,
     openCart: () => setCartOpen(true),
     openCheckout,
+    openCallUs: (options = {}) => setCallUs(options),
   };
 
 
@@ -2324,6 +2328,9 @@ function App() {
                     </section>
                   </div>
                       )}
+      {callUs && (
+        <CallUsDialog product={callUs.product} callback={callUs.callback} onClose={() => setCallUs(null)} />
+      )}
     </div>
     </ShopContext.Provider>
   );

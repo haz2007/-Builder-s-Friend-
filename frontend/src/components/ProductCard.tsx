@@ -1,9 +1,9 @@
-import { Heart, Plus } from "lucide-react";
+import { Heart, Phone, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import QuantityInput from "./QuantityInput";
 import { formatPrice } from "../shop/format";
-import { stockLabel } from "../shop/stock";
+import { isOnOrder, orderByPhone, stockLabel } from "../shop/stock";
 import { useShop } from "../shop/ShopContext";
 import type { Product } from "../shop/types";
 import VariantPicker from "./VariantPicker";
@@ -19,12 +19,13 @@ export default function ProductCard({ product, priority = false }: { product: Pr
     changeQuantity,
     canAddVariant,
     maxAddable,
+    openCallUs,
   } = useShop();
 
   const variant = getSelectedVariant(product);
   const price = variant?.price ?? product.price;
   const unit = variant?.unit ?? product.unit;
-  const inStock = (variant?.stockQuantity ?? 0) > 0;
+  const onOrder = isOnOrder(variant);
   const inCart = variant ? cart[variant.id] || 0 : 0;
   const canAdd = variant ? canAddVariant(product, variant) : false;
   const isFavorite = favorites.includes(product.id);
@@ -81,7 +82,7 @@ export default function ProductCard({ product, priority = false }: { product: Pr
           <p className="variant-hint">В 1 м³ — {product.piecesPerCube} шт</p>
         )}
 
-        <div className={`product-stock ${inStock ? "is-available" : "is-unavailable"}`}>
+        <div className={`product-stock ${onOrder ? "is-on-order" : "is-available"}`}>
           <span className="product-stock-dot" />
           {stockLabel(product, variant)}
         </div>
@@ -92,7 +93,16 @@ export default function ProductCard({ product, priority = false }: { product: Pr
             <small>/ {unit}</small>
           </div>
 
-          {variant && inCart ? (
+          {onOrder && !inCart ? (
+            <button
+              className="order-button"
+              onClick={() => orderByPhone(product.name, openCallUs)}
+              aria-label={`Заказать ${product.name} по телефону`}
+            >
+              <Phone size={15} />
+              Заказать
+            </button>
+          ) : variant && inCart ? (
             <QuantityInput
               value={inCart}
               max={inCart + maxAddable(product, variant)}

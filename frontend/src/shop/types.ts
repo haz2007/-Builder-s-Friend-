@@ -54,4 +54,6 @@ export type ShopContextValue = {
   maxAddable: (product: Product, variant: ProductVariant) => number;
   openCart: () => void;
   openCheckout: () => void;
+  /** Окно «Заказать по телефону»: товар под заказ или «не нашли нужное» */
+  openCallUs: (options?: { product?: string; callback?: boolean }) => void;
 };

@@ -14,12 +14,16 @@ export default function CallbackForm({
   cart,
   initialName,
   initialComment,
+  intro = "Оставьте имя и телефон — перезвоним в рабочее время, уточним заказ и доставку. Регистрироваться и придумывать пароль не нужно.",
+  cancelLabel = "← Оформить заказ самому",
   onDone,
   onCancel,
 }: {
   cart: CartEntry[];
   initialName: string;
   initialComment: string;
+  intro?: string;
+  cancelLabel?: string;
   onDone: (requestId: number) => void;
   onCancel: () => void;
 }) {
@@ -52,10 +56,7 @@ export default function CallbackForm({
 
   return (
     <form className="checkout-form" onSubmit={handleSubmit}>
-      <p className="checkout-description">
-        Оставьте имя и телефон — перезвоним в рабочее время, уточним заказ и доставку.
-        Регистрироваться и придумывать пароль не нужно.
-      </p>
+      <p className="checkout-description">{intro}</p>
       <label className="checkout-field">
         <span>Как к вам обращаться?</span>
         <input
@@ -96,7 +97,7 @@ export default function CallbackForm({
         {!sending && <ArrowRight size={18} />}
       </button>
       <button type="button" className="checkout-switch" onClick={onCancel}>
-        ← Оформить заказ самому
+        {cancelLabel}
       </button>
     </form>
   );

@@ -826,11 +826,6 @@ textarea:focus-visible {
   color: #6d523a;
 }
 
-.product-stock.is-unavailable {
-  background: #f8ece8;
-  color: #9b5144;
-}
-
 .product-stock-dot {
   width: 6px;
   height: 6px;
@@ -5806,4 +5801,159 @@ a.category-tab {
   .cookie-banner-actions .button {
     flex: 1;
   }
+}
+
+/* «Под заказ»: остатка нет, заказать можно по телефону */
+.product-stock.is-on-order {
+  background: #fbf0dc;
+  color: #8a5a14;
+}
+
+.order-button {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  height: 35px;
+  padding: 0 12px;
+  border: 1.5px solid #3a2a1f;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #3a2a1f;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.order-button:hover {
+  background: #3a2a1f;
+  color: #ffffff;
+}
+
+/* «Не нашли нужное?» под товарами каталога */
+.call-us-banner {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  width: 100%;
+  margin-top: 28px;
+  padding: 22px 24px;
+  border-radius: 14px;
+  background: var(--brand-primary);
+  color: #f7f1e8;
+  text-align: left;
+}
+
+.call-us-banner-icon {
+  display: grid;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 10px;
+  background: #4d3828;
+  color: #e3a85b;
+}
+
+.call-us-banner h3 {
+  margin: 0;
+  color: #ffffff;
+  font-family: "Manrope", sans-serif;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.call-us-banner p {
+  margin: 6px 0 0;
+  color: #e8dccb;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.call-us-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.call-us-banner-actions a,
+.call-us-banner-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 14px;
+  border: 1.5px solid #7a6352;
+  border-radius: 9px;
+  background: transparent;
+  color: #f7f1e8;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.call-us-banner-actions a:hover,
+.call-us-banner-actions button:hover {
+  border-color: #e3a85b;
+}
+
+.call-us-banner-actions .call-us-banner-main {
+  border-color: #e3a85b;
+  background: #e3a85b;
+  color: #2b211a;
+}
+
+.call-us-banner small {
+  display: block;
+  margin-top: 10px;
+  color: #b9a894;
+  font-size: 12px;
+}
+
+.empty-results .call-us-banner {
+  margin-top: 32px;
+}
+
+@media (max-width: 560px) {
+  .call-us-banner {
+    flex-direction: column;
+    padding: 20px 18px;
+  }
+
+  .call-us-banner-actions a,
+  .call-us-banner-actions button {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+}
+
+/* Окно «Заказать по телефону» */
+.call-us-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.call-us-phones {
+  display: grid;
+  gap: 8px;
+}
+
+.call-us-phones .button {
+  justify-content: center;
+  text-decoration: none;
+}
+
+.call-us-hours {
+  margin: 0;
+  color: #7a6d62;
+  font-size: 13px;
+  text-align: center;
 }

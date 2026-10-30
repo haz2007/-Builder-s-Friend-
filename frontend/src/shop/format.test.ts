@@ -32,7 +32,7 @@ describe("stockLabel", () => {
   });
 
   it("нет остатка — нет в наличии", () => {
-    expect(stockLabel(product, variant({ stockQuantity: 0 }))).toBe("Нет в наличии");
-    expect(stockLabel(product, undefined)).toBe("Нет в наличии");
+    expect(stockLabel(product, variant({ stockQuantity: 0 }))).toBe("Под заказ — срок уточним по телефону");
+    expect(stockLabel(product, undefined)).toBe("Под заказ — срок уточним по телефону");
   });
 });

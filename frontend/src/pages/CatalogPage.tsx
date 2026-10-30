@@ -17,6 +17,7 @@ import {
   parentCategory,
   topLevelCategories,
 } from "../shop/categories";
+import CallUsBanner from "../components/CallUsBanner";
 import { pluralize } from "../shop/format";
 import { useShop } from "../shop/ShopContext";
 import type { Product } from "../shop/types";
@@ -411,6 +412,8 @@ export default function CatalogPage() {
                     )}
                   </nav>
                 )}
+
+                <CallUsBanner />
               </>
             ) : (
               <div className="empty-results">
@@ -421,6 +424,7 @@ export default function CatalogPage() {
                 <button className="button button-dark" onClick={resetFilters}>
                   Сбросить фильтры
                 </button>
+                <CallUsBanner />
               </div>
             )}
           </div>
