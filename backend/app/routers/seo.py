@@ -15,6 +15,7 @@ from xml.sax.saxutils import escape as xml_escape
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import HTMLResponse, Response
+from sqlalchemy import func
 from sqlalchemy.orm import Session, selectinload
 
 from .. import store_info
@@ -25,7 +26,7 @@ from ..services.variant_service import get_primary_variant
 router = APIRouter(prefix="/api/v1/seo", tags=["SEO"])
 
 DEFAULT_DESCRIPTION = (
-    "Обрезная доска, брус, вагонка, крепёж и листовые материалы. Поштучно и кубами, "
+    "Обрезная доска, брус, фанера, ОСБ и крепёж. Поштучно и кубами, "
     f"доставка на объект или самовывоз в Химках. {store_info.YEARS_ON_MARKET} лет опыта."
 )
 STATIC_PAGES = {
@@ -48,6 +49,17 @@ def absolute(base: str, url: str | None) -> str:
     return url if url.startswith("http") else f"{base}{url}"
 
 
+def website_schema(base: str) -> dict[str, Any]:
+    """Название сайта, которое Google пишет в выдаче над адресом."""
+    return {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": store_info.STORE_NAME,
+        "url": f"{base}/",
+        "inLanguage": "ru",
+    }
+
+
 def store_schema(base: str) -> dict[str, Any]:
     """Магазин для Яндекса и Google: адрес, телефоны, часы работы, точка на карте."""
     data: dict[str, Any] = {
@@ -56,6 +68,7 @@ def store_schema(base: str) -> dict[str, Any]:
         "name": store_info.STORE_NAME,
         "url": f"{base}/",
         "image": f"{base}/og-image.jpg",
+        "logo": f"{base}/brand/logo-telegram.png",
         "description": DEFAULT_DESCRIPTION,
         "telephone": store_info.PHONES,
         "email": store_info.EMAIL,
@@ -84,6 +97,8 @@ def product_schema(base: str, product: Product) -> dict[str, Any]:
         "@context": "https://schema.org",
         "@type": "Product",
         "name": product.name,
+        "sku": str(product.id),
+        "url": f"{base}/product/{product.id}",
         "description": product.description or product.name,
         "image": absolute(base, product.image_url),
         "category": product.category.name if product.category else None,
@@ -91,6 +106,7 @@ def product_schema(base: str, product: Product) -> dict[str, Any]:
             "@type": "Offer",
             "price": f"{price:.2f}",
             "priceCurrency": "RUB",
+            "itemCondition": "https://schema.org/NewCondition",
             "availability": f"https://schema.org/{'InStock' if in_stock else 'OutOfStock'}",
             "url": f"{base}/product/{product.id}",
             "seller": {"@type": "Organization", "name": store_info.STORE_NAME},
@@ -98,12 +114,54 @@ def product_schema(base: str, product: Product) -> dict[str, Any]:
     }
 
 
+def category_trail(category: Category | None) -> list[Category]:
+    """Раздел и его родители, от верхнего к нижнему."""
+    trail: list[Category] = []
+    while category is not None and category not in trail:
+        trail.insert(0, category)
+        category = category.parent
+    return trail
+
+
+def breadcrumbs_schema(base: str, crumbs: list[tuple[str, str | None]]) -> dict[str, Any]:
+    """«Хлебные крошки» — поисковик показывает их вместо адреса страницы."""
+    items = []
+    for position, (name, path) in enumerate(crumbs, start=1):
+        item: dict[str, Any] = {"@type": "ListItem", "position": position, "name": name}
+        if path is not None:
+            item["item"] = f"{base}{path}"
+        items.append(item)
+    return {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": items}
+
+
+def category_crumbs(category: Category | None) -> list[tuple[str, str | None]]:
+    crumbs: list[tuple[str, str | None]] = [("Каталог", "/catalog")]
+    return crumbs + [(c.name, f"/catalog/{c.id}") for c in category_trail(category)]
+
+
+def plural(n: int, one: str, few: str, many: str) -> str:
+    if n % 10 == 1 and n % 100 != 11:
+        return one
+    if 2 <= n % 10 <= 4 and not 12 <= n % 100 <= 14:
+        return few
+    return many
+
+
+def rubles(value: float) -> str:
+    return f"{value:,.0f}".replace(",", " ") + " ₽"
+
+
+def category_ids_with_children(db: Session, category_id: int) -> list[int]:
+    child_ids = [cid for (cid,) in db.query(Category.id).filter(Category.parent_id == category_id)]
+    return [category_id, *child_ids]
+
+
 def render_head(
     title: str,
     description: str,
     url: str,
     image: str,
-    schema: dict[str, Any] | None = None,
+    schemas: list[dict[str, Any]] | None = None,
     og_type: str = "website",
     index: bool = True,
 ) -> str:
@@ -123,7 +181,7 @@ def render_head(
     ]
     if not index:
         tags.append('<meta name="robots" content="noindex, nofollow" />')
-    if schema:
+    for schema in schemas or []:
         # </ внутри JSON закрыл бы тег <script>
         payload = json.dumps(schema, ensure_ascii=False).replace("</", "<\\/")
         tags.append(f'<script type="application/ld+json">{payload}</script>')
@@ -176,43 +234,64 @@ def seo_head(
             price = variant.price if variant else product.price
             unit = variant.unit if variant else product.unit
             description = short(
-                f"{product.name}: {price:,.0f} ₽ за {unit}".replace(",", " ")
+                f"{product.name}: {rubles(price)} за {unit}"
                 + (f". {product.description}" if product.description else "")
                 + ". Доставка или самовывоз в Химках."
             )
+            crumbs = category_crumbs(product.category) + [(product.name, None)]
             return render_head(
                 f"{product.name} — купить в Химках | {store}",
                 description,
                 url,
                 absolute(base, product.image_url),
-                product_schema(base, product),
+                [product_schema(base, product), breadcrumbs_schema(base, crumbs)],
                 og_type="product",
             )
 
     if match := re.fullmatch(r"/catalog/(\d+)", path):
         category = db.get(Category, int(match.group(1)))
         if category is not None:
-            return render_head(
-                f"{category.name} — купить в Химках | {store}",
-                f"{category.name}: цены, наличие, доставка или самовывоз. {DEFAULT_DESCRIPTION}",
-                url,
-                image,
+            count, min_price = (
+                db.query(func.count(Product.id), func.min(Product.price))
+                .filter(Product.is_active == 1, Product.category_id.in_(category_ids_with_children(db, category.id)))
+                .one()
             )
+            title = f"{category.name} — купить в Химках | {store}"
+            if not count:
+                # Пустой раздел — пустая страница в выдаче; не показываем её поисковику
+                return render_head(title, DEFAULT_DESCRIPTION, url, image, index=False)
+            description = (
+                f"{category.name} в Химках: {count} {plural(count, 'позиция', 'позиции', 'позиций')}, "
+                f"цены от {rubles(min_price)}. Наличие на складе, доставка на объект или самовывоз."
+            )
+            crumbs = category_crumbs(category)
+            crumbs[-1] = (category.name, None)
+            return render_head(title, description, url, image, [breadcrumbs_schema(base, crumbs)])
 
     if path == "/catalog":
-        return render_head(f"Каталог пиломатериалов и крепежа | {store}", DEFAULT_DESCRIPTION, url, image)
+        count = db.query(func.count(Product.id)).filter(Product.is_active == 1).scalar() or 0
+        description = (
+            f"{count} {plural(count, 'товар', 'товара', 'товаров')} для стройки: обрезная доска и брус, "
+            "фанера и ОСБ, крепёж, плёнки, инструмент. Цены и остатки на складе, доставка или самовывоз в Химках."
+        )
+        return render_head(f"Каталог пиломатериалов и крепежа | {store}", short(description), url, image)
 
     if path in STATIC_PAGES:
         title, description = STATIC_PAGES[path]
         return render_head(f"{title} | {store}", description, url, image)
 
-    return render_head(
-        f"{store} — доска, брус и крепёж в Химках",
-        DEFAULT_DESCRIPTION,
-        f"{base}/",
-        image,
-        store_schema(base),
-    )
+    if path == "/":
+        return render_head(
+            f"{store} — доска, брус и крепёж в Химках",
+            DEFAULT_DESCRIPTION,
+            f"{base}/",
+            image,
+            [website_schema(base), store_schema(base)],
+        )
+
+    # Личный кабинет, скрытый товар, несуществующий адрес — в поиске им не место
+    title = f"Личный кабинет | {store}" if path == "/account" else f"{store} — доска, брус и крепёж в Химках"
+    return render_head(title, DEFAULT_DESCRIPTION, url, image, index=False)
 
 
 @router.get("/sitemap.xml")
@@ -224,7 +303,16 @@ def sitemap(
     """Карта сайта для Яндекс Вебмастера: главная, каталог, разделы, товары."""
     base = site_url(host, scheme)
     paths = ["/", "/catalog", "/delivery"]
-    paths += [f"/catalog/{category_id}" for (category_id,) in db.query(Category.id).order_by(Category.id)]
+    # Только разделы, где есть товары (в самом разделе или в его подразделах)
+    filled: set[int] = {
+        category_id
+        for (category_id,) in db.query(Product.category_id).filter(Product.is_active == 1)
+        if category_id is not None
+    }
+    for category_id, parent_id in db.query(Category.id, Category.parent_id):
+        if category_id in filled and parent_id is not None:
+            filled.add(parent_id)
+    paths += [f"/catalog/{category_id}" for category_id in sorted(filled)]
     paths += [
         f"/product/{product_id}"
         for (product_id,) in db.query(Product.id).filter(Product.is_active == 1).order_by(Product.id)
