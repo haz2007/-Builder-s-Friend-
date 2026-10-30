@@ -2559,6 +2559,60 @@
         }
       }
     },
+    "/api/v1/seo/yml.xml": {
+      "get": {
+        "tags": [
+          "SEO"
+        ],
+        "summary": "Yml Feed",
+        "description": "Товары, цены и фото в формате YML — для Яндекс Бизнеса и Вебмастера.\n\nОдна позиция на товар: цена основного варианта, как на странице товара\nпри открытии. Нет на складе — available=\"false\" («под заказ»).",
+        "operationId": "yml_feed_api_v1_seo_yml_xml_get",
+        "parameters": [
+          {
+            "name": "host",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200,
+              "default": "localhost",
+              "title": "Host"
+            }
+          },
+          {
+            "name": "scheme",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 10,
+              "default": "https",
+              "title": "Scheme"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/callback-requests/": {
       "post": {
         "tags": [

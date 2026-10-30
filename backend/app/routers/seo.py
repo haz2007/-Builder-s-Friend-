@@ -10,6 +10,7 @@ schema.org — магазин на главной, товар с ценой на
 import html
 import json
 import re
+from datetime import UTC, datetime
 from typing import Any
 from xml.sax.saxutils import escape as xml_escape
 
@@ -322,5 +323,83 @@ def sitemap(
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         f"{urls}\n</urlset>\n"
+    )
+    return Response(content=body, media_type="application/xml")
+
+
+def yml_text(value: str) -> str:
+    """Текст для YML: спецсимволы — сущностями, включая кавычки и апостроф."""
+    return xml_escape(value, {'"': "&quot;", "'": "&apos;"})
+
+
+@router.get("/yml.xml")
+def yml_feed(
+    host: str = Query("localhost", max_length=200),
+    scheme: str = Query("https", max_length=10),
+    db: Session = Depends(get_db),
+):
+    """Товары, цены и фото в формате YML — для Яндекс Бизнеса и Вебмастера.
+
+    Одна позиция на товар: цена основного варианта, как на странице товара
+    при открытии. Нет на складе — available="false" («под заказ»).
+    """
+    base = site_url(host, scheme)
+    categories = db.query(Category).order_by(Category.id).all()
+    products = (
+        db.query(Product)
+        .options(selectinload(Product.variants))
+        .filter(Product.is_active == 1)
+        .order_by(Product.id)
+        .all()
+    )
+
+    category_lines = []
+    for category in categories:
+        parent = f' parentId="{category.parent_id}"' if category.parent_id is not None else ""
+        category_lines.append(f'      <category id="{category.id}"{parent}>{yml_text(category.name)}</category>')
+
+    offer_lines = []
+    for product in products:
+        variant = get_primary_variant(product)
+        price = variant.price if variant else product.price
+        available = product.stock_quantity >= (variant.base_quantity if variant else 1)
+        url = f"{base}/product/{product.id}"
+        offer_lines += [
+            f'      <offer id="{product.id}" available="{"true" if available else "false"}">',
+            f"        <name>{yml_text(product.name)}</name>",
+            f"        <url>{yml_text(url)}</url>",
+            f"        <price>{price:.2f}</price>",
+            "        <currencyId>RUR</currencyId>",
+            f"        <categoryId>{product.category_id}</categoryId>",
+            f"        <picture>{yml_text(absolute(base, product.image_url))}</picture>",
+            "        <store>false</store>",
+            "        <pickup>true</pickup>",
+            "        <delivery>true</delivery>",
+            f"        <description>{yml_text(product.description or product.name)}</description>",
+            "      </offer>",
+        ]
+
+    # Дата выгрузки с часовым поясом (RFC 3339): старше 10 дней Яндекс не берёт
+    date = datetime.now(UTC).isoformat(timespec="seconds")
+    body = "\n".join(
+        [
+            '<?xml version="1.0" encoding="UTF-8"?>',
+            f'<yml_catalog date="{date}">',
+            "  <shop>",
+            f"    <name>{yml_text(store_info.STORE_NAME)}</name>",
+            f"    <company>{yml_text(store_info.LEGAL_NAME)}</company>",
+            f"    <url>{yml_text(base)}/</url>",
+            f"    <email>{yml_text(store_info.EMAIL)}</email>",
+            '    <currencies><currency id="RUR" rate="1"/></currencies>',
+            "    <categories>",
+            *category_lines,
+            "    </categories>",
+            "    <offers>",
+            *offer_lines,
+            "    </offers>",
+            "  </shop>",
+            "</yml_catalog>",
+            "",
+        ]
     )
     return Response(content=body, media_type="application/xml")

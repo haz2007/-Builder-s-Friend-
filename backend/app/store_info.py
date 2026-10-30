@@ -4,6 +4,8 @@
 """
 
 STORE_NAME = "Друг Строителя"
+# Продавец — как в реквизитах на сайте (frontend/src/shop/contacts.ts)
+LEGAL_NAME = "ИП Гашимов Расим Фитат Оглы"
 YEARS_ON_MARKET = 30
 WORKING_HOURS = "Ежедневно с 9:00 до 19:00"
 

@@ -23,6 +23,11 @@
 		rewrite * /api/v1/seo/sitemap.xml?host={hostport}&scheme={scheme}
 		reverse_proxy backend:8000
 	}
+	# Товары, цены и фото (YML) для Яндекс Бизнеса и Вебмастера
+	handle /yml.xml {
+		rewrite * /api/v1/seo/yml.xml?host={hostport}&scheme={scheme}
+		reverse_proxy backend:8000
+	}
 
 	# Сайт: файлы сборки, остальные адреса (/catalog/1, /admin) — index.html
 	handle {

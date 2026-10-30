@@ -2,6 +2,7 @@
 
 import json
 import re
+from xml.etree import ElementTree
 
 from fastapi.testclient import TestClient
 
@@ -152,3 +153,38 @@ def test_sitemap_lists_active_products_and_categories(client: TestClient):
 def test_host_is_sanitized(client: TestClient):
     text = client.get("/api/v1/seo/head", params={"path": "/", "host": 'evil.ru"><script>'}).text
     assert '"><script>' not in text
+
+
+def test_yml_feed_lists_offers_with_price_picture_and_availability(client: TestClient):
+    product_id, category_id = make_product()
+    on_order_id, _ = make_product(stock=0, category_name="Брус")
+    hidden_id, _ = make_product(active=0, category_name="Фанера")
+    db = SessionLocal()
+    db.get(Product, product_id).image_url = "/catalog/doska.webp"
+    db.get(Product, on_order_id).name = 'Брус "сухой" & строганый'
+    db.commit()
+    db.close()
+
+    response = client.get("/api/v1/seo/yml.xml", params={"host": "builders-friend.ru"})
+    root = ElementTree.fromstring(response.content)
+
+    assert response.headers["content-type"].startswith("application/xml")
+    assert root.tag == "yml_catalog" and root.get("date")
+    shop = root.find("shop")
+    assert shop.findtext("name") == "Друг Строителя"
+    assert shop.find(f"categories/category[@id='{category_id}']").text == "Доска"
+    offers = {offer.get("id"): offer for offer in shop.iter("offer")}
+    assert str(hidden_id) not in offers
+
+    offer = offers[str(product_id)]
+    assert offer.get("available") == "true"
+    assert offer.findtext("url") == f"https://builders-friend.ru/product/{product_id}"
+    assert offer.findtext("price") == "620.00"
+    assert offer.findtext("currencyId") == "RUR"
+    assert offer.findtext("categoryId") == str(category_id)
+    assert offer.findtext("picture") == "https://builders-friend.ru/catalog/doska.webp"
+
+    on_order = offers[str(on_order_id)]
+    assert on_order.get("available") == "false"
+    assert on_order.findtext("name") == 'Брус "сухой" & строганый'
+    assert "&quot;сухой&quot; &amp;" in response.text
